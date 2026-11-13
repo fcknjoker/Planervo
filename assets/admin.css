@@ -120,7 +120,8 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 .img-ctl{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}
 .img-ctl input[type=file]{display:none}
 .up-st{color:var(--mute)}
-.rich{min-height:260px;background:#fff}
+.rich{background:#fff;position:relative;z-index:0}
+.rich .ql-container.ql-snow{height:auto!important}
 .ql-toolbar.ql-snow{border-radius:10px 10px 0 0;border-color:#d6cdbd;font-family:var(--f-body)}
 .ql-container.ql-snow{border-radius:0 0 10px 10px;border-color:#d6cdbd;font:inherit;font-size:1rem}
 .ql-editor{min-height:240px}

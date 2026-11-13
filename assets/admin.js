@@ -445,6 +445,14 @@
       <footer><button type="button" class="btn danger" id="qDel">Kérés törlése</button><button type="button" class="btn o" data-close>Bezárás</button><button type="button" class="btn" id="qSave">Mentés</button></footer></div>`;
     $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
     dlg.showModal();
+    if (q.status === 'new') {
+      sb.from('quotes').update({ status: 'in_progress' }).eq('id', id).then(({ error }) => {
+        if (error) return;
+        q.status = 'in_progress';
+        const sel = $('#qStatusSel'); if (sel) sel.value = 'in_progress';
+        renderQuotes(); refreshBadge();
+      });
+    }
     $('#qSave').onclick = async () => {
       const upd = { status: $('#qStatusSel').value, admin_note: $('#qNote').value.trim() || null };
       const { error } = await sb.from('quotes').update(upd).eq('id', id);
