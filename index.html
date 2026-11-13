@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PLANERVO – Szobafestés, hőszigetelés, felújítás</title>
+<meta name="description" content="PLANERVO: szobafestés, hőszigetelés, felújítás és felületképzés. Kérj árajánlatot online, helyiségenként.">
+<meta property="og:title" content="PLANERVO – Minőség minden rétegben">
+<meta property="og:image" content="logo.png">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="topnav" id="topnav">
+  <a class="brand" href="#top" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
+  <div class="links">
+    <a href="#szolgaltatasok">Szolgáltatások</a>
+    <a href="#munkaink">Munkáink</a>
+    <a href="#videok" id="navVideo" hidden>Videók</a>
+    <a href="#blog" id="navBlog" hidden>Blog</a>
+    <a href="#kapcsolat">Kapcsolat</a>
+    <a class="pill" href="#arajanlat">Árajánlat</a>
+  </div>
+</nav>
+
+<header id="top">
+  <div id="track">
+    <div id="stage">
+      <div class="layer" id="L0"><img class="logo-img" id="heroLogo" src="logo.png" alt="PLANERVO – Minőség minden rétegben. Szobafestés, hőszigetelés, felújítás, felületképzés"></div>
+      <div class="layer" id="L1">
+        <h1 data-t="hero_title"></h1>
+        <p data-t="hero_text"></p>
+        <div class="btns"><a class="btn" href="#arajanlat" data-t="hero_btn"></a><a class="btn o" href="#munkaink">Munkáink</a></div>
+      </div>
+      <div id="roller" aria-hidden="true">
+        <svg viewBox="0 0 230 190">
+          <path d="M205 26 H222 V110 H118 V140" fill="none" stroke="#6a6258" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+          <rect x="104" y="136" width="28" height="54" rx="12" fill="#2b2621"/>
+          <rect x="4" y="0" width="206" height="52" rx="16" fill="#c49a54"/>
+          <rect x="14" y="8" width="186" height="9" rx="4.5" fill="#fff" opacity=".4"/>
+        </svg>
+      </div>
+      <div id="hint" data-t="hero_hint"></div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="slot" data-slot="after_hero"></div>
+
+  <section class="band dark" id="szolgaltatasok">
+    <div class="wrap">
+      <h2 data-t="services_title"></h2>
+      <p class="lead" data-t="services_text"></p>
+      <div class="svc" id="svcList"></div>
+    </div>
+  </section>
+  <div class="slot" data-slot="after_services"></div>
+
+  <div id="munkaink">
+    <section class="band" id="elotte-utana" hidden>
+      <div class="wrap">
+        <h2 data-t="ba_title"></h2>
+        <p class="lead" data-t="ba_text"></p>
+        <div class="cmps" id="baList"></div>
+      </div>
+    </section>
+    <div class="slot" data-slot="after_ba"></div>
+
+    <section class="band soft" id="galeria" hidden>
+      <div class="wrap">
+        <h2 data-t="gallery_title"></h2>
+        <p class="lead" data-t="gallery_text"></p>
+        <div class="gal" id="galList"></div>
+      </div>
+    </section>
+  </div>
+  <div class="slot" data-slot="after_gallery"></div>
+
+  <section class="band peach" id="videok" hidden>
+    <div class="wrap">
+      <h2 data-t="videos_title"></h2>
+      <p class="lead" data-t="videos_text"></p>
+      <div class="vids" id="vidList"></div>
+      <a class="btn o chan" id="chanLink" href="#" target="_blank" rel="noopener" hidden>YouTube-csatornánk</a>
+    </div>
+  </section>
+  <div class="slot" data-slot="after_videos"></div>
+
+  <section class="band" id="blog" hidden>
+    <div class="wrap">
+      <h2 data-t="blog_title"></h2>
+      <p class="lead" data-t="blog_text"></p>
+      <div class="posts" id="postList"></div>
+      <a class="more" href="blog.html">Összes bejegyzés</a>
+    </div>
+  </section>
+  <div class="slot" data-slot="after_blog"></div>
+
+  <section class="band soft" id="arajanlat">
+    <div class="wrap">
+      <h2 data-t="quote_title"></h2>
+      <p class="lead" data-t="quote_text"></p>
+      <form id="quoteForm" novalidate>
+        <div class="q-grid">
+          <div class="q-main">
+            <h3 class="q-h">Helyiségek</h3>
+            <div id="rooms"></div>
+            <button type="button" class="btn o add" id="addRoom">+ Helyiség hozzáadása</button>
+
+            <h3 class="q-h sp">Elérhetőségeid</h3>
+            <div class="fields">
+              <label>Név<input id="qName" autocomplete="name" required maxlength="120"></label>
+              <label>E-mail<input id="qEmail" type="email" autocomplete="email" required maxlength="160"></label>
+              <label>Telefonszám<input id="qPhone" type="tel" autocomplete="tel" required maxlength="40"></label>
+              <label>Település<input id="qCity" autocomplete="address-level2" required maxlength="120"></label>
+              <label class="full">Megjegyzés<textarea id="qMsg" rows="4" maxlength="3000" placeholder="Mikorra szeretnéd? Van bármi, amit tudnunk kell (lakott lakás, emelet, lift)?"></textarea></label>
+              <label class="chk full"><input type="checkbox" id="qOk" required><span data-t="privacy_text"></span></label>
+            </div>
+          </div>
+          <aside class="q-sum" id="qSum" aria-live="polite"></aside>
+        </div>
+        <div class="q-actions">
+          <button class="btn gold" type="submit" id="qSend">Árajánlat kérése</button>
+          <div id="qStatus" role="status"></div>
+        </div>
+      </form>
+      <div class="done" id="qDone" hidden tabindex="-1">
+        <h3>Köszönjük!</h3>
+        <p data-t="quote_success"></p>
+        <button type="button" class="btn" id="qAgain">Új árajánlat kérése</button>
+      </div>
+      <datalist id="roomNames">
+        <option value="Nappali"><option value="Hálószoba"><option value="Gyerekszoba"><option value="Konyha">
+        <option value="Fürdőszoba"><option value="Előszoba"><option value="Dolgozószoba"><option value="Étkező">
+        <option value="Lépcsőház"><option value="Homlokzat">
+      </datalist>
+    </div>
+  </section>
+  <div class="slot" data-slot="before_contact"></div>
+
+  <section class="band dark" id="kapcsolat">
+    <div class="wrap">
+      <h2 data-t="contact_title"></h2>
+      <p class="lead" data-t="contact_text"></p>
+      <div class="contact" id="contactBox"></div>
+      <div class="socials" id="socials"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <a class="brand" href="#top">PLAN<i><b></b><b></b><b></b></i>RVO</a>
+  <em data-t="footer_text"></em>
+  <nav><a href="blog.html">Blog</a><a href="admin.html">Admin</a></nav>
+</footer>
+
+<dialog id="lightbox" aria-label="Kép nagyítva">
+  <div class="lb">
+    <figure style="margin:0"><img id="lbImg" alt=""><p id="lbCap"></p></figure>
+    <button class="lb-x" type="button" aria-label="Bezárás">×</button>
+    <button class="lb-p" type="button" aria-label="Előző kép">‹</button>
+    <button class="lb-n" type="button" aria-label="Következő kép">›</button>
+  </div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
