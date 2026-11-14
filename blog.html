@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="only light">
 <title>Blog – PLANERVO</title>
 <meta name="description" content="A PLANERVO blogja: tanácsok festéshez, felújításhoz és színválasztáshoz.">
 <link rel="icon" href="logo.png">
@@ -12,15 +13,17 @@
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<nav class="topnav solid">
+<nav class="topnav solid" id="topnav">
   <a class="brand" href="index.html" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
-  <div class="links">
+  <div class="links" id="navLinks">
     <a href="index.html#szolgaltatasok">Szolgáltatások</a>
     <a href="index.html#munkaink">Munkáink</a>
+    <a href="index.html#videok">Videók</a>
     <a href="blog.html">Blog</a>
     <a href="index.html#kapcsolat">Kapcsolat</a>
-    <a class="pill" href="index.html#arajanlat">Árajánlat</a>
   </div>
+  <a class="pill" href="index.html#arajanlat">Árajánlat</a>
+  <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks" aria-label="Menü megnyitása"><span></span></button>
 </nav>
 <main id="blogMain"><div class="wrap blog-top"><p class="empty">Betöltés…</p></div></main>
 <footer class="site">

@@ -71,6 +71,17 @@ A levél tartalmazza a helyiségeket, a kiválasztott munkákat, a becsült ára
 Töltsd fel a mappa teljes tartalmát (a `supabase` mappa kivételével) a tárhely gyökerébe.
 Az oldal csak webcímről működik, a számítógépen dupla kattintással megnyitva (`file://`) nem.
 
+## Árlista és fal / mennyezet választás (2026. november)
+
+1. Supabase → **SQL Editor** → futtasd le a `supabase/2026-11-arlista.sql` fájlt (egyszer kell, adatot nem töröl).
+   Ez felveszi a mennyezet külön munkadíját és az új mértékegységeket.
+2. Admin → **Munkafolyamatok és díjak** → **Árlista betöltése**. Betölti a kb. 100 tételes árlistát
+   (csak munkadíj, `assets/arlista.js`). Rákérdez, hogy a régi tételeket elrejtse-e.
+3. Utána minden tétel szerkeszthető: megnevezés, kategória, mértékegység, munkadíj, mennyezet díja.
+
+Mértékegységek: a **fal és/vagy mennyezet** tételnél az ügyfél választ (Fal / Mennyezet / Mindkettő);
+az **m² (megadott)**, **folyóméter** és **darab** tételnél az ügyfél írja be a mennyiséget.
+
 ## Admin felület (`/admin.html`)
 
 - **Árajánlat-kérések:** beérkezett kérések, állapot (Új, Folyamatban, Ajánlat elküldve, Elfogadva, Lezárva),
