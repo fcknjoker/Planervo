@@ -34,32 +34,87 @@
   const nav = $('#topnav'), track = $('#track');
   function navState() { nav.classList.toggle('solid', track.getBoundingClientRect().bottom < 80); }
 
-  /* ---------- Főoldal teteje: a henger három oszlopban aranyra festi a logót ---------- */
-  const L1 = $('#L1'), roller = $('#roller'), hint = $('#hint');
+  /* ---------- Főoldal teteje: a henger oszlopról oszlopra aranyra festi a logót ----------
+     A festés éle pontosan a henger fejének középvonalán fut, a henger feje pedig pontosan
+     egy oszlop szélességű. A kivágás (clip-path) a henger dőlését is követi. */
+  const stage = $('#stage'), L1 = $('#L1'), roller = $('#roller'), hint = $('#hint');
+  const naps = $$('#roller .nap');
   const cl = v => Math.min(1, Math.max(0, v));
-  function hero() {
-    const vh = innerHeight, vw = innerWidth;
-    const p = cl(-track.getBoundingClientRect().top / (track.offsetHeight - vh));
-    const hw = roller.offsetWidth, s = hw / 230, n = 3, q = p * n / .9;
-    const sz = [], ps = [];
+  const ease = t => t * t * (3 - 2 * t);
+  const HEAD_W = 206, HEAD_CX = 107, HEAD_CY = 26, HANDLE_DOWN = 164;   // az SVG mértékegységei
+  let G = null;
+
+  function layout() {
+    const W = stage.clientWidth, H = stage.clientHeight;
+    if (G && G.W === W && G.H === H) return G;
+    const n = W < 640 ? 2 : Math.max(3, Math.round(W / 340));          // oszlopok száma
+    const col = W / n, hw = col + 3, s = hw / HEAD_W;                  // a fej kicsit szélesebb, mint az oszlop
+    const cx = j => (j + .5) * col;
+    const yEnd = j => (j % 2 ? 0 : H);
+    const segs = [{ k: 'in', j: 0, x0: cx(0), x1: cx(0), y0: -(HANDLE_DOWN * s + 40), y1: 0 }];
     for (let j = 0; j < n; j++) {
-      sz.push(`${100 / n + .8}% ${cl(q - j) * 100}%`);
-      ps.push(`${j / (n - 1) * 100}% ${j % 2 ? '100%' : '0%'}`);
+      const down = j % 2 === 0;
+      segs.push({ k: 'paint', j, x0: cx(j), x1: cx(j), y0: down ? 0 : H, y1: down ? H : 0 });
+      if (j < n - 1) segs.push({ k: 'move', j, x0: cx(j), x1: cx(j + 1), y0: yEnd(j), y1: yEnd(j) });
     }
-    const img = Array(n).fill('linear-gradient(#000,#000)').join(',');
-    ['-webkit-', ''].forEach(x => {
-      const st = L1.style;
-      st.setProperty(x + 'mask-image', img);
-      st.setProperty(x + 'mask-size', sz.join(','));
-      st.setProperty(x + 'mask-position', ps.join(','));
-      st.setProperty(x + 'mask-repeat', 'no-repeat');
-    });
-    const i = Math.min(n - 1, Math.floor(q)), w = cl(q - i), odd = i % 2, off = p > .97 ? (p - .97) / .03 : 0;
-    const cx = (i + .5) * vw / n + Math.sin(q * Math.PI * 8) * vw / n * .25;
-    let cy = odd ? vh - w * vh + hw / 2 : w * vh - hw / 2;
-    cy -= off * vh * .7;
-    roller.style.transform = `translate(${cx - hw / 2}px,${cy - 26 * s}px) rotate(${Math.cos(q * Math.PI * 8) * -3}deg)`;
-    roller.style.visibility = (off >= 1 || p <= 0) ? 'hidden' : 'visible';
+    const lastDown = (n - 1) % 2 === 0, ly = yEnd(n - 1);
+    segs.push({ k: 'out', j: n - 1, x0: cx(n - 1), x1: cx(n - 1), y0: ly, y1: lastDown ? H + HEAD_CY * s + 40 : -(HANDLE_DOWN * s + 40) });
+    let total = 0;
+    segs.forEach(g => { g.len = g.k === 'move' ? col * .8 : Math.max(1, Math.abs(g.y1 - g.y0)); g.at = total; total += g.len; });
+    const scroll = total / 1.5;                                        // a henger 1,5-szer gyorsabban halad, mint a görgetés
+    track.style.height = (scroll + H) + 'px';
+    roller.style.width = (230 * s) + 'px';
+    return G = { W, H, n, col, s, segs, total, scroll };
+  }
+
+  function hero() {
+    const g = layout(), { W, H, n, col, s, segs, total } = g;
+    const p = cl(-track.getBoundingClientRect().top / g.scroll), d = p * total;
+
+    /* hol tart a henger? */
+    let i = 0;
+    while (i < segs.length - 1 && d > segs[i].at + segs[i].len) i++;
+    const sg = segs[i], t = cl((d - sg.at) / sg.len);
+    let x = sg.x0 + (sg.x1 - sg.x0) * (sg.k === 'move' ? ease(t) : t);
+    const y = sg.y0 + (sg.y1 - sg.y0) * t;
+    const down = sg.j % 2 === 0;
+    let tilt = 0, lift = 0;
+    if (sg.k === 'paint') tilt = (down ? 1 : -1) * 1.4 * Math.sin(Math.PI * t);
+    if (sg.k === 'move') { lift = Math.sin(Math.PI * t); tilt = (sg.x1 > sg.x0 ? 1 : -1) * 3 * lift; }
+
+    /* a festett terület: kész oszlopok + a most festett oszlop a henger élével */
+    const pad = 1, parts = [];
+    const rect = j => { const l = j * col - pad, r = (j + 1) * col + pad; return `M${l} -2L${r} -2L${r} ${H + 2}L${l} ${H + 2}Z`; };
+    const done = sg.k === 'in' ? 0 : sg.k === 'paint' ? sg.j : sg.k === 'move' ? sg.j + 1 : n;
+    for (let j = 0; j < done; j++) parts.push(rect(j));
+    if (sg.k === 'paint' && t > 0) {
+      const l = sg.j * col - pad, r = (sg.j + 1) * col + pad, tn = Math.tan(tilt * Math.PI / 180);
+      const edge = xx => Math.max(-2, Math.min(H + 2, y + (xx - x) * tn));
+      const yl = edge(l), yr = edge(r);
+      parts.push(down ? `M${l} -2L${r} -2L${r} ${yr}L${l} ${yl}Z` : `M${l} ${yl}L${r} ${yr}L${r} ${H + 2}L${l} ${H + 2}Z`);
+    }
+    const clip = done >= n ? 'none' : parts.length ? `path('${parts.join('')}')` : 'inset(0 0 100% 0)';
+    L1.style.setProperty('-webkit-clip-path', clip);
+    L1.style.setProperty('clip-path', clip);
+
+    /* henger: a feje (a fej közepe) pontosan az (x, y) pontban van */
+    const top = HEAD_CY * s, bottom = HANDLE_DOWN * s;
+    const hidden = p <= 0 || p >= 1 || y < -(bottom + 30) || y > H + top + 30;
+    roller.style.visibility = hidden ? 'hidden' : 'visible';
+    if (!hidden) {
+      roller.style.transform = `translate(${x - HEAD_CX * s}px,${y - top}px) rotate(${tilt}deg) scale(${1 + .07 * lift})`;
+      /* a henger fejének felszíne gördül: a jelölések a függőleges úttal arányosan haladnak */
+      let ry = 0;
+      for (let k = 0; k < i; k++) ry += segs[k].y1 - segs[k].y0;
+      ry += (sg.y1 - sg.y0) * t;
+      const ang = ry / top;
+      naps.forEach((el, k) => {
+        const a = ang + k * Math.PI / 3, c = Math.cos(a), h = .8 + 2.6 * Math.max(0, c);
+        el.setAttribute('height', h.toFixed(2));
+        el.setAttribute('y', (HEAD_CY + HEAD_CY * Math.sin(a) - h / 2).toFixed(2));
+        el.setAttribute('opacity', (c > 0 ? .34 * c : 0).toFixed(2));
+      });
+    }
     hint.style.opacity = p > .02 ? 0 : 1;
     navState();
   }
