@@ -37,10 +37,29 @@
       </div>
       <div id="roller" aria-hidden="true">
         <svg viewBox="0 0 230 190">
+          <defs>
+            <linearGradient id="rlShade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e3c78f"/><stop offset=".32" stop-color="#c9a059"/>
+              <stop offset=".7" stop-color="#b08540"/><stop offset="1" stop-color="#8d6a2e"/>
+            </linearGradient>
+            <linearGradient id="rlEnds" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#000" stop-opacity=".3"/><stop offset=".08" stop-color="#000" stop-opacity="0"/>
+              <stop offset=".92" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/>
+            </linearGradient>
+            <clipPath id="rlHead"><rect x="4" y="0" width="206" height="52" rx="16"/></clipPath>
+          </defs>
           <path d="M205 26 H222 V110 H118 V140" fill="none" stroke="#6a6258" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
           <rect x="104" y="136" width="28" height="54" rx="12" fill="#2b2621"/>
-          <rect x="4" y="0" width="206" height="52" rx="16" fill="#c49a54"/>
-          <rect x="14" y="8" width="186" height="9" rx="4.5" fill="#fff" opacity=".4"/>
+          <rect x="4" y="0" width="206" height="52" rx="16" fill="url(#rlShade)"/>
+          <g clip-path="url(#rlHead)">
+            <g fill="#5e4216">
+              <rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/><rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/>
+              <rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/><rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/>
+              <rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/><rect class="nap" x="4" y="26" width="206" height="2" opacity="0"/>
+            </g>
+            <rect x="4" y="0" width="206" height="52" fill="url(#rlEnds)"/>
+          </g>
+          <rect x="14" y="6" width="186" height="7" rx="3.5" fill="#fff" opacity=".35"/>
         </svg>
       </div>
       <div id="hint" data-t="hero_hint"></div>
