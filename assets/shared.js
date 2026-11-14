@@ -58,15 +58,22 @@ const DEFAULT_SERVICES = [
   { title: 'Felületképzés', body: 'Beton-, márvány- és antikolt hatású felületek, akcentfalak.' }
 ];
 
+/* Mértékegységek. A „surface” tételnél az ügyfél választ: fal, mennyezet vagy mindkettő.
+   Az „sqm”, „meter” és „piece” tételnél az ügyfél adja meg a mennyiséget. */
 const UNITS = {
-  wall: 'm² falfelület',
-  ceiling: 'm² mennyezet',
-  wallceil: 'm² fal + mennyezet',
-  floor: 'm² alapterület',
-  piece: 'darab',
+  surface: 'm² fal és/vagy mennyezet (az ügyfél választja)',
+  wall: 'm² falfelület (csak fal)',
+  ceiling: 'm² mennyezet (csak mennyezet)',
+  wallceil: 'm² fal + mennyezet együtt',
+  floor: 'm² alapterület (pl. padló takarása)',
+  sqm: 'm² (az ügyfél adja meg a mennyiséget)',
+  meter: 'folyóméter (az ügyfél adja meg)',
+  piece: 'darab (az ügyfél adja meg)',
   room: 'helyiségenként (átalány)'
 };
-const UNIT_SHORT = { wall: 'm² fal', ceiling: 'm² menny.', wallceil: 'm²', floor: 'm²', piece: 'db', room: 'helyiség' };
+const UNIT_SHORT = { surface: 'm²', wall: 'm² fal', ceiling: 'm² menny.', wallceil: 'm²', floor: 'm²', sqm: 'm²', meter: 'fm', piece: 'db', room: 'helyiség' };
+const QTY_UNITS = ['sqm', 'meter', 'piece'];            // ezeknél az ügyfél írja be a mennyiséget
+const SURFACES = [['wall', 'Fal'], ['ceiling', 'Mennyezet'], ['both', 'Mindkettő']];
 
 const PLACEMENTS = [
   ['after_hero', 'A főoldal teteje után'],
@@ -102,9 +109,25 @@ function unitQty(unit, g, qty) {
     case 'ceiling': return g.ceiling;
     case 'wallceil': return Math.round((g.wall + g.ceiling) * 10) / 10;
     case 'piece': return Math.max(0, Math.round(+qty || 0));
+    case 'sqm': case 'meter': return Math.max(0, Math.round((+qty || 0) * 10) / 10);
     case 'room': return 1;
     default: return 0;
   }
+}
+
+/* Egy kiválasztott munka sorai az árajánlatban. sel = { qty, surf }.
+   A „fal + mennyezet” választás két sort ad, mert a mennyezetnek külön díja lehet. */
+function workLines(w, g, sel) {
+  const price = +w.price || 0;
+  const pc = w.price_ceiling != null && w.price_ceiling !== '' ? +w.price_ceiling : price;
+  const line = (name, unit, p, qty) => ({ id: w.id, name, unit, price: p, qty, amount: Math.round(qty * p) });
+  if (w.unit === 'surface') {
+    const s = (sel && sel.surf) || 'both', out = [];
+    if (s !== 'ceiling') out.push(line(`${w.name} – fal`, 'wall', price, g.wall));
+    if (s !== 'wall') out.push(line(`${w.name} – mennyezet`, 'ceiling', pc, g.ceiling));
+    return out;
+  }
+  return [line(w.name, w.unit, w.unit === 'ceiling' ? pc : price, unitQty(w.unit, g, sel && sel.qty))];
 }
 
 /* Biztonságos HTML (blog, saját ablakok). YouTube-beágyazást enged. */
@@ -159,6 +182,18 @@ async function shrinkImage(file, max = 2000) {
     return blob ? { blob, ext: 'jpg', type: 'image/jpeg' } : original;
   } catch (e) { return original; }
 }
+
+/* Telefonos lenyíló menü (főoldal, blog) */
+(function initMenu() {
+  const btn = document.getElementById('menuBtn'), nav = document.getElementById('topnav'), links = document.getElementById('navLinks');
+  if (!btn || !nav || !links) return;
+  const set = open => { nav.classList.toggle('menu-open', open); btn.setAttribute('aria-expanded', String(open)); btn.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása'); };
+  btn.addEventListener('click', () => set(!nav.classList.contains('menu-open')));
+  links.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('menu-open')) { set(false); btn.focus(); } });
+  document.addEventListener('click', e => { if (nav.classList.contains('menu-open') && !nav.contains(e.target)) set(false); });
+  addEventListener('resize', () => { if (innerWidth > 820) set(false); });
+})();
 
 function slugify(s) {
   return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')

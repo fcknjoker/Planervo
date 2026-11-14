@@ -15,16 +15,24 @@
   const TABLES = {
     work_items: {
       label: 'Munkafolyamatok és díjak', single: 'munkafolyamat', addLabel: 'Új munkafolyamat',
-      help: 'Ezekből választ az ügyfél helyiségenként az árajánlatkérőben. A falfelületet az alapterületből és a belmagasságból számoljuk, négyzetes alaprajzzal becsülve.',
-      empty: 'Még nincs munkafolyamat. Add meg az elsőt a munkadíjjal együtt, és máris megjelenik az árajánlatkérőben.',
+      help: 'Ezekből választ az ügyfél helyiségenként az árajánlatkérőben (csak munkadíj). A „fal és/vagy mennyezet” tételeknél az ügyfél választja ki, hogy falra, mennyezetre vagy mindkettőre kéri. A falfelületet az alapterületből és a belmagasságból számoljuk, négyzetes alaprajzzal becsülve.',
+      empty: 'Még nincs munkafolyamat. Töltsd be az alap árlistát az „Árlista betöltése” gombbal, vagy add meg az elsőt kézzel.',
+      search: true, importList: true,
       fields: [
-        { k: 'name', l: 'Megnevezés', req: 1, ph: 'pl. Falfestés, 2 réteg' },
-        { k: 'category', l: 'Kategória', ph: 'pl. Előkészítés, Festés, Mázolás', hint: 'Az azonos kategóriájú munkák egy csoportban jelennek meg.' },
-        { k: 'unit', l: 'Mértékegység (mire vonatkozik a díj)', t: 'select', o: Object.entries(UNITS), def: 'wall' },
+        { k: 'name', l: 'Megnevezés', req: 1, ph: 'pl. Festés két rétegben, fehér színben' },
+        { k: 'category', l: 'Kategória', ph: 'pl. Alapmunkák, Festési munkák, Mázolási munkák', hint: 'Az azonos kategóriájú munkák egy lenyíló csoportban jelennek meg az árajánlatkérőben.' },
+        { k: 'unit', l: 'Mértékegység (mire vonatkozik a díj)', t: 'select', o: Object.entries(UNITS), def: 'surface' },
         { k: 'price', l: 'Munkadíj (Ft / egység)', t: 'number', req: 1 },
-        { k: 'description', l: 'Rövid megjegyzés az ügyfélnek', ph: 'pl. Ajtólap és tok' }
+        { k: 'price_ceiling', l: 'Mennyezet munkadíja (Ft / m²), ha eltér a faltól', t: 'number', hint: 'Csak a „fal és/vagy mennyezet” és a „csak mennyezet” tételeknél számít. Üresen hagyva a fenti munkadíj érvényes a mennyezetre is.' },
+        { k: 'description', l: 'Rövid megjegyzés az ügyfélnek', ph: 'pl. Irányár, a pontos ár felmérés után' }
       ],
-      title: r => r.name, sub: r => `${r.category || 'Kategória nélkül'}, ${fmtFt(r.price)} / ${UNITS[r.unit] || r.unit}`
+      // az új mezőt csak akkor küldjük, ha van értéke vagy az adatbázis már ismeri (lásd supabase/2026-11-arlista.sql)
+      beforeSave: (o, cur) => { if (o.price_ceiling == null && !('price_ceiling' in cur)) delete o.price_ceiling; return null; },
+      title: r => r.name,
+      sub: r => {
+        const pc = r.price_ceiling != null && +r.price_ceiling !== +r.price ? `, mennyezet ${fmtFt(r.price_ceiling)}` : '';
+        return `${r.category || 'Kategória nélkül'} · ${fmtFt(r.price)}${pc} / ${UNITS[r.unit] || r.unit}`;
+      }
     },
     services: {
       label: 'Szolgáltatások', single: 'szolgáltatás', addLabel: 'Új szolgáltatás',
@@ -253,11 +261,48 @@
     const T = TABLES[key]; CUR = key;
     view.innerHTML = `<header class="vh"><div><h1>${esc(T.label)}</h1>${T.help ? `<p class="help">${esc(T.help)}</p>` : ''}</div>
       <div class="vh-act">${T.multi ? '<label class="btn o">Több kép feltöltése<input type="file" accept="image/*" multiple hidden id="multi"></label>' : ''}
+      ${T.importList ? '<button type="button" class="btn o" id="importList">Árlista betöltése</button>' : ''}
       <button type="button" class="btn" id="addNew">${esc(T.addLabel)}</button></div></header>
+      ${T.search ? `<div class="filt"><input type="search" id="fltQ" placeholder="Keresés a megnevezésben…" aria-label="Keresés"><select id="fltC" aria-label="Kategória"><option value="">Minden kategória</option></select><span class="muted" id="fltN"></span></div>` : ''}
       <div id="list" class="list"><p class="muted">Betöltés…</p></div>`;
     $('#addNew').onclick = () => openEditor(key, null);
     if (T.multi) $('#multi').onchange = e => multiUpload(key, [...e.target.files]);
+    if (T.importList) $('#importList').onclick = () => importPriceList(key);
+    if (T.search) { $('#fltQ').oninput = applyFilter; $('#fltC').onchange = applyFilter; }
     await loadList(key);
+  }
+  function applyFilter() {
+    const q = ($('#fltQ') || {}).value, c = ($('#fltC') || {}).value;
+    if (q === undefined) return;
+    const qq = q.trim().toLowerCase();
+    let n = 0;
+    $$('#list .row').forEach(el => {
+      const r = ROWS[+el.dataset.i];
+      const ok = (!qq || String(r.name || '').toLowerCase().includes(qq)) && (!c || (r.category || '') === c);
+      el.hidden = !ok; if (ok) n++;
+    });
+    $('#fltN').textContent = qq || c ? `${n} / ${ROWS.length} tétel` : `${ROWS.length} tétel`;
+  }
+  async function importPriceList(key) {
+    if (typeof PRICE_LIST === 'undefined') return toast('Az árlista fájl (assets/arlista.js) nem töltődött be.', true);
+    const have = new Set(ROWS.map(r => (r.name || '').trim().toLowerCase()));
+    const add = PRICE_LIST.filter(p => !have.has(p[1].toLowerCase()));
+    if (!add.length) return toast('Az árlista minden tétele már szerepel a listában.');
+    const others = ROWS.filter(r => r.visible && !PRICE_LIST.some(p => p[1].toLowerCase() === (r.name || '').trim().toLowerCase()));
+    if (!confirm(`${add.length} munkafolyamatot töltök be az árlistából (csak munkadíj, anyagdíj nélkül). Utána bármelyik szerkeszthető, elrejthető vagy törölhető.\n\nFolytatod?`)) return;
+    const hide = others.length > 0 && confirm(`A jelenlegi ${others.length} másik munkafolyamatot elrejtsem az árajánlatkérőből?\nNem törlöm őket, a „Látható” kapcsolóval bármikor visszakapcsolhatók.\n\nOK = elrejtés, Mégse = maradnak láthatók.`);
+    let pos = nextPos();
+    const rows = add.map(([category, name, unit, price, description]) => ({ category, name, unit, price, description: description || null, visible: true, position: (pos += 10) }));
+    toast('Árlista betöltése…');
+    const { error } = await sb.from(key).insert(rows);
+    if (error) return toast(/check constraint|unit/i.test(error.message)
+      ? 'A betöltés nem sikerült: az adatbázis még nem ismeri az új mértékegységeket. Futtasd le a supabase/2026-11-arlista.sql fájlt a Supabase SQL Editorban, majd próbáld újra.'
+      : 'A betöltés nem sikerült: ' + error.message, true);
+    if (hide) {
+      const { error: e2 } = await sb.from(key).update({ visible: false }).in('id', others.map(r => r.id));
+      if (e2) toast('A régi tételek elrejtése nem sikerült: ' + e2.message, true);
+    }
+    toast(`${rows.length} munkafolyamat betöltve.`); loadList(key);
   }
   async function loadList(key) {
     const T = TABLES[key];
@@ -283,6 +328,11 @@
         <button type="button" class="btn sm o" data-act="edit">Szerkesztés</button>
         <button type="button" class="btn sm danger" data-act="del">Törlés</button></div>`;
     }).join('');
+    if (T.search) {
+      const sel = $('#fltC'), cur = sel.value, cats = [...new Set(ROWS.map(r => r.category || ''))].filter(Boolean);
+      sel.innerHTML = '<option value="">Minden kategória</option>' + cats.map(c => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
+      applyFilter();
+    }
     list.onclick = async e => {
       const b = e.target.closest('button[data-act]'); if (!b) return;
       const i = +b.closest('.row').dataset.i, r = ROWS[i];

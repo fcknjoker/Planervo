@@ -283,33 +283,64 @@
     const showP = TX.show_estimate !== false;
     const groups = {};
     WORK.forEach(w => { (groups[w.category || 'Munkák'] = groups[w.category || 'Munkák'] || []).push(w); });
-    box.innerHTML = Object.entries(groups).map(([cat, items]) => `<div class="grp"><h4>${esc(cat)}</h4>${items.map(w => {
-      const on = r.sel[w.id] != null;
-      return `<label class="it"><input type="checkbox" value="${w.id}"${on ? ' checked' : ''}>
-        <span class="it-t">${esc(w.name)}${w.description ? `<small>${esc(w.description)}</small>` : ''}</span>
-        ${w.unit === 'piece' ? `<input type="number" class="qty" min="1" max="999" step="1" inputmode="numeric" value="${on ? r.sel[w.id] : 1}" aria-label="${esc(w.name)}: darabszám"${on ? '' : ' disabled'}>` : '<span></span>'}
-        <span class="it-p">${showP ? `${fmtFt(w.price)} / ${UNIT_SHORT[w.unit] || ''}` : esc(UNITS[w.unit] || '')}</span></label>`;
-    }).join('')}</div>`).join('');
+    const priceTxt = w => {
+      if (!showP) return esc(UNITS[w.unit] || '');
+      const pc = w.price_ceiling != null && w.price_ceiling !== '' ? +w.price_ceiling : null;
+      if (w.unit === 'surface' && pc != null && pc !== +w.price) return `fal ${fmtFt(w.price)} / m²<br>menny. ${fmtFt(pc)} / m²`;
+      return `${fmtFt(w.unit === 'ceiling' && pc != null ? pc : w.price)} / ${UNIT_SHORT[w.unit] || ''}`;
+    };
+    const ctl = (w, s) => {
+      const on = !!s, dis = on ? '' : ' disabled';
+      if (w.unit === 'surface') {
+        const cur = (s && s.surf) || 'both';
+        return `<span class="seg" role="radiogroup" aria-label="${esc(w.name)}: hol">${SURFACES.map(([k, l]) =>
+          `<label><input type="radio" name="s-${r.id}-${w.id}" value="${k}"${cur === k ? ' checked' : ''}${dis}><span>${l}</span></label>`).join('')}</span>`;
+      }
+      if (QTY_UNITS.includes(w.unit)) {
+        const step = w.unit === 'piece' ? '1' : '0.1', def = w.unit === 'piece' ? 1 : '';
+        return `<span class="qtyw"><input type="number" class="qty" min="0" max="9999" step="${step}" inputmode="decimal" value="${s ? s.qty : def}" placeholder="0" aria-label="${esc(w.name)}: mennyiség (${UNIT_SHORT[w.unit]})"${dis}><span>${UNIT_SHORT[w.unit]}</span></span>`;
+      }
+      return '<span></span>';
+    };
+    const cats = Object.keys(groups);
+    box.innerHTML = cats.map((cat, ci) => {
+      const items = groups[cat], n = items.filter(w => r.sel[w.id]).length;
+      return `<details class="grp"${ci < 2 || n ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${n ? n + ' kiválasztva' : ''}</em></summary>${items.map(w => {
+        const s = r.sel[w.id];
+        return `<div class="it${s ? ' on' : ''}" data-id="${w.id}"><label class="it-l"><input type="checkbox" value="${w.id}"${s ? ' checked' : ''}>
+          <span class="it-t">${esc(w.name)}${w.description ? `<small>${esc(w.description)}</small>` : ''}</span></label>
+          ${ctl(w, s)}<span class="it-p">${priceTxt(w)}</span></div>`;
+      }).join('')}</details>`;
+    }).join('');
+    const count = det => { const n = det.querySelectorAll('.it.on').length; det.querySelector('[data-cnt]').textContent = n ? n + ' kiválasztva' : ''; };
     box.onchange = e => {
-      const cb = e.target.closest('input[type=checkbox]'); if (!cb) return;
-      const lab = cb.closest('.it'), qty = lab.querySelector('.qty');
-      if (cb.checked) r.sel[cb.value] = qty ? (+qty.value || 1) : 1; else delete r.sel[cb.value];
-      if (qty) qty.disabled = !cb.checked;
+      const it = e.target.closest('.it'); if (!it) return;
+      const id = it.dataset.id, cb = it.querySelector('input[type=checkbox]'), w = WORK.find(x => x.id === id);
+      if (e.target === cb) {
+        if (cb.checked) {
+          const rad = it.querySelector('input[type=radio]:checked'), q = it.querySelector('.qty');
+          if (q && !q.value) q.value = w && w.unit === 'piece' ? 1 : '';
+          r.sel[id] = { surf: rad ? rad.value : 'both', qty: q ? (+q.value || 0) : 1 };
+        } else delete r.sel[id];
+        it.classList.toggle('on', cb.checked);
+        it.querySelectorAll('input:not([type=checkbox])').forEach(x => { x.disabled = !cb.checked; });
+        if (cb.checked) { const q = it.querySelector('.qty'); if (q && !q.value) q.focus(); }
+        count(it.closest('details'));
+      } else if (e.target.type === 'radio' && r.sel[id]) r.sel[id].surf = e.target.value;
       box.classList.remove('field-err'); updateSum();
     };
     box.oninput = e => {
       if (!e.target.classList.contains('qty')) return;
-      const id = e.target.closest('.it').querySelector('input[type=checkbox]').value;
-      if (r.sel[id] != null) { r.sel[id] = +e.target.value || 0; updateSum(); }
+      e.target.classList.remove('field-err');
+      const id = e.target.closest('.it').dataset.id;
+      if (r.sel[id]) { r.sel[id].qty = +e.target.value || 0; updateSum(); }
     };
   }
   function calcRoom(r) {
     const g = roomGeometry(r.area, r.height);
-    const items = Object.entries(r.sel).map(([id, q]) => {
-      const w = WORK.find(x => x.id === id); if (!w) return null;
-      const qty = unitQty(w.unit, g, q), price = +w.price || 0;
-      return { id, name: w.name, unit: w.unit, price, qty, amount: Math.round(qty * price) };
-    }).filter(Boolean);
+    const items = Object.entries(r.sel).flatMap(([id, s]) => {
+      const w = WORK.find(x => x.id === id); return w ? workLines(w, g, s) : [];
+    });
     return { g, items, subtotal: items.reduce((t, x) => t + x.amount, 0) };
   }
   function updateSum() {
@@ -317,7 +348,7 @@
     let total = 0;
     const li = rooms.map((r, i) => {
       const c = calcRoom(r); total += c.subtotal;
-      const meta = [r.area ? `${fmtNum(r.area)} m²` : 'alapterület hiányzik', `${c.items.length} munka`, r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
+      const meta = [r.area ? `${fmtNum(r.area)} m²` : 'alapterület hiányzik', `${Object.keys(r.sel).length} munka`, r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
       return `<li><b>${esc(r.name || `${i + 1}. helyiség`)}</b>${showP ? `<em>${fmtFt(c.subtotal)}</em>` : '<em></em>'}<small>${meta}</small></li>`;
     }).join('');
     $('#qSum').innerHTML = `<h3>Összesítő</h3><ul>${li}</ul>
@@ -353,6 +384,10 @@
       if (!(+r.area > 0)) mark(a);
       if (!(+r.height >= 1.5)) mark(h);
       if (WORK.length && !Object.keys(r.sel).length) mark(r.el.querySelector('.r-items'));
+      Object.keys(r.sel).forEach(id => {
+        const w = WORK.find(x => x.id === id);
+        if (w && QTY_UNITS.includes(w.unit) && !(r.sel[id].qty > 0)) mark(r.el.querySelector(`.it[data-id="${id}"] .qty`));
+      });
     });
     [['#qName', v => v.trim().length > 1], ['#qEmail', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())],
      ['#qPhone', v => v.replace(/\D/g, '').length >= 6], ['#qCity', v => v.trim().length > 1]]
@@ -360,7 +395,8 @@
     if (!$('#qOk').checked) mark($('#qOk'));
     if (first) {
       first.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
-      status('Néhány mező hiányos. A pirossal jelölteket töltsd ki: alapterület, belmagasság, legalább egy munka helyiségenként, elérhetőségek és a hozzájárulás.', true);
+      if (first.tagName !== 'DIV') { const d = first.closest('details'); if (d) d.open = true; }
+      status('Néhány mező hiányos. A pirossal jelölteket töltsd ki: alapterület, belmagasság, legalább egy munka helyiségenként, a kiválasztott munkák mennyisége, elérhetőségek és a hozzájárulás.', true);
       return false;
     }
     return true;

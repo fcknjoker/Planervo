@@ -161,3 +161,9 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 #toast.err{background:var(--red)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Munkafolyamatok: kereső és kategóriaszűrő */
+.filt{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.filt input,.filt select{min-height:42px;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--card)}
+.filt input{flex:1 1 260px}
+.row[hidden]{display:none}
