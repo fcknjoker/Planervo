@@ -30,6 +30,8 @@ const TEXT_FIELDS = [
   { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáinkból.', t: 'textarea' },
   { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videóink' },
   { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Nézd meg, hogyan dolgozunk.', t: 'textarea' },
+  { g: 'Közösségi média', k: 'social_title', l: 'Cím', d: 'Kövess minket' },
+  { g: 'Közösségi média', k: 'social_text', l: 'Bevezető', d: 'Legfrissebb bejegyzéseink Instagramon, TikTokon és Facebookon.', t: 'textarea' },
   { g: 'Blog', k: 'blog_title', l: 'Cím', d: 'Blog' },
   { g: 'Blog', k: 'blog_text', l: 'Bevezető', d: 'Tanácsok festéshez, felújításhoz és színválasztáshoz.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_title', l: 'Cím', d: 'Árajánlatkérés' },
@@ -84,6 +86,8 @@ const PLACEMENTS = [
   ['after_blog', 'A blog után'],
   ['before_contact', 'A kapcsolat előtt']
 ];
+
+const SOCIAL_LABEL = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' };
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtFt = n => Math.round(+n || 0).toLocaleString('hu-HU') + ' Ft';

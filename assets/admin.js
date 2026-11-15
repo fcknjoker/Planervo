@@ -89,6 +89,23 @@
       fields: [{ k: 'image_url', l: 'Kép', t: 'image', req: 1, folder: 'galeria' }, { k: 'caption', l: 'Képaláírás' }],
       thumb: 'image_url', title: r => r.caption || 'Kép aláírás nélkül'
     },
+    social_posts: {
+      label: 'Közösségi média', single: 'bejegyzés', addLabel: 'Új közösségi bejegyzés', noPos: true,
+      help: 'Az Instagram-, TikTok- és Facebook-bejegyzéseid a főoldalon egy lapozható ablakban jelennek meg, a legújabb elöl. Másold be a bejegyzés linkjét, és tölts fel hozzá egy borítóképet. Kép nélkül a platform neve jelenik meg.',
+      empty: 'Még nincs közösségi bejegyzés. Add hozzá az első Instagram-, TikTok- vagy Facebook-posztodat.',
+      fields: [
+        { k: 'platform', l: 'Platform', t: 'select', o: [['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook']], def: 'instagram', req: 1 },
+        { k: 'url', l: 'A bejegyzés linkje', req: 1, ph: 'https://www.instagram.com/p/…', max: 500 },
+        { k: 'title', l: 'Rövid felirat (opcionális)', max: 140 },
+        { k: 'image_url', l: 'Borítókép', t: 'image', folder: 'kozossegi' },
+        { k: 'published_at', l: 'Közzététel időpontja', t: 'datetime' },
+        { k: 'visible', l: 'Látható az oldalon', t: 'bool' }
+      ],
+      thumb: 'image_url',
+      title: r => r.title || SOCIAL_LABEL[r.platform] || 'Bejegyzés',
+      sub: r => `${SOCIAL_LABEL[r.platform] || r.platform} · ${fmtDate(r.published_at)}`,
+      beforeSave: o => /^https?:\/\//.test(o.url || '') ? null : 'A bejegyzés linkje teljes cím legyen, https:// kezdettel.'
+    },
     posts: {
       label: 'Blog', single: 'bejegyzés', addLabel: 'Új bejegyzés', noPos: true, visibleKey: 'published', visLabel: 'Közzétéve',
       help: 'A közzétett bejegyzések a blog oldalon jelennek meg, a legutóbbi három a főoldalon is. Jövőbeli dátummal időzítheted a megjelenést.',
@@ -111,7 +128,7 @@
   const NAV = [
     ['quotes', 'Árajánlat-kérések'], ['work_items', 'Munkafolyamatok és díjak'], ['texts', 'Oldal szövegei'],
     ['sections', 'Főoldal ablakok'], ['services', 'Szolgáltatások'], ['before_after', 'Előtte–utána'],
-    ['gallery', 'Galéria'], ['videos', 'YouTube-videók'], ['posts', 'Blog']
+    ['gallery', 'Galéria'], ['videos', 'YouTube-videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']
   ];
   $('#nav').innerHTML = NAV.map(([k, l]) => `<button type="button" data-v="${k}"><span>${l}</span>${k === 'quotes' ? '<span class="badge" id="qBadge" hidden></span>' : ''}</button>`).join('');
   $('#nav').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) location.hash = b.dataset.v; });

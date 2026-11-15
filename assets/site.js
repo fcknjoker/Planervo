@@ -41,7 +41,7 @@
   const naps = $$('#roller .nap');
   const cl = v => Math.min(1, Math.max(0, v));
   const ease = t => t * t * (3 - 2 * t);
-  const HEAD_W = 206, HEAD_CX = 107, HEAD_CY = 26, HANDLE_DOWN = 164;   // az SVG mértékegységei
+  const HEAD_W = 206, HEAD_CX = 107, HEAD_CY = 26, HANDLE_DOWN = 212;   // az SVG mértékegységei (a fogantyú alja y=236)
   let G = null;
 
   function layout() {
@@ -305,7 +305,7 @@
     const cats = Object.keys(groups);
     box.innerHTML = cats.map((cat, ci) => {
       const items = groups[cat], n = items.filter(w => r.sel[w.id]).length;
-      return `<details class="grp"${ci < 2 || n ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${n ? n + ' kiválasztva' : ''}</em></summary>${items.map(w => {
+      return `<details class="grp"${n ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${n ? n + ' kiválasztva' : ''}</em></summary>${items.map(w => {
         const s = r.sel[w.id];
         return `<div class="it${s ? ' on' : ''}" data-id="${w.id}"><label class="it-l"><input type="checkbox" value="${w.id}"${s ? ' checked' : ''}>
           <span class="it-t">${esc(w.name)}${w.description ? `<small>${esc(w.description)}</small>` : ''}</span></label>
@@ -451,17 +451,47 @@
   });
   $('#addRoom').addEventListener('click', () => { const r = addRoom(); r.el.querySelector('.r-name').focus(); });
 
+  /* ---------- Közösségi média: vízszintesen lapozható ablak, első a legújabb ---------- */
+  const SP_GAP = 18;                                   // a kártyák közti távolság (style.css: .sp-track gap)
+  function spStep() {
+    const tr = $('#spTrack'), c = tr.querySelector('.sp-card');
+    return c ? c.getBoundingClientRect().width + SP_GAP : tr.clientWidth * .8;
+  }
+  function spUpdate() {
+    const tr = $('#spTrack'); if (!tr) return;
+    $('#spPrev').disabled = tr.scrollLeft <= 2;
+    $('#spNext').disabled = tr.scrollLeft >= tr.scrollWidth - tr.clientWidth - 2;
+  }
+  function renderSocial(rows) {
+    const list = rows.slice().sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
+    $('#spTrack').innerHTML = list.map(r => {
+      const p = SOCIAL_LABEL[r.platform] || r.platform || '';
+      const img = r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy">` : `<span class="sp-ph">${esc(p)}</span>`;
+      return `<a class="sp-card" href="${esc(r.url)}" target="_blank" rel="noopener" aria-label="${esc(p)}: ${esc(r.title || 'bejegyzés')}, megnyitás új lapon">
+        <div class="sp-img">${img}<span class="sp-plat">${esc(p)}</span></div>
+        <div class="sp-txt">${r.published_at ? `<time datetime="${esc(r.published_at)}">${fmtDate(r.published_at)}</time>` : ''}${r.title ? `<h3>${esc(r.title)}</h3>` : ''}</div></a>`;
+    }).join('');
+    $('#spTrack').scrollLeft = 0;
+    $('#kozossegi').hidden = !list.length; $('#navSocial').hidden = !list.length;
+    spUpdate();
+  }
+  $('#spPrev').addEventListener('click', () => $('#spTrack').scrollBy({ left: -spStep(), behavior: reduced ? 'auto' : 'smooth' }));
+  $('#spNext').addEventListener('click', () => $('#spTrack').scrollBy({ left: spStep(), behavior: reduced ? 'auto' : 'smooth' }));
+  $('#spTrack').addEventListener('scroll', spUpdate, { passive: true });
+  addEventListener('resize', spUpdate);
+
   /* ---------- Betöltés ---------- */
   async function load() {
     applyTexts(); renderServices(DEFAULT_SERVICES); addRoom(); hero();
     if (!sb) { workLoaded = true; rooms.forEach(renderItems); return; }
     const list = t => sb.from(t).select('*').eq('visible', true).order('position').order('created_at');
     const safe = p => Promise.resolve(p).catch(error => ({ error }));
-    const [tx, svc, sec, ba, gal, vid, work, posts] = await Promise.all([
+    const [tx, svc, sec, ba, gal, vid, work, posts, soc] = await Promise.all([
       safe(loadTexts()), safe(list('services')), safe(list('sections')), safe(list('before_after')),
       safe(list('gallery')), safe(list('videos')), safe(list('work_items')),
       safe(sb.from('posts').select('title,slug,excerpt,cover_url,published_at').eq('published', true)
-        .lte('published_at', new Date().toISOString()).order('published_at', { ascending: false }).limit(3))
+        .lte('published_at', new Date().toISOString()).order('published_at', { ascending: false }).limit(3)),
+      safe(sb.from('social_posts').select('*').eq('visible', true).order('published_at', { ascending: false }).limit(30))
     ]);
     if (tx && !tx.error) { TX = tx; applyTexts(); }
     if (!svc.error) renderServices(svc.data || []);
@@ -470,10 +500,45 @@
     if (!gal.error) renderGallery(gal.data || []);
     if (!vid.error) renderVideos(vid.data || []);
     if (!posts.error) renderPosts(posts.data || []);
+    if (!soc.error) renderSocial(soc.data || []);
     workLoaded = true;
     if (!work.error) WORK = work.data || [];
     rooms.forEach(renderItems); updateSum(); hero();
-    if (location.hash) { const t = document.getElementById(location.hash.slice(1)); t && t.scrollIntoView(); }
+    if (location.hash) { const t = document.getElementById(location.hash.slice(1)); if (t) scrollToSection(t, false); }
   }
+  /* ---------- Ugrás a szakaszokra ----------
+     A lazy-betöltött képek és a galéria a célpont fölött utólag nyújtják az oldalt, ezért
+     a böngésző saját (sima) görgetése a régi helyen állhat meg, például a blognál.
+     Itt a célt minden képkockában újraszámoljuk, és a betöltés végéig igazítjuk. */
+  function scrollToSection(t, animate = true) {
+    const aim = () => t.getBoundingClientRect().top + scrollY - (parseFloat(getComputedStyle(t).scrollMarginTop) || 0);
+    const go = y => window.scrollTo({ top: Math.max(0, y), behavior: 'instant' });
+    const start = scrollY, t0 = performance.now(), dur = animate && !reduced ? 900 : 0;
+    const EV = ['wheel', 'touchstart', 'keydown'];
+    let timer = null, raf = 0;
+    const end = () => { cancelAnimationFrame(raf); clearInterval(timer); EV.forEach(ev => removeEventListener(ev, end)); };
+    EV.forEach(ev => addEventListener(ev, end, { passive: true }));   // ha a látogató maga görget, átadjuk neki
+    const frame = now => {
+      const k = dur ? Math.min(1, (now - t0) / dur) : 1, e = 1 - Math.pow(1 - k, 3);
+      go(start + (aim() - start) * e);
+      if (k < 1) { raf = requestAnimationFrame(frame); return; }
+      let n = 0;
+      timer = setInterval(() => {
+        if (Math.abs(aim() - scrollY) > 2) go(aim());
+        if (++n >= 15) end();                                      // kb. 1,5 s igazítás
+      }, 100);
+    };
+    raf = requestAnimationFrame(frame);
+  }
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const id = decodeURIComponent(a.getAttribute('href').slice(1)), t = id && document.getElementById(id);
+    if (!t) return;
+    e.preventDefault();
+    history.pushState(null, '', '#' + id);
+    scrollToSection(t);
+  });
+
   load();
 })();
