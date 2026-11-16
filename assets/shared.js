@@ -7,7 +7,8 @@ const PLANERVO_CFG = {
   key: 'sb_publishable_MRB1lXcabd7ptYkUIGqjRw_PaJ6KMh5', // nyilvános kulcs, ide tartozik
   mediaBucket: 'media',
   quoteBucket: 'quote-uploads',
-  notifyFunction: 'notify-quote'
+  notifyFunction: 'notify-quote',
+  youtubeFunction: 'youtube-feed'
 };
 
 const sb = (window.supabase && window.supabase.createClient)
@@ -30,6 +31,10 @@ const TEXT_FIELDS = [
   { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáinkból.', t: 'textarea' },
   { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videóink' },
   { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Nézd meg, hogyan dolgozunk.', t: 'textarea' },
+  { g: 'Videók', k: 'video_source', l: 'Mit mutasson a videós ablak', t: 'select', d: 'channel',
+    o: [['channel', 'A YouTube-csatornám legújabb videói (automatikus, legújabb elöl)'], ['playlist', 'Egy lejátszási lista videói (a lista sorrendjében)'], ['manual', 'Csak a „YouTube-videók” menüben kézzel felvett videók']] },
+  { g: 'Videók', k: 'youtube_playlist', l: 'Lejátszási lista linkje', d: '', ph: 'https://www.youtube.com/playlist?list=…' },
+  { g: 'Videók', k: 'video_count', l: 'Hány videó jelenjen meg (3–15)', t: 'number', d: 12 },
   { g: 'Közösségi média', k: 'social_title', l: 'Cím', d: 'Kövess minket' },
   { g: 'Közösségi média', k: 'social_text', l: 'Bevezető', d: 'Legfrissebb bejegyzéseink Instagramon, TikTokon és Facebookon.', t: 'textarea' },
   { g: 'Blog', k: 'blog_title', l: 'Cím', d: 'Blog' },
@@ -48,7 +53,7 @@ const TEXT_FIELDS = [
   { g: 'Kapcsolat', k: 'hours', l: 'Elérhetőség ideje', d: 'Hétfőtől szombatig, 8:00–18:00' },
   { g: 'Kapcsolat', k: 'facebook_url', l: 'Facebook-oldal linkje', d: '' },
   { g: 'Kapcsolat', k: 'instagram_url', l: 'Instagram-oldal linkje', d: '' },
-  { g: 'Kapcsolat', k: 'youtube_url', l: 'YouTube-csatorna linkje', d: '' },
+  { g: 'Kapcsolat', k: 'youtube_url', l: 'YouTube-csatorna linkje (ebből jönnek a videók is)', d: '', ph: 'https://www.youtube.com/@csatornam' },
   { g: 'Lábléc', k: 'footer_text', l: 'Cégadatok a láblécben', d: 'PLANERVO – Minőség minden rétegben', t: 'textarea' }
 ];
 const TEXT_DEFAULTS = Object.fromEntries(TEXT_FIELDS.map(f => [f.k, f.d]));
@@ -193,10 +198,10 @@ async function shrinkImage(file, max = 2000) {
   if (!btn || !nav || !links) return;
   const set = open => { nav.classList.toggle('menu-open', open); btn.setAttribute('aria-expanded', String(open)); btn.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása'); };
   btn.addEventListener('click', () => set(!nav.classList.contains('menu-open')));
-  links.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
+  nav.addEventListener('click', e => { if (e.target.closest('a')) set(false); });   // menüpont vagy az Árajánlat gomb
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('menu-open')) { set(false); btn.focus(); } });
   document.addEventListener('click', e => { if (nav.classList.contains('menu-open') && !nav.contains(e.target)) set(false); });
-  addEventListener('resize', () => { if (innerWidth > 820) set(false); });
+  addEventListener('resize', () => { if (innerWidth > 1000) set(false); });
 })();
 
 function slugify(s) {

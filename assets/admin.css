@@ -167,3 +167,14 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 .filt input,.filt select{min-height:42px;padding:8px 12px;border:1.5px solid var(--line);border-radius:10px;font:inherit;background:var(--card)}
 .filt input{flex:1 1 260px}
 .row[hidden]{display:none}
+
+/* Videós ablak forrása */
+.vsrc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin:0 0 26px;display:grid;gap:14px}
+.vsrc h2{font-size:1.5rem;margin:0}
+.vsrc .help{margin:0;max-width:70ch}
+.vs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px 18px}
+.vsrc .fl[hidden]{display:none}
+.vs-act{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.vs-msg{color:var(--mute);font-size:.92rem;flex:1 1 260px}
+.vs-msg.err{color:var(--red)}
+.sub-h{font-size:1.35rem;margin:0 0 12px}

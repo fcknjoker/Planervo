@@ -16,7 +16,7 @@
     document.title = `${p.title} – PLANERVO blog`;
     const d = document.querySelector('meta[name=description]'); if (d && p.excerpt) d.content = p.excerpt;
     main.innerHTML = `<article>
-      ${p.cover_url ? `<img class="post-cover" src="${esc(p.cover_url)}" alt="">` : '<div class="blog-top"></div>'}
+      ${p.cover_url ? `<div class="wrap post-cover-wrap"><img class="post-cover" src="${esc(p.cover_url)}" alt=""></div>` : '<div class="blog-top"></div>'}
       <div class="wrap post-head">
         <a class="back" href="blog.html">Vissza a bloghoz</a><br>
         <time datetime="${esc(p.published_at)}">${fmtDate(p.published_at)}</time>

@@ -199,21 +199,116 @@
   lb.addEventListener('click', e => { if (e.target === lb || e.target.classList.contains('lb')) lb.close(); });
   lb.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') showLb(gi - 1); if (e.key === 'ArrowRight') showLb(gi + 1); });
 
-  /* ---------- Videók ---------- */
-  function renderVideos(rows) {
-    const list = rows.filter(r => ytId(r.url));
-    $('#vidList').innerHTML = list.map(r => {
-      const id = ytId(r.url);
-      return `<div class="v"><div class="vid" data-id="${id}"><button type="button" aria-label="Videó lejátszása: ${esc(r.title || '')}">
-        <img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy"><span></span></button></div>
-        ${r.title ? `<h3>${esc(r.title)}</h3>` : ''}${r.description ? `<p>${esc(r.description)}</p>` : ''}</div>`;
-    }).join('');
-    $('#videok').hidden = !list.length; $('#navVideo').hidden = !list.length;
+  /* ---------- Lapozható sáv (videók, közösségi bejegyzések) ----------
+     A nyilak kártyacsoportonként lapoznak, lágyan gyorsuló és lassuló animációval; ujjal,
+     egérgörgővel és billentyűzettel is görgethető. A sáv szélén kilógó kártyák halványabbak. */
+  function carousel(track, prev, next, dots, nav) {
+    let anim = 0, pages = -1, queued = false, queuedAt = 0;
+    const gap = () => parseFloat(getComputedStyle(track).columnGap) || 0;
+    const max = () => Math.max(0, track.scrollWidth - track.clientWidth);
+    const starts = () => [...track.children].map(c => c.offsetLeft - track.children[0].offsetLeft);
+    const perView = () => {
+      const c = track.children[0]; if (!c) return 1;
+      return Math.max(1, Math.floor((track.clientWidth + gap() + 2) / (c.offsetWidth + gap())));
+    };
+    const stop = () => { cancelAnimationFrame(anim); track.classList.remove('moving'); };
+    function go(target) {
+      stop();
+      const from = track.scrollLeft, to = Math.max(0, Math.min(max(), target)), d = to - from;
+      if (Math.abs(d) < 1) return;
+      if (reduced) { track.scrollLeft = to; update(); return; }
+      const dur = Math.min(950, 480 + Math.abs(d) * .3), t0 = performance.now();
+      track.classList.add('moving');                     // a pattanó igazítás ne szóljon bele az animációba
+      const step = now => {
+        const k = Math.min(1, (now - t0) / dur), e = k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        track.scrollLeft = from + d * e;
+        if (k < 1) anim = requestAnimationFrame(step); else { track.classList.remove('moving'); update(); }
+      };
+      anim = requestAnimationFrame(step);
+    }
+    function page(dir) {
+      const s = starts(); if (!s.length) return;
+      let i = s.findIndex(x => x >= track.scrollLeft - 4); if (i < 0) i = s.length - 1;
+      go(s[Math.max(0, Math.min(s.length - 1, i + dir * perView()))]);
+    }
+    function update() {
+      queued = false;
+      const m = max(), sl = track.scrollLeft, r = track.getBoundingClientRect();
+      prev.disabled = sl <= 2; next.disabled = sl >= m - 2;
+      if (nav) nav.hidden = m <= 2;
+      for (const c of track.children) {
+        const b = c.getBoundingClientRect();
+        const vis = b.width ? (Math.min(b.right, r.right) - Math.max(b.left, r.left)) / b.width : 1;
+        c.style.setProperty('--vis', Math.max(0, Math.min(1, vis)).toFixed(3));
+      }
+      if (dots) {
+        const n = m > 2 ? Math.ceil(track.children.length / perView()) : 0;
+        if (n !== pages) {
+          pages = n;
+          dots.innerHTML = n > 1 ? Array.from({ length: n }, (_, i) => `<button type="button" aria-label="${i + 1}. oldal"></button>`).join('') : '';
+        }
+        const cur = n > 1 ? Math.round(sl / m * (n - 1)) : 0;
+        [...dots.children].forEach((d, i) => d.setAttribute('aria-current', String(i === cur)));
+      }
+    }
+    const req = () => {                                   // képkockánként legfeljebb egy frissítés, de sosem ragad be
+      const now = performance.now();
+      if (!queued || now - queuedAt > 300) { queued = true; queuedAt = now; requestAnimationFrame(update); }
+    };
+    prev.addEventListener('click', () => page(-1));
+    next.addEventListener('click', () => page(1));
+    if (dots) dots.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      const s = starts(), i = [...dots.children].indexOf(b);
+      go(s[Math.min(s.length - 1, i * perView())] || 0);
+    });
+    track.addEventListener('pointerdown', stop, { passive: true });
+    track.addEventListener('wheel', stop, { passive: true });
+    track.addEventListener('scroll', req, { passive: true });
+    addEventListener('resize', req);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(req);
+    return { refresh() { stop(); track.scrollLeft = 0; update(); } };
+  }
+
+  /* ---------- Videók ----------
+     Forrás az adminban (YouTube-videók menü): a csatorna legújabb videói, egy lejátszási lista,
+     vagy a kézzel felvett videók. Ha az automatikus lista nem érhető el, a kézzel felvettek jönnek. */
+  const vidCar = carousel($('#vidList'), $('#vidPrev'), $('#vidNext'), $('#vidDots'), $('#vidNav'));
+  let playing = null;
+  function renderVideos(items) {
+    playing = null;
+    $('#vidList').innerHTML = items.map(v => `<article class="vc"><div class="vid" data-id="${esc(v.id)}">
+        <button type="button" aria-label="Videó lejátszása: ${esc(v.title || 'YouTube-videó')}">
+        <img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="" loading="lazy"><span></span></button></div>
+        <div class="vc-t">${v.date ? `<time datetime="${esc(v.date)}">${fmtDate(v.date)}</time>` : v.ago ? `<time>${esc(v.ago)}</time>` : ''}${v.title ? `<h3>${esc(v.title)}</h3>` : ''}</div></article>`).join('');
+    $('#videok').hidden = !items.length; $('#navVideo').hidden = !items.length;
+    vidCar.refresh();
+  }
+  async function loadVideos(manualRows) {
+    const mode = TX.video_source || 'channel';
+    const count = Math.min(15, Math.max(3, parseInt(TX.video_count, 10) || 12));
+    const src = mode === 'playlist' ? TX.youtube_playlist : mode === 'channel' ? TX.youtube_url : '';
+    let items = null;
+    if (src && sb && sb.functions) {
+      try {
+        const { data, error } = await sb.functions.invoke(PLANERVO_CFG.youtubeFunction, { body: { type: mode, source: src } });
+        if (!error && data && Array.isArray(data.items) && data.items.length)
+          items = data.items.map(v => ({ id: v.id, title: v.title, date: v.published, ago: v.ago }));
+      } catch (e) { /* a kézzel felvett videók maradnak */ }
+    }
+    if (!items) items = manualRows.map(r => ({ id: ytId(r.url), title: r.title || '' })).filter(v => v.id);
+    renderVideos(items.slice(0, count));
+    const ch = $('#chanLink');
+    if (mode === 'playlist' && TX.youtube_playlist && items.length) {
+      ch.href = TX.youtube_playlist; ch.textContent = 'A teljes lista a YouTube-on'; ch.hidden = false;
+    }
   }
   $('#vidList').addEventListener('click', e => {
     const b = e.target.closest('.vid button'); if (!b) return;
     const v = b.parentElement;
-    v.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${v.dataset.id}?autoplay=1&rel=0" title="YouTube-videó" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    if (playing && playing !== v && playing.isConnected) playing.innerHTML = playing._thumb;   // egyszerre egy videó szóljon
+    v._thumb = v.innerHTML; playing = v;
+    v.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${encodeURIComponent(v.dataset.id)}?autoplay=1&rel=0" title="YouTube-videó" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
   });
 
   /* ---------- Blog előnézet ---------- */
@@ -451,17 +546,8 @@
   });
   $('#addRoom').addEventListener('click', () => { const r = addRoom(); r.el.querySelector('.r-name').focus(); });
 
-  /* ---------- Közösségi média: vízszintesen lapozható ablak, első a legújabb ---------- */
-  const SP_GAP = 18;                                   // a kártyák közti távolság (style.css: .sp-track gap)
-  function spStep() {
-    const tr = $('#spTrack'), c = tr.querySelector('.sp-card');
-    return c ? c.getBoundingClientRect().width + SP_GAP : tr.clientWidth * .8;
-  }
-  function spUpdate() {
-    const tr = $('#spTrack'); if (!tr) return;
-    $('#spPrev').disabled = tr.scrollLeft <= 2;
-    $('#spNext').disabled = tr.scrollLeft >= tr.scrollWidth - tr.clientWidth - 2;
-  }
+  /* ---------- Közösségi média: lapozható ablak, első a legújabb ---------- */
+  const spCar = carousel($('#spTrack'), $('#spPrev'), $('#spNext'), $('#spDots'), $('#spNav'));
   function renderSocial(rows) {
     const list = rows.slice().sort((a, b) => new Date(b.published_at) - new Date(a.published_at));
     $('#spTrack').innerHTML = list.map(r => {
@@ -471,14 +557,9 @@
         <div class="sp-img">${img}<span class="sp-plat">${esc(p)}</span></div>
         <div class="sp-txt">${r.published_at ? `<time datetime="${esc(r.published_at)}">${fmtDate(r.published_at)}</time>` : ''}${r.title ? `<h3>${esc(r.title)}</h3>` : ''}</div></a>`;
     }).join('');
-    $('#spTrack').scrollLeft = 0;
     $('#kozossegi').hidden = !list.length; $('#navSocial').hidden = !list.length;
-    spUpdate();
+    spCar.refresh();
   }
-  $('#spPrev').addEventListener('click', () => $('#spTrack').scrollBy({ left: -spStep(), behavior: reduced ? 'auto' : 'smooth' }));
-  $('#spNext').addEventListener('click', () => $('#spTrack').scrollBy({ left: spStep(), behavior: reduced ? 'auto' : 'smooth' }));
-  $('#spTrack').addEventListener('scroll', spUpdate, { passive: true });
-  addEventListener('resize', spUpdate);
 
   /* ---------- Betöltés ---------- */
   async function load() {
@@ -498,7 +579,7 @@
     if (!sec.error) renderSections(sec.data || []);
     if (!ba.error) renderBA(ba.data || []);
     if (!gal.error) renderGallery(gal.data || []);
-    if (!vid.error) renderVideos(vid.data || []);
+    loadVideos(vid.error ? [] : (vid.data || []));
     if (!posts.error) renderPosts(posts.data || []);
     if (!soc.error) renderSocial(soc.data || []);
     workLoaded = true;

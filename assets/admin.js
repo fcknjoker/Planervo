@@ -71,7 +71,7 @@
     },
     videos: {
       label: 'YouTube-videók', single: 'videó', addLabel: 'Új videó',
-      help: 'Másold be a YouTube-videó linkjét. Az első videó nagyobb méretben jelenik meg a főoldalon. A csatornád linkjét az „Oldal szövegei” menüben adhatod meg.',
+      help: 'Felül választod ki, honnan jönnek a főoldal videói: a csatornád legújabb videói, egy lejátszási lista, vagy az alábbi, kézzel felvett videók. A kézi lista akkor is tartalék, ha az automatikus lekérés épp nem sikerül.',
       empty: 'Még nincs videó. Ha üres, a szakasz nem jelenik meg.',
       fields: [
         { k: 'url', l: 'YouTube-link', req: 1, ph: 'https://www.youtube.com/watch?v=…' },
@@ -281,13 +281,71 @@
       ${T.importList ? '<button type="button" class="btn o" id="importList">Árlista betöltése</button>' : ''}
       <button type="button" class="btn" id="addNew">${esc(T.addLabel)}</button></div></header>
       ${T.search ? `<div class="filt"><input type="search" id="fltQ" placeholder="Keresés a megnevezésben…" aria-label="Keresés"><select id="fltC" aria-label="Kategória"><option value="">Minden kategória</option></select><span class="muted" id="fltN"></span></div>` : ''}
+      ${key === 'videos' ? '<form class="vsrc" id="vsrc" novalidate><p class="muted">Betöltés…</p></form><h2 class="sub-h">Kézzel felvett videók</h2>' : ''}
       <div id="list" class="list"><p class="muted">Betöltés…</p></div>`;
     $('#addNew').onclick = () => openEditor(key, null);
+    if (key === 'videos') videoSource();
     if (T.multi) $('#multi').onchange = e => multiUpload(key, [...e.target.files]);
     if (T.importList) $('#importList').onclick = () => importPriceList(key);
     if (T.search) { $('#fltQ').oninput = applyFilter; $('#fltC').onchange = applyFilter; }
     await loadList(key);
   }
+  /* ---------- Videós ablak forrása (csatorna / lejátszási lista / kézi) ---------- */
+  const VS_KEYS = ['video_source', 'youtube_url', 'youtube_playlist', 'video_count'];
+  async function fnError(error) {
+    try { const b = await error.context.json(); return (b && b.error) || error.message; } catch (e) { return error.message; }
+  }
+  async function videoSource() {
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    const box = $('#vsrc');
+    if (CUR !== 'videos' || !box) return;
+    if (error) { box.innerHTML = errBox(error); return; }
+    const cur = { ...TEXT_DEFAULTS, ...((data && data.value) || {}) };
+    box.innerHTML = `<h2>Mit mutasson a főoldal videós ablaka?</h2>
+      <p class="help">Csatornánál a legújabb videók jönnek automatikusan, a legújabb elöl. Lejátszási listánál a lista sorrendje számít, így te válogathatod össze, mi kerüljön ki. A YouTube így legfeljebb 15 videót ad ki.</p>
+      <div class="vs-grid">${VS_KEYS.map(k => fieldHtml(TEXT_FIELDS.find(f => f.k === k), cur[k])).join('')}</div>
+      <div class="vs-act"><button class="btn" type="submit">Beállítás mentése</button><button class="btn o" type="button" id="vsTest">Kipróbálom</button><span class="vs-msg" id="vsMsg" role="status"></span></div>`;
+    const sync = () => { $('#f_youtube_playlist').closest('.fl').hidden = $('#f_video_source').value !== 'playlist'; };
+    $('#f_video_source').onchange = sync; sync();
+    const read = () => ({
+      video_source: $('#f_video_source').value, youtube_url: $('#f_youtube_url').value.trim(),
+      youtube_playlist: $('#f_youtube_playlist').value.trim(), video_count: parseInt($('#f_video_count').value, 10) || 12
+    });
+    const msg = (t, err) => { const m = $('#vsMsg'); m.textContent = t; m.classList.toggle('err', !!err); };
+    const check = v => {
+      if (v.video_count < 3 || v.video_count > 15) return 'A videók száma 3 és 15 között legyen.';
+      if (v.youtube_url && !/youtube\.com\/|^@[\w.-]+$|^UC[\w-]{22}$/.test(v.youtube_url)) return 'A csatorna linkje YouTube-cím legyen, például https://www.youtube.com/@csatornam';
+      if (v.video_source === 'channel' && !v.youtube_url) return 'Add meg a YouTube-csatornád linkjét.';
+      if (v.video_source === 'playlist' && !/[?&]list=[\w-]+|^(PL|UU|OL)[\w-]{10,}$/.test(v.youtube_playlist)) return 'A lejátszási lista linkjében legyen „list=…” rész (a lista oldalának címe a böngészőben).';
+      return '';
+    };
+    $('#vsTest').onclick = async () => {
+      const v = read();
+      if (v.video_source === 'manual') return msg('Kézi módban az alábbi listában felvett videók jelennek meg.');
+      const bad = check(v); if (bad) return msg(bad, true);
+      msg('Lekérdezés a YouTube-ról…');
+      try {
+        const { data: d, error: e } = await sb.functions.invoke(PLANERVO_CFG.youtubeFunction, { body: { type: v.video_source, source: v.video_source === 'playlist' ? v.youtube_playlist : v.youtube_url } });
+        if (e) throw new Error(await fnError(e));
+        if (d && d.error) throw new Error(d.error);
+        const n = (d && d.items || []).length;
+        msg(n ? `Rendben: ${n} videót találtam${d.title ? ` („${d.title}”)` : ''}. Az első: „${d.items[0].title}”.` : 'A forrás elérhető, de nincs benne nyilvános videó.', !n);
+      } catch (x) {
+        msg(`Nem sikerült lekérni a videókat: ${x.message} Ha a youtube-feed függvény még nincs telepítve a Supabase-ben, a README leírja, hogyan kell.`, true);
+      }
+    };
+    box.onsubmit = async e => {
+      e.preventDefault();
+      const v = read(), bad = check(v); if (bad) return msg(bad, true);
+      const btn = $('button[type=submit]', box); btn.disabled = true;
+      const { data: d2, error: e1 } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+      const { error: e2 } = e1 ? { error: e1 } : await sb.from('settings').upsert({ key: 'texts', value: { ...((d2 && d2.value) || {}), ...v }, updated_at: new Date().toISOString() });
+      btn.disabled = false;
+      if (e2) return msg('A mentés nem sikerült: ' + e2.message, true);
+      msg('Elmentve. A főoldalon frissítés után látszik.'); toast('Videóbeállítás elmentve.');
+    };
+  }
+
   function applyFilter() {
     const q = ($('#fltQ') || {}).value, c = ($('#fltC') || {}).value;
     if (q === undefined) return;
