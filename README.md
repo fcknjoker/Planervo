@@ -82,6 +82,27 @@ Az oldal csak webcímről működik, a számítógépen dupla kattintással megn
 Mértékegységek: a **fal és/vagy mennyezet** tételnél az ügyfél választ (Fal / Mennyezet / Mindkettő);
 az **m² (megadott)**, **folyóméter** és **darab** tételnél az ügyfél írja be a mennyiséget.
 
+## Videós ablak: YouTube-csatorna vagy lejátszási lista (2026. november)
+
+A főoldal videói automatikusan jöhetnek a YouTube-csatornádról (a legújabb elöl) vagy egy lejátszási listából.
+Ehhez egy kis függvény kell a Supabase-ben, API-kulcs nem kell hozzá:
+
+1. Supabase → **Edge Functions** → **Deploy a new function** → Via Editor → név: `youtube-feed` →
+   illeszd be a `supabase/functions/youtube-feed/index.ts` tartalmát → **Deploy**.
+2. A függvény beállításainál kapcsold **ki** a **Verify JWT** opciót (ugyanúgy, mint a `notify-quote`-nál).
+   CLI-vel: `supabase functions deploy youtube-feed --no-verify-jwt --project-ref jodzzaqawursaidefdea`
+3. Admin → **YouTube-videók** → felül válaszd ki a forrást (csatorna / lejátszási lista / kézi),
+   add meg a linket, nyomd meg a **Kipróbálom** gombot, majd **Beállítás mentése**.
+
+A függvény a YouTube csatornaoldalát olvassa (a YouTube RSS-hírcsatornája leállt, ezért nem az kell). Legfeljebb 15 videót ad ki, a dátum helyett a YouTube saját szövegével (pl. „2 héttel ezelőtt"). Ha a lekérés nem sikerül, a kézzel felvett videók jelennek meg.
+
+**Ha a függvényt már korábban telepítetted:** nyisd meg újra a `youtube-feed` függvényt a Supabase-ben, cseréld ki a kódot a `supabase/functions/youtube-feed/index.ts` friss tartalmára, és nyomd meg a Deploy gombot.
+
+## Közösségi média ablak (2026. november)
+
+Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt, utána az admin
+**Közösségi média** menüjében adhatod hozzá az Instagram-, TikTok- és Facebook-bejegyzéseket.
+
 ## Admin felület (`/admin.html`)
 
 - **Árajánlat-kérések:** beérkezett kérések, állapot (Új, Folyamatban, Ajánlat elküldve, Elfogadva, Lezárva),

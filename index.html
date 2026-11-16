@@ -104,20 +104,23 @@
 
   <section class="band" id="kozossegi" hidden aria-labelledby="sp-h">
     <div class="wrap">
-      <div class="sp-head">
+      <div class="car-head">
         <div><h2 id="sp-h" data-t="social_title"></h2><p class="lead" data-t="social_text"></p></div>
-        <div class="sp-btns"><button type="button" id="spPrev" aria-label="Előző bejegyzések">‹</button><button type="button" id="spNext" aria-label="Következő bejegyzések">›</button></div>
+        <div class="car-btns" id="spNav"><button type="button" id="spPrev" aria-label="Előző bejegyzések"></button><button type="button" id="spNext" aria-label="Következő bejegyzések"></button></div>
       </div>
-      <div class="sp-track" id="spTrack" tabindex="0" role="region" aria-labelledby="sp-h"></div>
+      <div class="car-track" id="spTrack" tabindex="0" role="region" aria-labelledby="sp-h"></div>
+      <div class="car-foot"><div class="car-dots" id="spDots"></div></div>
     </div>
   </section>
 
-  <section class="band peach" id="videok" hidden>
+  <section class="band peach" id="videok" hidden aria-labelledby="vid-h">
     <div class="wrap">
-      <h2 data-t="videos_title"></h2>
-      <p class="lead" data-t="videos_text"></p>
-      <div class="vids" id="vidList"></div>
-      <a class="btn o chan" id="chanLink" href="#" target="_blank" rel="noopener" hidden>YouTube-csatornánk</a>
+      <div class="car-head">
+        <div><h2 id="vid-h" data-t="videos_title"></h2><p class="lead" data-t="videos_text"></p></div>
+        <div class="car-btns" id="vidNav"><button type="button" id="vidPrev" aria-label="Előző videók"></button><button type="button" id="vidNext" aria-label="Következő videók"></button></div>
+      </div>
+      <div class="car-track vids" id="vidList" tabindex="0" role="region" aria-labelledby="vid-h"></div>
+      <div class="car-foot"><div class="car-dots" id="vidDots"></div><a class="btn o chan" id="chanLink" href="#" target="_blank" rel="noopener" hidden>YouTube-csatornánk</a></div>
     </div>
   </section>
   <div class="slot" data-slot="after_videos"></div>
