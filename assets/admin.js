@@ -9,7 +9,7 @@
   }
   const errBox = e => `<div class="errbox">Hiba történt: ${esc(e.message || e)}. Ha az adatbázis még nincs beállítva, futtasd a supabase/schema.sql fájlt.</div>`;
 
-  const STATUS = { new: 'Új', in_progress: 'Folyamatban', sent: 'Ajánlat elküldve', won: 'Elfogadva', closed: 'Lezárva' };
+  const STATUS = { new: 'Új', in_progress: 'Folyamatban', scheduled: 'Időpont megbeszélve', sent: 'Ajánlat elküldve', won: 'Elfogadva', closed: 'Lezárva' };
 
   /* ---------- Szerkeszthető táblák leírása ---------- */
   const TABLES = {
@@ -17,7 +17,7 @@
       label: 'Munkafolyamatok és díjak', single: 'munkafolyamat', addLabel: 'Új munkafolyamat',
       help: 'Ezekből választ az ügyfél helyiségenként az árajánlatkérőben (csak munkadíj). A „fal és/vagy mennyezet” tételeknél az ügyfél választja ki, hogy falra, mennyezetre vagy mindkettőre kéri. A falfelületet az alapterületből és a belmagasságból számoljuk, négyzetes alaprajzzal becsülve.',
       empty: 'Még nincs munkafolyamat. Töltsd be az alap árlistát az „Árlista betöltése” gombbal, vagy add meg az elsőt kézzel.',
-      search: true, importList: true,
+      search: true, importList: true, bulkPrice: true,
       fields: [
         { k: 'name', l: 'Megnevezés', req: 1, ph: 'pl. Festés két rétegben, fehér színben' },
         { k: 'category', l: 'Kategória', ph: 'pl. Alapmunkák, Festési munkák, Mázolási munkák', hint: 'Az azonos kategóriájú munkák egy lenyíló csoportban jelennek meg az árajánlatkérőben.' },
@@ -36,10 +36,10 @@
     },
     services: {
       label: 'Szolgáltatások', single: 'szolgáltatás', addLabel: 'Új szolgáltatás',
-      help: 'A főoldal sötét sávjában megjelenő szolgáltatások.',
+      help: 'A főoldal szolgáltatás-sorai. Ha képet is adsz meg, a sor mellett nagy képként jelenik meg; kép nélkül a logó színsávjai látszanak.',
       empty: 'Még nincs szolgáltatás. Ha üres, a szakasz nem jelenik meg a főoldalon.',
-      fields: [{ k: 'title', l: 'Cím', req: 1 }, { k: 'body', l: 'Leírás', t: 'textarea' }],
-      title: r => r.title, sub: r => r.body
+      fields: [{ k: 'title', l: 'Cím', req: 1 }, { k: 'body', l: 'Leírás', t: 'textarea' }, { k: 'image_url', l: 'Kép (nem kötelező)', t: 'image', folder: 'szolgaltatasok' }],
+      thumb: 'image_url', title: r => r.title, sub: r => r.body
     },
     sections: {
       label: 'Főoldal ablakok', single: 'ablak', addLabel: 'Új ablak',
@@ -89,6 +89,29 @@
       fields: [{ k: 'image_url', l: 'Kép', t: 'image', req: 1, folder: 'galeria' }, { k: 'caption', l: 'Képaláírás' }],
       thumb: 'image_url', title: r => r.caption || 'Kép aláírás nélkül'
     },
+    process_steps: {
+      label: 'Hogyan dolgozunk', single: 'lépés', addLabel: 'Új lépés',
+      help: 'A főoldali „Hogyan dolgozunk” szakasz lépései, a megadott sorrendben (a nyilakkal rendezheted). Érdemes 3–6 lépést megadni, mindegyikhez egy-két mondatot.',
+      empty: 'Még nincs lépés. Ha üres, a szakasz nem jelenik meg a főoldalon.',
+      fields: [{ k: 'title', l: 'Lépés neve', req: 1, ph: 'pl. Felmérés' }, { k: 'body', l: 'Leírás', t: 'textarea' }],
+      title: r => r.title, sub: r => r.body
+    },
+    testimonials: {
+      label: 'Vélemények', single: 'vélemény', addLabel: 'Új vélemény', visLabel: 'Jóváhagyva',
+      help: 'A főoldalon csak a „Jóváhagyva” jelölésű vélemények látszanak. A látogatók a vélemény-oldalon (velemeny.html) küldhetnek újat, ezek jóváhagyásra várnak: olvasd át, és kapcsold be a „Jóváhagyva” jelzőt. Elutasításhoz töröld őket.',
+      empty: 'Még nincs vélemény. Vegyél fel egyet kézzel (például egy kapott üzenetből vagy értékelésből), vagy küldd el az ügyfeleknek a vélemény-oldal linkjét.',
+      fields: [
+        { k: 'name', l: 'Név', req: 1 },
+        { k: 'place', l: 'Település (opcionális)' },
+        { k: 'rating', l: 'Csillagok', t: 'select', o: [['5', '5 csillag'], ['4', '4 csillag'], ['3', '3 csillag'], ['2', '2 csillag'], ['1', '1 csillag']], def: '5' },
+        { k: 'body', l: 'Vélemény', t: 'textarea', rows: 5, req: 1 },
+        { k: 'source', l: 'Honnan származik (opcionális)', ph: 'pl. Google, Facebook, e-mail' },
+        { k: 'visible', l: 'Jóváhagyva (látható a főoldalon)', t: 'bool' }
+      ],
+      title: r => `${r.name} ${'★'.repeat(+r.rating || 5)}`,
+      sub: r => (r.visible ? '' : 'Jóváhagyásra vár · ') + String(r.body || '').slice(0, 90),
+      beforeSave: o => { o.rating = +o.rating || 5; return null; }
+    },
     social_posts: {
       label: 'Közösségi média', single: 'bejegyzés', addLabel: 'Új közösségi bejegyzés', noPos: true,
       help: 'Az Instagram-, TikTok- és Facebook-bejegyzéseid a főoldalon egy lapozható ablakban jelennek meg, a legújabb elöl. Másold be a bejegyzés linkjét, és tölts fel hozzá egy borítóképet. Kép nélkül a platform neve jelenik meg.',
@@ -126,9 +149,11 @@
   };
 
   const NAV = [
-    ['quotes', 'Árajánlat-kérések'], ['work_items', 'Munkafolyamatok és díjak'], ['texts', 'Oldal szövegei'],
-    ['sections', 'Főoldal ablakok'], ['services', 'Szolgáltatások'], ['before_after', 'Előtte–utána'],
-    ['gallery', 'Galéria'], ['videos', 'YouTube-videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']
+    ['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések'], ['work_items', 'Munkafolyamatok és díjak'],
+    ['layout', 'Megjelenés és elrendezés'], ['texts', 'Oldal szövegei'],
+    ['sections', 'Főoldal ablakok'], ['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozunk'], ['testimonials', 'Vélemények'], ['before_after', 'Előtte–utána'],
+    ['gallery', 'Galéria'], ['videos', 'YouTube-videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog'],
+    ['backup', 'Mentés és visszaállítás']
   ];
   $('#nav').innerHTML = NAV.map(([k, l]) => `<button type="button" data-v="${k}"><span>${l}</span>${k === 'quotes' ? '<span class="badge" id="qBadge" hidden></span>' : ''}</button>`).join('');
   $('#nav').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) location.hash = b.dataset.v; });
@@ -174,11 +199,11 @@
   function route() {
     if ($('#app').hidden) return;
     let v = location.hash.slice(1);
-    if (!NAV.some(n => n[0] === v)) v = 'quotes';
+    if (!NAV.some(n => n[0] === v)) v = 'overview';
     $$('#nav button').forEach(b => { if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -279,6 +304,7 @@
     view.innerHTML = `<header class="vh"><div><h1>${esc(T.label)}</h1>${T.help ? `<p class="help">${esc(T.help)}</p>` : ''}</div>
       <div class="vh-act">${T.multi ? '<label class="btn o">Több kép feltöltése<input type="file" accept="image/*" multiple hidden id="multi"></label>' : ''}
       ${T.importList ? '<button type="button" class="btn o" id="importList">Árlista betöltése</button>' : ''}
+      ${T.bulkPrice ? '<button type="button" class="btn o" id="bulkPrice">Árak módosítása</button>' : ''}
       <button type="button" class="btn" id="addNew">${esc(T.addLabel)}</button></div></header>
       ${T.search ? `<div class="filt"><input type="search" id="fltQ" placeholder="Keresés a megnevezésben…" aria-label="Keresés"><select id="fltC" aria-label="Kategória"><option value="">Minden kategória</option></select><span class="muted" id="fltN"></span></div>` : ''}
       ${key === 'videos' ? '<form class="vsrc" id="vsrc" novalidate><p class="muted">Betöltés…</p></form><h2 class="sub-h">Kézzel felvett videók</h2>' : ''}
@@ -287,6 +313,7 @@
     if (key === 'videos') videoSource();
     if (T.multi) $('#multi').onchange = e => multiUpload(key, [...e.target.files]);
     if (T.importList) $('#importList').onclick = () => importPriceList(key);
+    if (T.bulkPrice) $('#bulkPrice').onclick = bulkPriceDialog;
     if (T.search) { $('#fltQ').oninput = applyFilter; $('#fltC').onchange = applyFilter; }
     await loadList(key);
   }
@@ -401,6 +428,7 @@
         <label class="sw"><input type="checkbox" data-act="vis"${r[vk] ? ' checked' : ''}>${esc(T.visLabel || 'Látható')}</label>
         ${T.noPos ? '<span></span>' : `<div class="mv"><button type="button" data-act="up" aria-label="Feljebb"${i ? '' : ' disabled'}>↑</button><button type="button" data-act="down" aria-label="Lejjebb"${i < ROWS.length - 1 ? '' : ' disabled'}>↓</button></div>`}
         <button type="button" class="btn sm o" data-act="edit">Szerkesztés</button>
+        <button type="button" class="btn sm o" data-act="dup">Másolás</button>
         <button type="button" class="btn sm danger" data-act="del">Törlés</button></div>`;
     }).join('');
     if (T.search) {
@@ -412,6 +440,16 @@
       const b = e.target.closest('button[data-act]'); if (!b) return;
       const i = +b.closest('.row').dataset.i, r = ROWS[i];
       if (b.dataset.act === 'edit') openEditor(key, r);
+      if (b.dataset.act === 'dup') {
+        const { id, created_at, ...copy } = r;
+        const nk = ['name', 'title', 'caption'].find(k => copy[k]);
+        if (nk) copy[nk] = copy[nk] + ' (másolat)';
+        if ('position' in copy) copy.position = nextPos();
+        if (key === 'posts') { copy.slug = slugify((copy.slug || 'bejegyzes') + '-masolat-' + Math.random().toString(36).slice(2, 5)); copy.published = false; }
+        const { error } = await sb.from(key).insert(copy);
+        if (error) return toast('A másolás nem sikerült: ' + error.message, true);
+        toast('Lemásolva. A másolat a lista végén van.'); loadList(key);
+      }
       if (b.dataset.act === 'up' || b.dataset.act === 'down') move(key, i, b.dataset.act === 'up' ? -1 : 1);
       if (b.dataset.act === 'del') {
         if (!confirm(`Biztosan törlöd? „${T.title(r)}”\nEz nem vonható vissza.`)) return;
@@ -500,7 +538,7 @@
         const el = document.getElementById('f_' + f.k);
         value[f.k] = f.t === 'bool' ? el.checked : el.value.trim();
       });
-      const { error } = await sb.from('settings').upsert({ key: 'texts', value, updated_at: new Date().toISOString() });
+      const { error } = await mergeTexts(value);
       toast(error ? 'A mentés nem sikerült: ' + error.message : 'A szövegek elmentve.', !!error);
     };
   }
@@ -515,9 +553,12 @@
   async function showQuotes() {
     CUR = 'quotes';
     view.innerHTML = `<header class="vh"><div><h1>Árajánlat-kérések</h1><p class="help">A weboldalon beküldött kérések, a legújabb elöl. Minden új kérésről e-mailt is kapsz.</p></div>
-      <div class="vh-act"><button type="button" class="btn o" id="qReload">Frissítés</button></div></header>
+      <div class="vh-act"><button type="button" class="btn o" id="qCsv">CSV letöltése</button><button type="button" class="btn o" id="qReload">Frissítés</button></div></header>
+      <div class="filt"><input type="search" id="qSearch" placeholder="Keresés név, település, telefon, e-mail alapján…" aria-label="Keresés"></div>
       <div class="chips" id="chips"></div><div class="list" id="qList"><p class="muted">Betöltés…</p></div>`;
     $('#qReload').onclick = showQuotes;
+    $('#qCsv').onclick = exportQuotesCsv;
+    $('#qSearch').value = qSearch; $('#qSearch').oninput = e => { qSearch = e.target.value; renderQuotes(); };
     const { data, error } = await sb.from('quotes').select('*').order('created_at', { ascending: false });
     if (CUR !== 'quotes') return;
     if (error) { $('#qList').innerHTML = errBox(error); return; }
@@ -528,12 +569,12 @@
     $('#chips').innerHTML = [['all', `Összes (${QUOTES.length})`], ...Object.entries(STATUS).map(([k, l]) => [k, `${l} (${cnt(k)})`])]
       .map(([k, l]) => `<button type="button" data-f="${k}" aria-pressed="${qFilter === k}">${l}</button>`).join('');
     $('#chips').onclick = e => { const b = e.target.closest('button[data-f]'); if (b) { qFilter = b.dataset.f; renderQuotes(); } };
-    const list = QUOTES.filter(q => qFilter === 'all' || q.status === qFilter);
+    const list = filteredQuotes();
     $('#qList').innerHTML = list.length ? list.map(q => `<button type="button" class="qrow" data-id="${q.id}">
         <span class="st st-${q.status}">${STATUS[q.status] || q.status}</span>
         <b>${esc(q.name)}</b><span>${esc(q.city)}</span><span>${(q.rooms || []).length} helyiség</span>
-        <span class="num">${fmtFt(q.estimate)}</span><time>${new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
-      : `<div class="emptybox"><p>${QUOTES.length ? 'Ebben az állapotban nincs árajánlat-kérés.' : 'Még nem érkezett árajánlat-kérés. Amint valaki kitölti az űrlapot a weboldalon, itt jelenik meg.'}</p></div>`;
+        <span class="num">${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? fmtInt0(q.estimate_min) + '–' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</span><time>${q.appointment_at ? '📅 ' + new Date(q.appointment_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
+      : `<div class="emptybox"><p>${QUOTES.length ? 'Nincs a szűrésnek megfelelő árajánlat-kérés.' : 'Még nem érkezett árajánlat-kérés. Amint valaki kitölti az űrlapot a weboldalon, itt jelenik meg.'}</p></div>`;
     $('#qList').onclick = e => { const b = e.target.closest('.qrow'); if (b) openQuote(b.dataset.id); };
   }
   async function openQuote(id) {
@@ -554,13 +595,19 @@
           <div><span>Település</span>${esc(q.city)}</div>
         </div>
         ${q.message ? `<p class="qd-msg">${esc(q.message)}</p>` : ''}
+        ${(q.preferred_slots || []).length ? `<div class="qd-slots"><b>Kívánt felmérési időpontok</b><ul>${q.preferred_slots.map(sl => `<li>${esc(slotLabel(sl))}</li>`).join('')}</ul></div>` : ''}
         ${rooms.map((r, i) => `<div class="qd-room"><h3>${i + 1}. ${esc(r.name)}</h3>
           <p class="meta">${fmtNum(r.area)} m² alapterület, ${fmtNum(r.height)} m belmagasság, ≈ ${fmtNum(r.wall)} m² fal, ${fmtNum(r.ceiling)} m² mennyezet</p>
           <div class="tbl"><table>${(r.items || []).map(it => `<tr><td>${esc(it.name)}</td><td>${fmtNum(it.qty)} ${UNIT_SHORT[it.unit] || ''}</td><td>${fmtFt(it.price)}</td><td>${fmtFt(it.amount)}</td></tr>`).join('')}
             <tr class="sub"><td colspan="3">Részösszeg</td><td>${fmtFt(r.subtotal)}</td></tr></table></div>
           ${(r.images || []).length ? `<div class="qd-imgs">${r.images.map((p, j) => urls[p] ? `<a href="${urls[p]}" target="_blank" rel="noopener"><img src="${urls[p]}" alt="${j + 1}. fotó"></a>` : '').join('')}</div>` : ''}
         </div>`).join('')}
-        <div class="qd-total">Becsült munkadíj összesen:<strong>${fmtFt(q.estimate)}</strong></div>
+        ${q.discount && q.discount.amount ? `<div class="qd-promo">${esc(q.discount.label || 'Akció')} (−${esc(q.discount.pct)}%): −${fmtFt(q.discount.amount)}</div>` : ''}
+        <div class="qd-total">Becsült munkadíj összesen:<strong>${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? 'kb. ' + fmtInt0(q.estimate_min) + ' – ' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</strong>${q.estimate_min && +q.estimate_min !== +q.estimate_max ? `<small class="muted"> középérték: ${fmtFt(q.estimate)}</small>` : ''}</div>
+        <div class="qd-appt"><b>Felmérés időpontja</b>
+          <div class="qd-appt-row"><label>Időpont<input type="datetime-local" id="qApptAt" value="${q.appointment_at ? toLocalInput(q.appointment_at) : ''}"></label>
+            <label>Megjegyzés (cím, kapucsengő, parkolás)<input type="text" id="qApptNote" maxlength="200" value="${esc(q.appointment_note)}"></label></div>
+          <div class="vs-act"><button type="button" class="btn o sm" id="qIcs">Naptárfájl (.ics)</button><a class="btn o sm" id="qGcal" target="_blank" rel="noopener" href="#">Google Naptár</a><span class="vs-msg" id="qApptMsg" role="status"></span></div></div>
         <div class="qd-manage">
           <label>Állapot<select id="qStatusSel">${Object.entries(STATUS).map(([k, l]) => `<option value="${k}"${q.status === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           <label>Saját jegyzet (csak az adminban látszik)<textarea id="qNote" rows="3">${esc(q.admin_note)}</textarea></label>
@@ -580,9 +627,24 @@
     }
     $('#qSave').onclick = async () => {
       const upd = { status: $('#qStatusSel').value, admin_note: $('#qNote').value.trim() || null };
+      const at = $('#qApptAt').value, an = $('#qApptNote').value.trim() || null;
+      if (at || q.appointment_at) { upd.appointment_at = at ? new Date(at).toISOString() : null; upd.appointment_note = an; }
+      if (at && ['new', 'in_progress'].includes(upd.status)) { upd.status = 'scheduled'; $('#qStatusSel').value = 'scheduled'; }
       const { error } = await sb.from('quotes').update(upd).eq('id', id);
-      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      if (error) return toast(/appointment|column|schema cache/i.test(error.message) ? 'A mentés nem sikerült: az adatbázis még nem ismeri az időpont mezőket. Futtasd le a supabase/2026-12-bovites.sql fájlt.' : 'A mentés nem sikerült: ' + error.message, true);
       Object.assign(q, upd); dlg.close(); renderQuotes(); refreshBadge(); toast('Mentve.');
+    };
+    const apptInfo = () => {
+      const at = $('#qApptAt').value; if (!at) return null;
+      return { start: new Date(at), name: q.name, phone: q.phone, city: q.city, note: $('#qApptNote').value.trim(), id: q.id };
+    };
+    const syncGcal = () => { const a = apptInfo(), g = $('#qGcal'); g.href = a ? gcalUrl(a) : '#'; g.classList.toggle('disabled', !a); };
+    $('#qApptAt').addEventListener('input', syncGcal); $('#qApptNote').addEventListener('input', syncGcal); syncGcal();
+    $('#qIcs').onclick = () => {
+      const a = apptInfo(); const m = $('#qApptMsg');
+      if (!a) { m.textContent = 'Előbb add meg az időpontot.'; m.classList.add('err'); return; }
+      m.classList.remove('err'); m.textContent = 'Naptárfájl letöltve.';
+      downloadFile(`felmeres-${slugify(q.name) || 'ugyfel'}.ics`, buildIcs(a), 'text/calendar;charset=utf-8');
     };
     $('#qDel').onclick = async () => {
       if (!confirm(`Biztosan törlöd ${q.name} árajánlat-kérését a csatolt fotókkal együtt?\nEz nem vonható vissza.`)) return;
@@ -591,6 +653,349 @@
       if (error) return toast('A törlés nem sikerült: ' + error.message, true);
       QUOTES = QUOTES.filter(x => x.id !== id); dlg.close(); renderQuotes(); refreshBadge(); toast('Törölve.');
     };
+  }
+
+  /* ---------- Időpontok: naptárfájl, formázás ---------- */
+  const fmtInt0 = n => Math.round(+n || 0).toLocaleString('hu-HU');
+  const slotLabel = sl => (sl.date ? new Date(sl.date + 'T12:00:00').toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) : '') + (sl.part ? ', ' + sl.part : '');
+  const toLocalInput = v => { const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const icsDate = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  const icsText = t => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+  function buildIcs(a) {
+    const end = new Date(a.start.getTime() + 60 * 60000);
+    const desc = ['Felmérés', a.phone ? 'Telefon: ' + a.phone : '', a.note].filter(Boolean).join('\n');
+    return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//PLANERVO//Felmeres//HU', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+      'UID:' + a.id + '@planervo', 'DTSTAMP:' + icsDate(new Date()), 'DTSTART:' + icsDate(a.start), 'DTEND:' + icsDate(end),
+      'SUMMARY:' + icsText('Felmérés: ' + a.name), 'LOCATION:' + icsText(a.city), 'DESCRIPTION:' + icsText(desc),
+      'BEGIN:VALARM', 'TRIGGER:-PT60M', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsText('Felmérés: ' + a.name), 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n') + '\r\n';
+  }
+  function gcalUrl(a) {
+    const end = new Date(a.start.getTime() + 60 * 60000);
+    const p = new URLSearchParams({ action: 'TEMPLATE', text: 'Felmérés: ' + a.name, dates: icsDate(a.start) + '/' + icsDate(end), details: ['Telefon: ' + a.phone, a.note].filter(Boolean).join('\n'), location: a.city || '' });
+    return 'https://calendar.google.com/calendar/render?' + p.toString();
+  }
+
+  /* ---------- Közös segédek ---------- */
+  async function mergeTexts(patch) {
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    if (error) return { error };
+    return sb.from('settings').upsert({ key: 'texts', value: { ...((data && data.value) || {}), ...patch }, updated_at: new Date().toISOString() });
+  }
+  function downloadFile(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+
+  /* ---------- Áttekintés ---------- */
+  async function showOverview() {
+    CUR = 'overview';
+    view.innerHTML = `<header class="vh"><div><h1>Áttekintés</h1><p class="help">Egy pillantás az oldalad állapotára. Kattints egy csempére, és a megfelelő szerkesztőre ugrasz.</p></div>
+      <div class="vh-act"><a class="btn o" href="index.html" target="_blank" rel="noopener">Weboldal megnyitása</a></div></header>
+      <div class="stats" id="stats"><p class="muted">Betöltés…</p></div>
+      <div id="ovAppts"></div>
+      <h2 class="sub-h">Legutóbbi árajánlat-kérések</h2><div class="list" id="ovQuotes"><p class="muted">Betöltés…</p></div>
+      <h2 class="sub-h">Tennivalók</h2><ul class="todo" id="todo"></ul>`;
+    const count = (t, f) => { let q = sb.from(t).select('id', { count: 'exact', head: true }); if (f) q = f(q); return Promise.resolve(q).then(r => r.error ? null : r.count).catch(() => null); };
+    const [qNew, qAll, work, svc, ba, gal, vid, soc, posts, tstOk, tstWait, txr, last] = await Promise.all([
+      count('quotes', q => q.eq('status', 'new')), count('quotes'), count('work_items', q => q.eq('visible', true)),
+      count('services', q => q.eq('visible', true)), count('before_after', q => q.eq('visible', true)), count('gallery', q => q.eq('visible', true)),
+      count('videos', q => q.eq('visible', true)), count('social_posts', q => q.eq('visible', true)), count('posts', q => q.eq('published', true)),
+      count('testimonials', q => q.eq('visible', true)), count('testimonials', q => q.eq('visible', false)),
+      sb.from('settings').select('value').eq('key', 'texts').maybeSingle(),
+      sb.from('quotes').select('id,name,city,estimate,status,created_at').order('created_at', { ascending: false }).limit(5)
+    ]);
+    if (CUR !== 'overview') return;
+    const n = v => v == null ? '–' : v;
+    const tiles = [
+      ['quotes', qNew, 'új árajánlat-kérés', qAll == null ? '' : `összesen ${qAll}`, qNew > 0],
+      ['work_items', work, 'munkafolyamat az árajánlatkérőben', '', false], ['services', svc, 'szolgáltatás', '', false],
+      ['before_after', ba, 'előtte–utána pár', '', false], ['gallery', gal, 'kép a galériában', '', false],
+      ['videos', vid, 'kézzel felvett videó', '', false], ['social_posts', soc, 'közösségi bejegyzés', '', false], ['posts', posts, 'közzétett blogbejegyzés', '', false],
+      ['testimonials', tstOk, 'jóváhagyott vélemény', tstWait ? `${tstWait} vár jóváhagyásra` : '', tstWait > 0]
+    ];
+    $('#stats').innerHTML = tiles.map(([k, v, l, s, hot]) => `<a class="stat${hot ? ' hot' : ''}" href="#${k}"><b>${n(v)}</b><span>${esc(l)}</span>${s ? `<small>${esc(s)}</small>` : ''}</a>`).join('');
+    const ap = await sb.from('quotes').select('id,name,city,phone,appointment_at,appointment_note').gte('appointment_at', new Date(Date.now() - 3600000).toISOString()).order('appointment_at').limit(6);
+    if (CUR === 'overview' && ap && !ap.error && (ap.data || []).length) {
+      $('#ovAppts').innerHTML = `<h2 class="sub-h">Közelgő felmérések</h2><div class="list">${ap.data.map(a => `<a class="qrow appt" href="#quotes"><span class="st st-scheduled">${new Date(a.appointment_at).toLocaleString('hu-HU', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span><b>${esc(a.name)}</b><span>${esc(a.city)}</span><span><a href="tel:${esc(String(a.phone || '').replace(/[^\\d+]/g, ''))}">${esc(a.phone)}</a></span><span class="num"></span><time>${esc(a.appointment_note || '')}</time></a>`).join('')}</div>`;
+    }
+    const rows = (last && !last.error && last.data) || [];
+    $('#ovQuotes').innerHTML = rows.length ? rows.map(q => `<a class="qrow" href="#quotes"><span class="st st-${q.status}">${STATUS[q.status] || q.status}</span><b>${esc(q.name)}</b><span>${esc(q.city)}</span><span></span><span class="num">${fmtFt(q.estimate)}</span><time>${new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></a>`).join('')
+      : '<div class="emptybox"><p>Még nem érkezett árajánlat-kérés.</p></div>';
+    const tx = { ...TEXT_DEFAULTS, ...((txr && txr.data && txr.data.value) || {}) }, todo = [];
+    if (tx.phone === TEXT_DEFAULTS.phone) todo.push(['texts', 'A telefonszám még a minta: írd át az „Oldal szövegei” menüben.']);
+    if (work === 0) todo.push(['work_items', 'Nincs munkafolyamat az árajánlatkérőben: töltsd be az árlistát.']);
+    if ((tx.video_source || 'channel') !== 'manual' && !(tx.video_source === 'playlist' ? tx.youtube_playlist : tx.youtube_url) && !vid) todo.push(['videos', 'A videós ablak üres: add meg a YouTube-csatornádat vagy egy lejátszási listát.']);
+    if (svc === 0) todo.push(['services', 'Nincs szolgáltatás felvéve, ezért az alapértelmezettek látszanak.']);
+    if (gal === 0 && ba === 0) todo.push(['gallery', 'Még nincs galéria vagy előtte–utána kép: a fotók sokat dobnak a bizalmon.']);
+    if (qNew > 0) todo.push(['quotes', `${qNew} új árajánlat-kérés vár válaszra.`]);
+    if (tstWait > 0) todo.push(['testimonials', `${tstWait} új vélemény vár jóváhagyásra.`]);
+    if (!tx.legal_name || !tx.legal_seat) todo.push(['texts', 'A jogi adatok (név, székhely, adószám) hiányosak: az adatkezelési tájékoztató és az impresszum ezektől teljes.']);
+    if (!tx.site_url) todo.push(['texts', 'Add meg az oldal webcímét („Keresők (SEO)” csoport), hogy a keresők megtalálják és jól jelenítsék meg.']);
+    $('#todo').innerHTML = todo.length ? todo.map(([k, t]) => `<li><a href="#${k}">${esc(t)}</a></li>`).join('') : '<li class="ok">Minden rendben, nincs teendő.</li>';
+  }
+
+  /* ---------- Megjelenés és elrendezés ---------- */
+  let LY = {}, lyDirty = false, lyTimer = 0;
+  const lyBase = LAYOUT_GROUPS.map(x => x[0]);
+  const lyGet = (path) => path.split('.').reduce((o, k) => o == null ? undefined : o[k], LY);
+  function lySet(path, val) {
+    const ks = path.split('.'), last = ks.pop(), chain = [];
+    let o = LY;
+    ks.forEach(k => { if (typeof o[k] !== 'object' || o[k] === null) o[k] = {}; chain.push([o, k]); o = o[k]; });
+    if (val === '' || val == null) delete o[last]; else o[last] = val;
+    for (let i = chain.length - 1; i >= 0; i--) { const [par, k] = chain[i]; if (par[k] && !Object.keys(par[k]).length) delete par[k]; }
+  }
+  const lySel = (path, opts, cur) => `<select data-p="${path}">${opts.map(([v, l]) => `<option value="${esc(v)}"${String(cur ?? '') === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+  const lyField = (label, html, hint) => `<label class="lyf"><span>${esc(label)}</span>${html}${hint ? `<small>${esc(hint)}</small>` : ''}</label>`;
+  const lyOrdered = () => { const s = LY.order || []; return [...s.filter(x => lyBase.includes(x)), ...lyBase.filter(x => !s.includes(x))]; };
+
+  function lyOrderList() {
+    const ord = lyOrdered(), hid = new Set(LY.hidden || []);
+    $('#lyOrder').innerHTML = ord.map((g, i) => {
+      const name = LAYOUT_GROUPS.find(x => x[0] === g)[1], allowed = LAYOUT_BG_ALLOWED[g];
+      const bgs = allowed ? LAYOUT_BGS.filter(b => allowed.includes(b[0])) : LAYOUT_BGS;
+      return `<li data-g="${g}"><b>${esc(name)}</b>
+        <span class="mv"><button type="button" data-mv="-1" aria-label="Feljebb"${i ? '' : ' disabled'}>↑</button><button type="button" data-mv="1" aria-label="Lejjebb"${i < ord.length - 1 ? '' : ' disabled'}>↓</button></span>
+        <label class="sw"><input type="checkbox" data-vis${hid.has(g) ? '' : ' checked'}${g === 'arajanlat' ? ' disabled' : ''}>Látható</label>
+        ${lySel('bg.' + g, bgs, (LY.bg || {})[g])}</li>`;
+    }).join('');
+  }
+
+  function lyPreview() {
+    lyDirty = true;
+    clearTimeout(lyTimer);
+    lyTimer = setTimeout(() => {
+      const f = $('#lyFrame');
+      if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'planervo-layout', layout: JSON.parse(JSON.stringify(LY)) }, location.origin);
+    }, 120);
+  }
+
+  function lyBuild() {
+    const card = (key, c) => {
+      const p = k => `cards.${key}.${k}`, v = k => lyGet(p(k));
+      return `<details class="card lycard"><summary><b>${esc(c.label)}</b></summary><div class="lygrid">
+        ${lyField('Elrendezés', lySel(p('mode'), c.modes.map(m => m), v('mode') || c.mode), 'Lefelé folytatódó rács, vagy oldalra lapozható sáv nyilakkal.')}
+        ${lyField('Kártyák egy sorban', lySel(p('cols'), CARD_COLS, v('cols')), 'Asztali gépen. Táblagépen és telefonon az oldal automatikusan csökkenti.')}
+        ${lyField('Kártyák közti távolság', lySel(p('gap'), CARD_GAPS, v('gap')))}
+        ${lyField('Sarkok', lySel(p('radius'), CARD_RADII, v('radius')))}
+        ${c.ratios ? lyField('Képarány', lySel(p('ratio'), c.ratios, v('ratio'))) : ''}
+        ${c.text ? `<label class="lyf chk"><input type="checkbox" data-p="${p('text')}" data-neg${v('text') === 'off' ? '' : ' checked'}><span>Szöveg (dátum, cím) a képek alatt</span></label>` : ''}
+      </div></details>`;
+    };
+    const b = LY.banner || {}, m = LY.meta || {};
+    $('#lyForm').innerHTML = `
+      <fieldset class="card"><legend>Szakaszok sorrendje, láthatósága és háttere</legend>
+        <p class="muted">A nyilakkal mozgathatod a szakaszokat a főoldalon. Az Árajánlatkérő mindig látható marad, mert a menü gombja oda vezet. A főoldal tetejét (a festőhengeres részt) nem lehet áthelyezni.</p>
+        <ul class="lyorder" id="lyOrder"></ul></fieldset>
+      <fieldset class="card"><legend>Kártyák és ablakok</legend>
+        <p class="muted">Szakaszonként választhatod ki, hogy a kártyák lefelé (rács) vagy oldalra lapozva jelenjenek meg, hány férjen egymás mellé, mekkorák legyenek a távolságok és a sarkok. Ami „Alap”, az az eddigi megjelenés.</p>
+        ${Object.entries(CARD_SECTIONS).map(([k, c]) => card(k, c)).join('')}</fieldset>
+      <fieldset class="card"><legend>Általános megjelenés</legend><div class="lygrid">
+        ${lyField('Tartalom szélessége', lySel('width', LAYOUT_WIDTHS, LY.width), 'Nagy képernyőn mennyire legyen széles a tartalom.')}
+        ${lyField('Szakaszok közti térköz', lySel('spacing', LAYOUT_SPACINGS, LY.spacing))}
+        <div class="lyf"><span>Kiemelő szín (gombok, címek, vonalak)</span>
+          <div class="lycolor"><label class="chk"><input type="checkbox" data-accent${LY.accent ? ' checked' : ''}><span>Saját szín</span></label>
+          <input type="color" data-p="accent" value="${esc(LY.accent || '#c49a54')}"${LY.accent ? '' : ' disabled'} aria-label="Kiemelő szín"></div>
+          <small>A logó és a festőhenger színe nem változik. Üresen az eredeti arany marad.</small></div></div></fieldset>
+      <fieldset class="card"><legend>Közlemény sáv az oldal tetején</legend>
+        <p class="muted">Például ünnepi nyitvatartás, akció vagy szabad időpontok. A látogató bezárhatja.</p><div class="lygrid">
+        <label class="lyf chk"><input type="checkbox" data-p="banner.on"${b.on ? ' checked' : ''}><span>Közlemény mutatása</span></label>
+        ${lyField('Színe', lySel('banner.tone', LAYOUT_BANNER_TONES, b.tone || 'gold'))}
+        ${lyField('Szöveg', `<input type="text" data-p="banner.text" maxlength="200" value="${esc(b.text)}" placeholder="pl. Karácsonykor december 23-tól január 2-ig szünetelünk.">`)}
+        ${lyField('Link szövege (opcionális)', `<input type="text" data-p="banner.link_text" maxlength="40" value="${esc(b.link_text)}" placeholder="pl. Részletek">`)}
+        ${lyField('Link címe (opcionális)', `<input type="text" data-p="banner.url" maxlength="300" value="${esc(b.url)}" placeholder="#arajanlat vagy https://…">`)}</div></fieldset>
+      <fieldset class="card"><legend>Keresők és megosztás</legend>
+        <p class="muted">Ez látszik a böngésző fülén és a Google találatokban. Üresen az eredeti marad.</p><div class="lygrid one">
+        ${lyField('Az oldal címe', `<input type="text" data-p="meta.title" maxlength="70" value="${esc(m.title)}" placeholder="PLANERVO – Szobafestés, hőszigetelés, felújítás">`, 'Legfeljebb kb. 60 karakter.')}
+        ${lyField('Rövid leírás', `<textarea data-p="meta.desc" rows="3" maxlength="170" placeholder="Egy-két mondat arról, mit csináltok és hol.">${esc(m.desc)}</textarea>`, 'Legfeljebb kb. 160 karakter.')}</div>
+        <div class="vs-act"><button type="button" class="btn o" id="lySitemap">Sitemap letöltése</button><span class="vs-msg" id="lySmMsg" role="status">A sitemap.xml a keresőknek mutatja az oldal lapjait. Töltsd fel a főoldal mellé, és add meg a Google Search Console-ban.</span></div></fieldset>`;
+    lyOrderList();
+  }
+
+  async function showLayout() {
+    CUR = 'layout';
+    view.innerHTML = `<header class="vh"><div><h1>Megjelenés és elrendezés</h1><p class="help">Itt állítod be, hogyan nézzen ki a főoldal: milyen sorrendben jönnek a szakaszok, a kártyák lefelé vagy oldalra lapozva jelennek-e meg, mekkorák legyenek, milyen színűek. A jobb oldali előnézet mentés előtt is mutatja a változást.</p></div>
+      <div class="vh-act"><button type="button" class="btn o" id="lyReset">Alapértelmezés</button><button type="button" class="btn" id="lySave">Mentés</button></div></header>
+      <div class="ly"><form id="lyForm" class="ly-form" novalidate><p class="muted">Betöltés…</p></form>
+        <aside class="ly-prev"><div class="ly-bar" role="group" aria-label="Előnézet mérete">
+          <button type="button" class="btn sm o" data-w="100%" aria-pressed="true">Asztali</button><button type="button" class="btn sm o" data-w="768px" aria-pressed="false">Tablet</button><button type="button" class="btn sm o" data-w="390px" aria-pressed="false">Telefon</button>
+          <a class="link" href="index.html" target="_blank" rel="noopener">Megnyitás új lapon</a></div>
+          <div class="ly-frame"><iframe id="lyFrame" src="index.html" title="A főoldal élő előnézete"></iframe></div></aside></div>`;
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    if (CUR !== 'layout') return;
+    if (error) { $('#lyForm').innerHTML = errBox(error); return; }
+    LY = JSON.parse(JSON.stringify(getLayout((data && data.value) || {}))); lyDirty = false;
+    lyBuild();
+    const form = $('#lyForm'), frame = $('#lyFrame');
+    const onInput = e => {
+      const t = e.target;
+      if (t.dataset.accent !== undefined) {
+        const c = $('input[type=color]', form); c.disabled = !t.checked; lySet('accent', t.checked ? c.value : ''); return lyPreview();
+      }
+      const p = t.dataset.p; if (!p) return;
+      let v = t.type === 'checkbox' ? t.checked : t.value;
+      if (t.dataset.neg !== undefined) v = t.checked ? '' : 'off';
+      lySet(p, v); lyPreview();
+    };
+    form.oninput = onInput; form.onchange = onInput;
+    form.onclick = e => {
+      const mv = e.target.closest('[data-mv]');
+      if (mv) {
+        const ord = lyOrdered(), g = mv.closest('li').dataset.g, i = ord.indexOf(g), j = i + (+mv.dataset.mv);
+        if (j < 0 || j >= ord.length) return;
+        [ord[i], ord[j]] = [ord[j], ord[i]];
+        lySet('order', ord.join() === lyBase.join() ? '' : ord); lyOrderList(); return lyPreview();
+      }
+    };
+    form.addEventListener('change', e => {
+      const v = e.target.closest('[data-vis]'); if (!v) return;
+      const g = v.closest('li').dataset.g, set = new Set(LY.hidden || []);
+      if (v.checked) set.delete(g); else set.add(g);
+      lySet('hidden', set.size ? [...set] : ''); lyPreview();
+    });
+    $$('.ly-bar [data-w]').forEach(b => b.onclick = () => {
+      $$('.ly-bar [data-w]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+      frame.style.width = b.dataset.w;
+    });
+    $('#lySitemap').onclick = async () => {
+      const msg = (t, err) => { const m = $('#lySmMsg'); m.textContent = t; m.classList.toggle('err', !!err); };
+      const { data: st } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+      const base = String((st && st.value && st.value.site_url) || '').trim().replace(/\/+$/, '');
+      if (!/^https?:\/\/[^\s/]+\.[^\s/]+/.test(base)) return msg('Előbb add meg az oldal webcímét az „Oldal szövegei” menü „Keresők (SEO)” csoportjában, például https://www.planervo.hu', true);
+      const { data: posts } = await sb.from('posts').select('slug,updated_at,published_at').eq('published', true).lte('published_at', new Date().toISOString());
+      const day = v => String(v || new Date().toISOString()).slice(0, 10);
+      const urls = [[base + '/', todayStr(), 'weekly', '1.0'], [base + '/blog.html', todayStr(), 'weekly', '0.6']];
+      (posts || []).forEach(p => urls.push([`${base}/blog.html?p=${encodeURIComponent(p.slug)}`, day(p.updated_at || p.published_at), 'monthly', '0.5']));
+      ['adatkezeles.html', 'impresszum.html', 'sutik.html'].forEach(f => urls.push([`${base}/${f}`, todayStr(), 'yearly', '0.2']));
+      const x = u => String(u).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+        urls.map(([l, m, f, p]) => `  <url><loc>${x(l)}</loc><lastmod>${m}</lastmod><changefreq>${f}</changefreq><priority>${p}</priority></url>`).join('\n') + '\n</urlset>\n';
+      downloadFile('sitemap.xml', xml, 'application/xml'); msg(`Letöltve: ${urls.length} oldal. Töltsd fel a főoldal mellé.`);
+    };
+    $('#lyReset').onclick = () => {
+      if (!confirm('Minden elrendezés-beállítást visszaállítasz az eredetire? A változás csak a „Mentés” után érvényes.')) return;
+      LY = {}; lyBuild(); lyPreview(); toast('Visszaállítva. Ha így jó, kattints a Mentésre.');
+    };
+    $('#lySave').onclick = async () => {
+      const btn = $('#lySave'); btn.disabled = true;
+      const { error: err } = await mergeTexts({ layout: JSON.parse(JSON.stringify(LY)) });
+      btn.disabled = false;
+      if (err) return toast('A mentés nem sikerült: ' + err.message, true);
+      lyDirty = false; toast('Elmentve. A főoldalon frissítés után mindenki ezt látja.');
+    };
+  }
+  addEventListener('message', e => {
+    if (e.origin !== location.origin || !e.data || e.data.type !== 'planervo-ready' || CUR !== 'layout') return;
+    const f = $('#lyFrame'); if (f && e.source === f.contentWindow) f.contentWindow.postMessage({ type: 'planervo-layout', layout: JSON.parse(JSON.stringify(LY)) }, location.origin);
+  });
+  addEventListener('beforeunload', e => { if (lyDirty && CUR === 'layout') { e.preventDefault(); e.returnValue = ''; } });
+
+  /* ---------- Mentés és visszaállítás ---------- */
+  const BACKUP_TABLES = ['services', 'process_steps', 'testimonials', 'sections', 'before_after', 'gallery', 'videos', 'social_posts', 'posts', 'work_items'];
+  function showBackup() {
+    CUR = 'backup';
+    view.innerHTML = `<header class="vh"><div><h1>Mentés és visszaállítás</h1><p class="help">Az oldal tartalmáról egyetlen fájlba menthetsz másolatot, és bármikor vissza is töltheted. Érdemes nagyobb átalakítás előtt menteni.</p></div></header>
+      <div class="bk"><section class="card"><h2>Másolat letöltése</h2>
+        <p class="muted">Tartalmazza a szövegeket, a beállításokat és az elrendezést, a szolgáltatásokat, a munkafolyamatokat és díjakat, a galériát, az előtte–utána párokat, a videókat, a közösségi bejegyzéseket és a blogot. Nem tartalmazza az árajánlat-kéréseket (személyes adatok), és a képfájlokat sem, csak a webcímüket.</p>
+        <div class="vs-act"><button type="button" class="btn" id="bkExport">Másolat letöltése</button><span class="vs-msg" id="bkMsg" role="status"></span></div></section>
+      <section class="card"><h2>Visszaállítás másolatból</h2>
+        <p class="muted">Válaszd ki a korábban letöltött fájlt. A benne lévő elemek felülírják a most meglévő, azonos azonosítójú elemeket, az újak hozzáadódnak. A fájlban nem szereplő elemeket nem törlöm.</p>
+        <div class="vs-act"><label class="btn o">Fájl kiválasztása<input type="file" id="bkFile" accept=".json,application/json" hidden></label><span class="vs-msg" id="bkMsg2" role="status"></span></div></section></div>`;
+    $('#bkExport').onclick = async () => {
+      const msg = t => { $('#bkMsg').textContent = t; };
+      msg('Másolat készítése…');
+      const out = { app: 'planervo', version: 1, exported_at: new Date().toISOString(), tables: {}, settings: {} };
+      for (const t of BACKUP_TABLES) {
+        const { data, error } = await sb.from(t).select('*');
+        if (error) return msg(`A(z) ${t} tábla nem olvasható: ${error.message}`);
+        out.tables[t] = data || [];
+      }
+      const { data: st, error: se } = await sb.from('settings').select('key,value');
+      if (se) return msg('A beállítások nem olvashatók: ' + se.message);
+      (st || []).forEach(r => { out.settings[r.key] = r.value; });
+      downloadFile(`planervo-mentes-${todayStr()}.json`, JSON.stringify(out, null, 1), 'application/json');
+      msg(`Kész: ${Object.values(out.tables).reduce((s, a) => s + a.length, 0)} elem mentve.`);
+    };
+    $('#bkFile').onchange = async e => {
+      const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+      const msg = (t, err) => { const m = $('#bkMsg2'); m.textContent = t; m.classList.toggle('err', !!err); };
+      let d;
+      try { d = JSON.parse(await f.text()); } catch (x) { return msg('Ez a fájl nem olvasható: nem érvényes mentésfájl.', true); }
+      if (!d || d.app !== 'planervo' || !d.tables) return msg('Ez nem Planervo-mentés. Csak a „Másolat letöltése” gombbal készült fájlt lehet visszatölteni.', true);
+      const counts = BACKUP_TABLES.map(t => `${(d.tables[t] || []).length} ${t}`).join(', ');
+      if (!confirm(`Visszatöltöd a mentést (${d.exported_at ? new Date(d.exported_at).toLocaleString('hu-HU') : 'ismeretlen időpont'})?\n\n${counts}\n\nA meglévő, azonos azonosítójú elemek felülíródnak.`)) return;
+      msg('Visszaállítás…');
+      try {
+        for (const t of BACKUP_TABLES) {
+          const rows = d.tables[t] || [];
+          for (let i = 0; i < rows.length; i += 100) {
+            const { error } = await sb.from(t).upsert(rows.slice(i, i + 100), { onConflict: 'id' });
+            if (error) throw new Error(`${t}: ${error.message}`);
+          }
+        }
+        if (d.settings && d.settings.texts) { const { error } = await sb.from('settings').upsert({ key: 'texts', value: d.settings.texts, updated_at: new Date().toISOString() }); if (error) throw new Error('beállítások: ' + error.message); }
+        msg('Kész, minden visszaállítva. Frissítsd a főoldalt.');
+        toast('A mentés visszaállítva.');
+      } catch (x) { msg('A visszaállítás megszakadt: ' + x.message, true); }
+    };
+  }
+
+  /* ---------- Árlista: árak módosítása százalékkal ---------- */
+  function bulkPriceDialog() {
+    const cats = [...new Set(ROWS.map(r => r.category || ''))].filter(Boolean);
+    dlgBody.innerHTML = `<form class="ed" id="bpForm" novalidate><header><h2>Árak módosítása</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
+      <div class="ed-fields">
+        <p class="muted">Az összes (vagy egy kategória) munkadíját módosítja egyszerre, például árváltozás után. A kerekítés a tiszta árakért van.</p>
+        <label class="fl">Változás százalékban<input id="bpPct" type="number" step="0.1" value="5" placeholder="pl. 5 vagy -10"><span class="hint">Pozitív szám emel, negatív csökkent.</span></label>
+        <label class="fl">Melyik tételekre<select id="bpCat"><option value="">Minden tételre (${ROWS.length})</option>${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select></label>
+        <label class="fl">Kerekítés<select id="bpRound"><option value="10">10 Ft-ra</option><option value="50">50 Ft-ra</option><option value="100">100 Ft-ra</option><option value="1">Nincs kerekítés</option></select></label>
+        <p class="bp-sum" id="bpSum" role="status"></p></div>
+      <footer><button type="button" class="btn o" data-close>Mégse</button><button class="btn" type="submit">Árak módosítása</button></footer></form>`;
+    $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
+    const calc = () => {
+      const pct = parseFloat($('#bpPct').value) || 0, step = +$('#bpRound').value || 1, cat = $('#bpCat').value;
+      const sel = ROWS.filter(r => !cat || (r.category || '') === cat);
+      const np = v => Math.max(0, Math.round((+v || 0) * (1 + pct / 100) / step) * step);
+      const ex = sel.find(r => +r.price > 0);
+      $('#bpSum').textContent = sel.length ? `${sel.length} tétel módosul${ex ? `. Például: „${ex.name}”: ${fmtFt(ex.price)} → ${fmtFt(np(ex.price))}` : ''}.` : 'Nincs ilyen tétel.';
+      return { pct, sel, np };
+    };
+    ['#bpPct', '#bpCat', '#bpRound'].forEach(s => $(s).addEventListener('input', calc)); calc();
+    dlg.showModal();
+    $('#bpForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const { pct, sel, np } = calc();
+      if (!pct || !sel.length) return toast('Adj meg nullától eltérő százalékot, és válassz tételeket.', true);
+      if (!confirm(`${sel.length} tétel ára ${pct > 0 ? 'nő' : 'csökken'} ${Math.abs(pct)}%-kal. Folytatod?`)) return;
+      const btn = $('#bpForm button[type=submit]'); btn.disabled = true;
+      const rows = sel.map(r => { const o = { ...r, price: np(r.price) }; if (o.price_ceiling != null && o.price_ceiling !== '') o.price_ceiling = np(o.price_ceiling); return o; });
+      let err = null;
+      for (let i = 0; i < rows.length && !err; i += 100) { const { error } = await sb.from('work_items').upsert(rows.slice(i, i + 100), { onConflict: 'id' }); err = error; }
+      btn.disabled = false;
+      if (err) return toast('A módosítás nem sikerült: ' + err.message, true);
+      dlg.close(); toast(`${rows.length} tétel ára módosítva.`); loadList('work_items');
+    });
+  }
+
+  /* ---------- Árajánlat-kérések: keresés és CSV ---------- */
+  let qSearch = '';
+  function filteredQuotes() {
+    const s = qSearch.trim().toLowerCase();
+    return QUOTES.filter(q => (qFilter === 'all' || q.status === qFilter) &&
+      (!s || [q.name, q.city, q.phone, q.email, q.message].some(x => String(x || '').toLowerCase().includes(s))));
+  }
+  function exportQuotesCsv() {
+    const rows = filteredQuotes();
+    if (!rows.length) return toast('Nincs exportálható árajánlat-kérés.', true);
+    const cell = v => { v = String(v ?? '').replace(/\r?\n/g, ' ').trim(); return /[;"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const head = ['Beérkezett', 'Állapot', 'Név', 'E-mail', 'Telefon', 'Település', 'Megjegyzés', 'Helyiségek', 'Becsült munkadíj (Ft)', 'Ár-sáv tól (Ft)', 'Ár-sáv ig (Ft)', 'Akció', 'Kívánt időpontok', 'Felmérés időpontja', 'Kért munkák', 'Saját jegyzet'];
+    const lines = rows.map(q => [new Date(q.created_at).toLocaleString('hu-HU'), STATUS[q.status] || q.status, q.name, q.email, q.phone, q.city, q.message,
+      (q.rooms || []).length, Math.round(+q.estimate || 0), q.estimate_min ? Math.round(+q.estimate_min) : '', q.estimate_max ? Math.round(+q.estimate_max) : '', q.discount ? `${q.discount.label || 'Akció'} −${q.discount.pct}%` : '', (q.preferred_slots || []).map(slotLabel).join(' | '), q.appointment_at ? new Date(q.appointment_at).toLocaleString('hu-HU') : '', (q.rooms || []).map(r => `${r.name}: ${(r.items || []).map(i => i.name).join(', ')}`).join(' | '), q.admin_note]);
+    downloadFile(`arajanlat-kerések-${todayStr()}.csv`, '﻿' + [head, ...lines].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+    toast(`${rows.length} kérés letöltve (Excelben megnyitható).`);
   }
 
   /* ---------- Indulás ---------- */

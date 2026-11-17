@@ -25,6 +25,18 @@ const TEXT_FIELDS = [
   { g: 'Főoldal teteje', k: 'hero_hint', l: 'Görgetésre ösztönző felirat', d: 'Görgess, és a henger aranyra festi a falat' },
   { g: 'Szolgáltatások', k: 'services_title', l: 'Cím', d: 'Amit a falaidért teszünk' },
   { g: 'Szolgáltatások', k: 'services_text', l: 'Bevezető', d: '', t: 'textarea' },
+  { g: 'Számok sáv', k: 'stat1_n', l: '1. szám', d: '24' },
+  { g: 'Számok sáv', k: 'stat1_u', l: '1. mértékegység', d: 'óra' },
+  { g: 'Számok sáv', k: 'stat1_t', l: '1. felirat', d: 'alatt jelentkezünk' },
+  { g: 'Számok sáv', k: 'stat2_n', l: '2. szám', d: '5' },
+  { g: 'Számok sáv', k: 'stat2_u', l: '2. mértékegység', d: 'lépés' },
+  { g: 'Számok sáv', k: 'stat2_t', l: '2. felirat', d: 'a felméréstől az átadásig' },
+  { g: 'Számok sáv', k: 'stat3_n', l: '3. szám', d: '2' },
+  { g: 'Számok sáv', k: 'stat3_u', l: '3. mértékegység', d: 'réteg' },
+  { g: 'Számok sáv', k: 'stat3_t', l: '3. felirat', d: 'festék minden falon' },
+  { g: 'Számok sáv', k: 'stat4_n', l: '4. szám (üresen hagyva a doboz eltűnik)', d: '4' },
+  { g: 'Számok sáv', k: 'stat4_u', l: '4. mértékegység', d: 'szakma' },
+  { g: 'Számok sáv', k: 'stat4_t', l: '4. felirat', d: 'egy csapatban' },
   { g: 'Előtte–utána', k: 'ba_title', l: 'Cím', d: 'Előtte és utána' },
   { g: 'Előtte–utána', k: 'ba_text', l: 'Bevezető', d: 'Húzd el a csúszkát, és nézd meg, mit hozunk ki egy falból.', t: 'textarea' },
   { g: 'Galéria', k: 'gallery_title', l: 'Cím', d: 'Galéria' },
@@ -35,6 +47,11 @@ const TEXT_FIELDS = [
     o: [['channel', 'A YouTube-csatornám legújabb videói (automatikus, legújabb elöl)'], ['playlist', 'Egy lejátszási lista videói (a lista sorrendjében)'], ['manual', 'Csak a „YouTube-videók” menüben kézzel felvett videók']] },
   { g: 'Videók', k: 'youtube_playlist', l: 'Lejátszási lista linkje', d: '', ph: 'https://www.youtube.com/playlist?list=…' },
   { g: 'Videók', k: 'video_count', l: 'Hány videó jelenjen meg (3–15)', t: 'number', d: 12 },
+  { g: 'Hogyan dolgozunk', k: 'process_title', l: 'Cím', d: 'Hogyan dolgozunk' },
+  { g: 'Hogyan dolgozunk', k: 'process_text', l: 'Bevezető', d: 'Öt lépés az első egyeztetéstől az átadásig.', t: 'textarea' },
+  { g: 'Vélemények', k: 'testimonials_title', l: 'Cím', d: 'Ügyfeleink mondták' },
+  { g: 'Vélemények', k: 'testimonials_text', l: 'Bevezető', d: '', t: 'textarea' },
+  { g: 'Vélemények', k: 'testimonials_cta', l: 'Gomb szövege a vélemény-íráshoz (üresen: nincs gomb)', d: 'Írd meg a véleményedet' },
   { g: 'Közösségi média', k: 'social_title', l: 'Cím', d: 'Kövess minket' },
   { g: 'Közösségi média', k: 'social_text', l: 'Bevezető', d: 'Legfrissebb bejegyzéseink Instagramon, TikTokon és Facebookon.', t: 'textarea' },
   { g: 'Blog', k: 'blog_title', l: 'Cím', d: 'Blog' },
@@ -43,9 +60,15 @@ const TEXT_FIELDS = [
   { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Add hozzá a helyiségeket, válaszd ki a munkákat, és csatolj fotókat. 24 órán belül jelentkezünk.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'show_estimate', l: 'Becsült ár mutatása az ügyfélnek', d: true, t: 'bool' },
   { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés tájékoztató jellegű munkadíj, az anyagköltséget nem tartalmazza. A végleges árat helyszíni felmérés után adjuk.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'quote_range_pct', l: 'Ár-sáv szélessége (± százalék)', t: 'number', d: 12, hint: 'A becslés „kb. 118 000 – 142 000 Ft” formában jelenik meg. 0 esetén pontos összeg látszik.' },
+  { g: 'Árajánlatkérés', k: 'slots_on', l: 'Kívánt felmérési időpont kérése az űrlapon', t: 'bool', d: true },
+  { g: 'Árajánlatkérés', k: 'promo_on', l: 'Akció / kedvezmény bekapcsolva', t: 'bool', d: false },
+  { g: 'Árajánlatkérés', k: 'promo_label', l: 'Az akció neve', d: 'Téli akció', ph: 'pl. Téli akció' },
+  { g: 'Árajánlatkérés', k: 'promo_pct', l: 'Kedvezmény (százalék)', t: 'number', d: 10, hint: 'A becsült munkadíjból automatikusan levonódik, és az árajánlat-kérésben is látszik.' },
+  { g: 'Árajánlatkérés', k: 'promo_until', l: 'Az akció vége (ÉÉÉÉ-HH-NN)', d: '', ph: '2026-12-31', hint: 'Üresen hagyva nincs határidő. A megadott nap végéig érvényes.' },
   { g: 'Árajánlatkérés', k: 'privacy_text', l: 'Adatkezelési hozzájárulás szövege', d: 'Hozzájárulok, hogy a megadott adataimat az árajánlat elkészítéséhez kezeljék.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_success', l: 'Köszönő üzenet beküldés után', d: 'Megkaptuk az árajánlat-kérésedet. 24 órán belül jelentkezünk a megadott elérhetőségeiden.', t: 'textarea' },
-  { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Kapcsolat' },
+  { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Beszéljünk a falaidról.' },
   { g: 'Kapcsolat', k: 'contact_text', l: 'Bevezető', d: 'Hívj, írj, vagy kérj árajánlatot az űrlapon.', t: 'textarea' },
   { g: 'Kapcsolat', k: 'phone', l: 'Telefonszám', d: '+36 30 123 4567' },
   { g: 'Kapcsolat', k: 'email', l: 'E-mail-cím', d: 'planervo@gmail.com' },
@@ -54,7 +77,17 @@ const TEXT_FIELDS = [
   { g: 'Kapcsolat', k: 'facebook_url', l: 'Facebook-oldal linkje', d: '' },
   { g: 'Kapcsolat', k: 'instagram_url', l: 'Instagram-oldal linkje', d: '' },
   { g: 'Kapcsolat', k: 'youtube_url', l: 'YouTube-csatorna linkje (ebből jönnek a videók is)', d: '', ph: 'https://www.youtube.com/@csatornam' },
-  { g: 'Lábléc', k: 'footer_text', l: 'Cégadatok a láblécben', d: 'PLANERVO – Minőség minden rétegben', t: 'textarea' }
+  { g: 'Lábléc', k: 'footer_text', l: 'Cégadatok a láblécben', d: 'PLANERVO – Minőség minden rétegben', t: 'textarea' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_name', l: 'Vállalkozó vagy cég neve', d: '', ph: 'pl. Minta Péter egyéni vállalkozó' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_seat', l: 'Székhely', d: '', ph: 'irányítószám, település, utca, házszám' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_tax', l: 'Adószám', d: '' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_reg', l: 'Nyilvántartási szám (egyéni vállalkozói vagy cégjegyzékszám)', d: '' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_email', l: 'E-mail-cím adatkezelési kérdésekre', d: '', hint: 'Üresen a fenti kapcsolati e-mail-cím jelenik meg.' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_hosting', l: 'Tárhelyszolgáltató neve és címe', d: '', ph: 'ahová az oldal fel van töltve' },
+  { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_updated', l: 'Az adatkezelési tájékoztató hatálya', d: '', ph: 'pl. 2026. december 1.' },
+  { g: 'Keresők (SEO)', k: 'site_url', l: 'Az oldal webcíme', d: '', ph: 'https://www.planervo.hu', hint: 'A sitemap.xml és a keresőknek szánt adatok használják. Üresen a keresőmotor-adatok egy része nem jelenik meg.' },
+  { g: 'Süti-tájékoztató', k: 'cookie_text', l: 'A tájékoztató sáv szövege', d: 'Az oldal nem használ követő vagy hirdetési sütiket. Csak a működéshez szükséges tárolást használjuk.', t: 'textarea' },
+  { g: 'Süti-tájékoztató', k: 'cookie_btn', l: 'A gomb szövege', d: 'Rendben' }
 ];
 const TEXT_DEFAULTS = Object.fromEntries(TEXT_FIELDS.map(f => [f.k, f.d]));
 
@@ -67,6 +100,14 @@ const DEFAULT_SERVICES = [
 
 /* Mértékegységek. A „surface” tételnél az ügyfél választ: fal, mennyezet vagy mindkettő.
    Az „sqm”, „meter” és „piece” tételnél az ügyfél adja meg a mennyiséget. */
+const DEFAULT_STEPS = [
+  { title: 'Felmérés', body: 'Megnézzük a helyiségeket, egyeztetünk az elképzelésről, a színekről és a határidőről.' },
+  { title: 'Ajánlat', body: 'Helyiségenként, munkánként bontott, fix árú ajánlatot adunk. Ami az ajánlatban van, azt fizeted.' },
+  { title: 'Előkészítés', body: 'Letakarjuk a bútorokat és a padlót, kijavítjuk a hibákat, glettelünk és alapozunk.' },
+  { title: 'Festés', body: 'Két rétegben, tiszta szélekkel dolgozunk, a megbeszélt napokon.' },
+  { title: 'Átadás', body: 'Kitakarítunk, végigmegyünk együtt a munkán, és csak akkor végeztünk, ha elégedett vagy.' }
+];
+
 const UNITS = {
   surface: 'm² fal és/vagy mennyezet (az ügyfél választja)',
   wall: 'm² falfelület (csak fal)',
@@ -93,6 +134,52 @@ const PLACEMENTS = [
 ];
 
 const SOCIAL_LABEL = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' };
+
+/* =====================================================================
+   Elrendezés (admin → Megjelenés). Az itt felsoroltakat az admin kínálja fel,
+   a főoldal (site.js) pedig alkalmazza. A beállítások a settings tábla
+   „texts” sorában, a „layout” kulcs alatt vannak.
+   ===================================================================== */
+const LAYOUT_GROUPS = [
+  ['szolgaltatasok', 'Szolgáltatások'],
+  ['szamok', 'Számok sáv'],
+  ['folyamat', 'Hogyan dolgozunk'],
+  ['munkaink', 'Munkáink (előtte–utána és galéria)'],
+  ['velemenyek', 'Vélemények'],
+  ['kozossegi', 'Közösségi média'],
+  ['videok', 'Videók'],
+  ['blog', 'Blog'],
+  ['arajanlat', 'Árajánlatkérő'],
+  ['kapcsolat', 'Kapcsolat']
+];
+const LAYOUT_BGS = [['', 'Alapértelmezett'], ['light', 'Fehér'], ['soft', 'Halvány homok'], ['peach', 'Barack'], ['dark', 'Sötét'], ['gold', 'Arany']];
+const LAYOUT_BG_ALLOWED = { arajanlat: ['', 'light', 'soft', 'peach'] };   // az árajánlatkérő űrlapja világos háttéren olvasható
+const CARD_COLS = [['', 'Automatikus'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5']];
+const CARD_GAPS = [['', 'Alap'], ['s', 'Kicsi'], ['m', 'Közepes'], ['l', 'Nagy']];
+const CARD_GAP_PX = { s: 10, m: 18, l: 30 };
+const CARD_RADII = [['', 'Alap'], ['0', 'Éles sarok'], ['12', 'Enyhén kerek'], ['22', 'Kerek'], ['34', 'Nagyon kerek']];
+const MODE_GRID = ['grid', 'Rács: a kártyák lefelé is folytatódnak'];
+const MODE_CAR = ['carousel', 'Oldalra lapozható sáv'];
+/* mode = alapértelmezett mód, cols = alapértelmezett oszlopszám lapozható sávban,
+   phone = hány kártya fér egy sorba telefonon rácsban; ratios = választható képarány */
+const CARD_SECTIONS = {
+  szolgaltatasok: { label: 'Szolgáltatások', section: 'szolgaltatasok', track: 'svcList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 4, phone: 1 },
+  'elotte-utana': { label: 'Előtte–utána', section: 'elotte-utana', track: 'baList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 2, phone: 1,
+    ratios: [['', '4:3 (alap)'], ['16/9', '16:9 széles'], ['1/1', 'Négyzet'], ['3/4', 'Álló 3:4']] },
+  galeria: { label: 'Galéria', section: 'galeria', track: 'galList', mode: 'masonry', cols: 3, phone: 2,
+    modes: [['masonry', 'Falazott: a képek eredeti arányban'], ['grid', 'Egyenletes rács'], MODE_CAR],
+    ratios: [['', '4:3 (alap, rácsnál)'], ['1/1', 'Négyzet'], ['3/4', 'Álló 3:4'], ['16/9', '16:9 széles']] },
+  velemenyek: { label: 'Vélemények', section: 'velemenyek', track: 'tstTrack', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 3, phone: 1 },
+  kozossegi: { label: 'Közösségi média', section: 'kozossegi', track: 'spTrack', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 4, phone: 2, text: true,
+    ratios: [['', '4:5 álló (alap)'], ['1/1', 'Négyzet'], ['16/9', '16:9 fekvő']] },
+  videok: { label: 'Videók', section: 'videok', track: 'vidList', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 3, phone: 1, text: true },
+  blog: { label: 'Blog (főoldali előnézet)', section: 'blog', track: 'postList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 3, phone: 1,
+    ratios: [['', '3:2 (alap)'], ['1/1', 'Négyzet'], ['16/9', '16:9 széles'], ['4/5', 'Álló 4:5']] }
+};
+const LAYOUT_WIDTHS = [['', 'Normál'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
+const LAYOUT_SPACINGS = [['', 'Normál'], ['compact', 'Kompakt'], ['airy', 'Levegős']];
+const LAYOUT_BANNER_TONES = [['gold', 'Arany'], ['dark', 'Sötét'], ['peach', 'Barack']];
+const getLayout = tx => (tx && tx.layout && typeof tx.layout === 'object') ? tx.layout : {};
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtFt = n => Math.round(+n || 0).toLocaleString('hu-HU') + ' Ft';

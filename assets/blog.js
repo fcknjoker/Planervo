@@ -6,6 +6,27 @@
   try { TX = await loadTexts(); } catch (e) { /* alapértelmezett szövegek */ }
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = TX[el.dataset.t] || ''; });
 
+  /* Keresőknek és megosztáshoz: saját cím, leírás, kép és strukturált adat bejegyzésenként */
+  function setMeta(attr, key, val) {
+    if (!val) return;
+    let m = document.querySelector(`meta[${attr}="${key}"]`);
+    if (!m) { m = document.createElement('meta'); m.setAttribute(attr, key); document.head.appendChild(m); }
+    m.content = val;
+  }
+  function seoForPost(p) {
+    const base = String(TX.site_url || '').replace(/\/+$/, '');
+    const abs = u => /^https?:/i.test(u || '') ? u : (base && u ? base + '/' + String(u).replace(/^\/+/, '') : '');
+    const url = base ? `${base}/blog.html?p=${encodeURIComponent(p.slug)}` : '';
+    const img = abs(p.cover_url) || abs('logo.png');
+    setMeta('property', 'og:type', 'article'); setMeta('property', 'og:title', p.title); setMeta('property', 'og:description', p.excerpt);
+    setMeta('property', 'og:image', img); setMeta('property', 'og:url', url); setMeta('name', 'twitter:card', img ? 'summary_large_image' : 'summary');
+    if (url) { let c = document.querySelector('link[rel=canonical]'); if (!c) { c = document.createElement('link'); c.rel = 'canonical'; document.head.appendChild(c); } c.href = url; }
+    const ld = { '@context': 'https://schema.org', '@type': 'Article', headline: p.title, datePublished: p.published_at, dateModified: p.updated_at || p.published_at,
+      author: { '@type': 'Organization', name: TX.legal_name || 'PLANERVO' }, publisher: { '@type': 'Organization', name: TX.legal_name || 'PLANERVO' } };
+    if (p.excerpt) ld.description = p.excerpt; if (img) ld.image = img; if (url) ld.mainEntityOfPage = url;
+    const s = document.createElement('script'); s.type = 'application/ld+json'; s.textContent = JSON.stringify(ld); document.head.appendChild(s);
+  }
+
   const msg = html => { main.innerHTML = `<div class="wrap blog-top post-body">${html}</div>`; };
   if (!sb) return msg('<p class="empty">A blog most nem érhető el. Nézz vissza később.</p>');
   const now = new Date().toISOString();
@@ -15,6 +36,7 @@
     if (error || !p) return msg('<a class="back" href="blog.html">Vissza a bloghoz</a><h1>Ez a bejegyzés nem található.</h1><p class="empty">Lehet, hogy a címe megváltozott, vagy már nem elérhető.</p>');
     document.title = `${p.title} – PLANERVO blog`;
     const d = document.querySelector('meta[name=description]'); if (d && p.excerpt) d.content = p.excerpt;
+    seoForPost(p);
     main.innerHTML = `<article>
       ${p.cover_url ? `<div class="wrap post-cover-wrap"><img class="post-cover" src="${esc(p.cover_url)}" alt=""></div>` : '<div class="blog-top"></div>'}
       <div class="wrap post-head">
