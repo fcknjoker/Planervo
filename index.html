@@ -6,16 +6,20 @@
 <meta name="color-scheme" content="only light">
 <title>PLANERVO – Szobafestés, hőszigetelés, felújítás</title>
 <meta name="description" content="PLANERVO: szobafestés, hőszigetelés, felújítás és felületképzés. Kérj árajánlatot online, helyiségenként.">
+<meta name="theme-color" content="#fbf6ee">
 <meta property="og:title" content="PLANERVO – Minőség minden rétegben">
 <meta property="og:image" content="logo.png">
 <link rel="icon" href="logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/jost-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/cormorant-garamond-latin-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="assets/uj.css">
 </head>
-<body>
-<nav class="topnav" id="topnav">
+<body class="uj-home">
+<div class="banner" id="banner" hidden role="region" aria-label="Közlemény"><div class="banner-in"><span class="banner-t" id="bannerText"></span><a class="banner-a" id="bannerLink" href="#" hidden></a></div><button type="button" class="banner-x" id="bannerX" aria-label="Közlemény bezárása">×</button></div>
+<a class="skip" href="#main">Ugrás a tartalomra</a>
+<nav class="topnav" id="topnav" aria-label="Fő menü">
   <a class="brand" href="#top" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
   <div class="links" id="navLinks">
     <a href="#szolgaltatasok">Szolgáltatások</a>
@@ -32,7 +36,26 @@
 <header id="top">
   <div id="track">
     <div id="stage">
-      <div class="layer" id="L0"><img class="logo-img" id="heroLogo" src="logo.png" alt="PLANERVO – Minőség minden rétegben. Szobafestés, hőszigetelés, felújítás, felületképzés"></div>
+      <!-- 1. réteg: a logó háza apránként felépül (mint az „1. Rétegek” mintán) -->
+      <div class="layer" id="L0">
+        <div class="hero-in" id="heroIn">
+          <svg class="house" id="house" viewBox="0 0 650 370" role="img" aria-label="PLANERVO – Minőség minden rétegben">
+            <polygon class="st st1" points="108,120 321,13 321,98 108,172" fill="#c49a54"/>
+            <polygon class="st st2" points="108,198 321,128 321,212 108,252" fill="#f0cfa1"/>
+            <polygon class="st st3" points="107,282 321,245 321,332 107,345" fill="#1a1a1a"/>
+            <polygon class="frame" points="327,15 536,128 536,338 516,338 516,138 327,32" fill="#c49a54"/>
+            <g class="win" fill="#c49a54"><rect x="400" y="186" width="20" height="19"/><rect x="425" y="188" width="22" height="19"/><rect x="400" y="209" width="20" height="18"/><rect x="425" y="211" width="22" height="18"/></g>
+            <path class="ground" d="M16 360 Q321 318 630 360 Q321 338 16 360Z" fill="#1a1a1a"/>
+          </svg>
+          <img class="logo-img" id="heroLogo" src="logo.png" alt="PLANERVO – Minőség minden rétegben. Szobafestés, hőszigetelés, felújítás, felületképzés" hidden>
+          <div class="wordmark brand" id="wordmark" aria-hidden="true"><span class="ch"><span>P</span></span><span class="ch"><span>L</span></span><span class="ch"><span>A</span></span><span class="ch"><span>N</span></span><i><b></b><b></b><b></b></i><span class="ch"><span>R</span></span><span class="ch"><span>V</span></span><span class="ch"><span>O</span></span></div>
+          <div class="svcline" id="svcline">Szobafestés <b>•</b> Hőszigetelés <b>•</b> Felújítás <b>•</b> Felületképzés</div>
+          <p class="h1" data-t="hero_title"></p>
+          <p class="sub" data-t="hero_text"></p>
+          <div class="btns"><a class="btn gold" href="#arajanlat" data-t="hero_btn"></a><a class="btn o" href="#munkaink">Munkáink</a></div>
+        </div>
+      </div>
+      <!-- 2. réteg: görgetésre a henger aranyra festi (mint az eredeti oldalon) -->
       <div class="layer" id="L1">
         <h1 data-t="hero_title"></h1>
         <p data-t="hero_text"></p>
@@ -70,23 +93,39 @@
   </div>
 </header>
 
-<main>
+<main id="main">
   <div class="slot" data-slot="after_hero"></div>
 
-  <section class="band dark" id="szolgaltatasok">
+  <section class="band" id="szolgaltatasok" aria-labelledby="svc-h">
     <div class="wrap">
-      <h2 data-t="services_title"></h2>
-      <p class="lead" data-t="services_text"></p>
+      <div class="head"><span class="eyebrow">Szolgáltatások</span><h2 id="svc-h" data-t="services_title"></h2><p class="lead" data-t="services_text"></p></div>
       <div class="svc" id="svcList"></div>
     </div>
   </section>
   <div class="slot" data-slot="after_services"></div>
 
+  <section class="band soft" id="szamok" aria-label="Számokban">
+    <div class="wrap">
+      <div class="nums" id="numList">
+        <div><b><span class="cnt" data-t="stat1_n"></span> <span data-t="stat1_u"></span></b><span data-t="stat1_t"></span></div>
+        <div><b><span class="cnt" data-t="stat2_n"></span> <span data-t="stat2_u"></span></b><span data-t="stat2_t"></span></div>
+        <div><b><span class="cnt" data-t="stat3_n"></span> <span data-t="stat3_u"></span></b><span data-t="stat3_t"></span></div>
+        <div><b><span class="cnt" data-t="stat4_n"></span> <span data-t="stat4_u"></span></b><span data-t="stat4_t"></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="folyamat" aria-labelledby="proc-h">
+    <div class="wrap">
+      <div class="head"><span class="eyebrow">Folyamat</span><h2 id="proc-h" data-t="process_title"></h2><p class="lead" data-t="process_text"></p></div>
+      <ol class="steps" id="stepList"></ol>
+    </div>
+  </section>
+
   <div id="munkaink">
-    <section class="band" id="elotte-utana" hidden>
+    <section class="band soft" id="elotte-utana" hidden>
       <div class="wrap">
-        <h2 data-t="ba_title"></h2>
-        <p class="lead" data-t="ba_text"></p>
+        <div class="head"><span class="eyebrow">Munkáink</span><h2 data-t="ba_title"></h2><p class="lead" data-t="ba_text"></p></div>
         <div class="cmps" id="baList"></div>
       </div>
     </section>
@@ -94,66 +133,77 @@
 
     <section class="band soft" id="galeria" hidden>
       <div class="wrap">
-        <h2 data-t="gallery_title"></h2>
-        <p class="lead" data-t="gallery_text"></p>
+        <div class="head"><span class="eyebrow">Galéria</span><h2 data-t="gallery_title"></h2><p class="lead" data-t="gallery_text"></p></div>
         <div class="gal" id="galList"></div>
       </div>
     </section>
   </div>
   <div class="slot" data-slot="after_gallery"></div>
 
-  <section class="band" id="kozossegi" hidden aria-labelledby="sp-h">
+  <section class="band" id="velemenyek" hidden aria-labelledby="tst-h">
     <div class="wrap">
-      <div class="car-head">
-        <div><h2 id="sp-h" data-t="social_title"></h2><p class="lead" data-t="social_text"></p></div>
-        <div class="car-btns" id="spNav"><button type="button" id="spPrev" aria-label="Előző bejegyzések"></button><button type="button" id="spNext" aria-label="Következő bejegyzések"></button></div>
-      </div>
-      <div class="car-track" id="spTrack" tabindex="0" role="region" aria-labelledby="sp-h"></div>
-      <div class="car-foot"><div class="car-dots" id="spDots"></div></div>
+      <div class="head"><span class="eyebrow">Vélemények</span><h2 id="tst-h" data-t="testimonials_title"></h2><p class="lead" data-t="testimonials_text"></p></div>
+      <div id="tstTrack"></div>
+      <div class="btns" id="tstCta" hidden><a class="btn o" id="tstLink" href="velemeny.html" data-t="testimonials_cta"></a></div>
     </div>
   </section>
 
-  <section class="band peach" id="videok" hidden aria-labelledby="vid-h">
+  <section class="band soft" id="kozossegi" hidden aria-labelledby="sp-h">
     <div class="wrap">
-      <div class="car-head">
-        <div><h2 id="vid-h" data-t="videos_title"></h2><p class="lead" data-t="videos_text"></p></div>
-        <div class="car-btns" id="vidNav"><button type="button" id="vidPrev" aria-label="Előző videók"></button><button type="button" id="vidNext" aria-label="Következő videók"></button></div>
-      </div>
-      <div class="car-track vids" id="vidList" tabindex="0" role="region" aria-labelledby="vid-h"></div>
-      <div class="car-foot"><div class="car-dots" id="vidDots"></div><a class="btn o chan" id="chanLink" href="#" target="_blank" rel="noopener" hidden>YouTube-csatornánk</a></div>
+      <div class="head"><span class="eyebrow">Közösségi média</span><h2 id="sp-h" data-t="social_title"></h2><p class="lead" data-t="social_text"></p></div>
+      <div id="spTrack"></div>
+    </div>
+  </section>
+
+  <section class="band" id="videok" hidden aria-labelledby="vid-h">
+    <div class="wrap">
+      <div class="head"><span class="eyebrow">Videók</span><h2 id="vid-h" data-t="videos_title"></h2><p class="lead" data-t="videos_text"></p></div>
+      <div id="vidList"></div>
+      <a class="btn o chan" id="chanLink" href="#" target="_blank" rel="noopener" hidden>YouTube-csatornánk</a>
     </div>
   </section>
   <div class="slot" data-slot="after_videos"></div>
 
-  <section class="band" id="blog" hidden>
+  <section class="band soft" id="blog" hidden>
     <div class="wrap">
-      <h2 data-t="blog_title"></h2>
-      <p class="lead" data-t="blog_text"></p>
+      <div class="head"><span class="eyebrow">Blog</span><h2 data-t="blog_title"></h2><p class="lead" data-t="blog_text"></p></div>
       <div class="posts" id="postList"></div>
       <a class="more" href="blog.html">Összes bejegyzés</a>
     </div>
   </section>
   <div class="slot" data-slot="after_blog"></div>
 
-  <section class="band soft" id="arajanlat">
+  <section class="band" id="arajanlat">
     <div class="wrap">
-      <h2 data-t="quote_title"></h2>
-      <p class="lead" data-t="quote_text"></p>
+      <div class="head"><span class="eyebrow">Árajánlat</span><h2 data-t="quote_title"></h2><p class="lead" data-t="quote_text"></p></div>
+      <p class="promo-note" id="promoNote" hidden></p>
       <form id="quoteForm" novalidate>
+        <ol class="q-steps" id="qSteps" aria-label="Az árajánlatkérés lépései">
+          <li><a href="#qs1" aria-current="step"><i>1</i>Helyiségek</a></li>
+          <li id="qsTime"><a href="#qs2"><i>2</i>Időpont</a></li>
+          <li><a href="#qs3"><i>3</i>Elérhetőség</a></li>
+        </ol>
         <div class="q-grid">
           <div class="q-main">
-            <h3 class="q-h">Helyiségek</h3>
+            <h3 class="q-h" id="qs1">Helyiségek</h3>
             <div id="rooms"></div>
             <button type="button" class="btn o add" id="addRoom">+ Helyiség hozzáadása</button>
 
-            <h3 class="q-h sp">Elérhetőségeid</h3>
+            <div id="slotsBox">
+              <h3 class="q-h sp" id="qs2">Mikor érünk rá felmérésre?</h3>
+              <p class="geo">Nem kötelező. Jelölj meg legfeljebb három neked megfelelő napot és napszakot, mi visszaigazoljuk az egyiket vagy javaslunk másikat.</p>
+              <div id="slotRows"></div>
+              <button type="button" class="btn o add sm" id="addSlot">+ Másik időpont</button>
+            </div>
+
+            <h3 class="q-h sp" id="qs3">Elérhetőségeid</h3>
             <div class="fields">
               <label>Név<input id="qName" autocomplete="name" required maxlength="120"></label>
               <label>E-mail<input id="qEmail" type="email" autocomplete="email" required maxlength="160"></label>
               <label>Telefonszám<input id="qPhone" type="tel" autocomplete="tel" required maxlength="40"></label>
               <label>Település<input id="qCity" autocomplete="address-level2" required maxlength="120"></label>
               <label class="full">Megjegyzés<textarea id="qMsg" rows="4" maxlength="3000" placeholder="Mikorra szeretnéd? Van bármi, amit tudnunk kell (lakott lakás, emelet, lift)?"></textarea></label>
-              <label class="chk full"><input type="checkbox" id="qOk" required><span data-t="privacy_text"></span></label>
+              <label class="chk full"><input type="checkbox" id="qOk" required><span><span data-t="privacy_text"></span> <a href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató</a></span></label>
             </div>
           </div>
           <aside class="q-sum" id="qSum" aria-live="polite"></aside>
@@ -177,21 +227,29 @@
   </section>
   <div class="slot" data-slot="before_contact"></div>
 
-  <section class="band dark" id="kapcsolat">
-    <div class="wrap">
-      <h2 data-t="contact_title"></h2>
-      <p class="lead" data-t="contact_text"></p>
+  <section class="band soft" id="kapcsolat">
+    <div class="wrap contact-grid">
+      <div class="contact-head">
+        <span class="eyebrow">Kapcsolat</span>
+        <h2 data-t="contact_title"></h2>
+        <p class="lead" data-t="contact_text"></p>
+        <div class="socials" id="socials"></div>
+      </div>
       <div class="contact" id="contactBox"></div>
-      <div class="socials" id="socials"></div>
     </div>
   </section>
 </main>
 
 <footer class="site">
-  <a class="brand" href="#top">PLAN<i><b></b><b></b><b></b></i>RVO</a>
+  <a class="brand" href="#top" aria-label="Vissza az oldal tetejére">PLAN<i><b></b><b></b><b></b></i>RVO</a>
   <em data-t="footer_text"></em>
-  <nav><a href="blog.html">Blog</a><a href="admin.html">Admin</a></nav>
+  <nav aria-label="Lábléc"><a href="blog.html">Blog</a><a href="adatkezeles.html">Adatkezelés</a><a href="impresszum.html">Impresszum</a><a href="sutik.html">Sütik</a><a href="admin.html">Admin</a></nav>
 </footer>
+
+<div class="cookie" id="cookie" hidden role="region" aria-label="Süti-tájékoztató">
+  <p><span id="cookieText"></span> <a href="sutik.html">Részletek</a></p>
+  <button type="button" class="btn" id="cookieOk"></button>
+</div>
 
 <dialog id="lightbox" aria-label="Kép nagyítva">
   <div class="lb">
@@ -204,7 +262,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="assets/shared.js"></script>
+<script src="assets/pdf.js"></script>
 <script src="assets/site.js"></script>
+<script src="assets/uj.js"></script>
 </body>
 </html>

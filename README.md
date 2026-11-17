@@ -103,6 +103,25 @@ A függvény a YouTube csatornaoldalát olvassa (a YouTube RSS-hírcsatornája l
 Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt, utána az admin
 **Közösségi média** menüjében adhatod hozzá az Instagram-, TikTok- és Facebook-bejegyzéseket.
 
+## Megjelenés, elrendezés és új admin funkciók (2026. november)
+
+Új SQL nem kell hozzá, minden a meglévő beállítás-táblába kerül. Töltsd fel az `index.html`, `admin.html` és az `assets` mappa fájljait.
+
+- **Megjelenés és elrendezés** (admin menü): szakaszok sorrendje, láthatósága, háttere; szakaszonként a kártyák módja (lefelé rács vagy oldalra lapozható sáv), hány férjen egymás mellé, távolság, sarkok, képarány; tartalom szélessége, szakaszok közti térköz, kiemelő szín; közlemény sáv az oldal tetején; oldalcím és leírás a keresőknek. Jobbra élő előnézet asztali, tablet és telefon méretben, mentés előtt is.
+- **Áttekintés**: új kérések, tartalmak száma, tennivalók.
+- **Árlista**: „Árak módosítása” gomb (százalékos emelés/csökkentés kategóriánként, kerekítéssel), minden listában „Másolás” gomb.
+- **Árajánlat-kérések**: keresés és CSV letöltés (Excelben megnyitható).
+- **Mentés és visszaállítás**: a teljes tartalom egy fájlba menthető és visszatölthető (az árajánlat-kérések és a képfájlok nélkül).
+
+## 1. fázis: vélemények, lépések, jogi oldalak, SEO (2026. december)
+
+1. Supabase → SQL Editor → futtasd le a `supabase/2026-12-bovites.sql` fájlt (vélemények és „Hogyan dolgozunk” lépések tábla, az öt alap lépéssel).
+2. Töltsd fel az egész mappát (új: `adatkezeles.html`, `impresszum.html`, `sutik.html`, `velemeny.html`, `robots.txt`, `assets/fonts`, `assets/legal.js`, `assets/review.js`).
+3. Admin → **Oldal szövegei** → töltsd ki a **Jogi adatok** és a **Keresők (SEO)** csoportot (cégnév, székhely, adószám, tárhely, az oldal webcíme). Amíg hiányoznak, az adatkezelési és impresszum oldalon sárgán jelölve látszanak. A jogi szöveg sablon, élesítés előtt érdemes jogásszal átnézetni.
+4. Admin → **Vélemények**: vegyél fel véleményt kézzel, vagy küldd el az ügyfeleknek a `velemeny.html` linkjét. A beküldött vélemény jóváhagyásig nem látszik (Jóváhagyva kapcsoló).
+5. Admin → **Hogyan dolgozunk**: a lépések szerkeszthetők. Admin → **Megjelenés és elrendezés** → Keresők: a **Sitemap letöltése** gomb elkészíti a sitemap.xml fájlt (előbb add meg az oldal webcímét), töltsd fel a főoldal mellé, és add meg a Google Search Console-ban.
+6. A betűtípusok az `assets/fonts` mappából töltődnek, a Google Fonts-hoz az oldal már nem fordul.
+
 ## Admin felület (`/admin.html`)
 
 - **Árajánlat-kérések:** beérkezett kérések, állapot (Új, Folyamatban, Ajánlat elküldve, Elfogadva, Lezárva),
@@ -128,3 +147,28 @@ Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt
 
 - Adatkezelési tájékoztató (GDPR) oldal, és a linkje a hozzájárulás szövegébe.
 - Saját domain a Resendben, hogy a levél ne a tesztcímről jöjjön.
+
+## 2. fázis: kalkulátor és időpontkérés
+
+**Egyszeri teendő:** a Supabase-ben (SQL Editor) futtasd le újra a `supabase/2026-12-bovites.sql` fájlt (többször futtatható). Ez adja az új `quotes` oszlopokat (ár-sáv, kedvezmény, kívánt időpontok, felmérés időpontja) és az „Időpont megbeszélve” állapotot. Amíg nem futtattad, az űrlap működik, de az új adatok a megjegyzés végére kerülnek, és az admin időpont-mentése hibát jelez.
+
+- **Ár-sáv, akció, időpontkérés beállításai:** Admin → Oldal szövegei → *Árajánlatkérés* (sáv ±%, akció be/ki, felirat, százalék, lejárat, időpontkérés be/ki).
+- **Látogatói oldal:** ár-sáv, helyiség másolása, akció sor, PDF letöltés (a pdfmake a gombra tölt be a jsdelivr CDN-ről), legfeljebb 3 kívánt időpont, lépésjelző.
+- **Admin → Árajánlatok:** kívánt időpontok, ár-sáv, akció a részleteknél; „Felmérés időpontja” + megjegyzés mentése (állapot automatikusan „Időpont megbeszélve”), `.ics` letöltés és Google Naptár link; az Áttekintésen „Közelgő felmérések”; a CSV új oszlopokkal bővült.
+
+## Új dizájn (ez a mappa: planervo-uj)
+
+Ez a mappa az eredeti PLANERVO oldal teljes másolata, az új dizájnnal. Minden funkció ugyanúgy működik (admin, árajánlatkérő árlistával, PDF, időpontkérés, akció, előtte–utána, galéria, videók, közösségi média, blog, vélemények, jogi oldalak, sütitájékoztató, elrendezés-szerkesztő), ugyanazzal a Supabase-adatbázissal.
+
+**Mi változott**
+- Főoldal teteje: betöltéskor a logó háza apránként felépül, görgetésre a henger ugyanúgy aranyra festi a falat, mint eddig.
+- Szolgáltatások: nagy, váltakozó kép–szöveg sorok. Az adminban (Szolgáltatások) mostantól képet is adhatsz egy szolgáltatáshoz; kép nélkül a logó színsávjai látszanak.
+- Új „Számok sáv” (pl. 24 óra, 5 lépés, 2 réteg, 4 szakma): Admin → Oldal szövegei → Számok sáv. Elrejtés és sorrend: Admin → Megjelenés.
+- Hogyan dolgozunk: függőleges, magát megrajzoló idővonal. Előtte–utána: pulzáló csúszka. Galéria: oszlopos, a többi kép elhalványul.
+- Vélemények, videók, közösségi média, blog: világos kártyák, egérrel fénycsóva és enyhe dőlés.
+- Kapcsolat és lábléc új elrendezésben; minden szakasz világos, és lefelé gördül.
+- A dizájn két új fájlban van: `assets/uj.css` (megjelenés) és `assets/uj.js` (mozgások). Az eredeti `style.css` és `site.js` működése megmaradt.
+
+**Egyszeri teendő:** a Supabase SQL Editorban futtasd le a `supabase/2026-12-uj-dizajn.sql` fájlt (a szolgáltatás-képekhez kell). Amíg nem futtattad, minden működik, csak a szolgáltatáshoz nem tudsz képet menteni.
+
+**Élesítés:** ennek a mappának a tartalmát töltsd fel a tárhelyre a régi helyett (előtte érdemes a régit elmenteni).
