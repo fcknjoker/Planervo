@@ -2,6 +2,6 @@ User-agent: *
 Disallow: /admin.html
 Disallow: /velemeny.html
 
-# A sitemap.xml fájlt az admin „Megjelenés és elrendezés → Keresők és megosztás” részén töltheted le.
-# Feltöltés után add meg a Google Search Console-ban, vagy írd ide a teljes webcímét:
-# Sitemap: https://www.sajat-domain.hu/sitemap.xml
+# A sitemap.xml-t a „node seo/oldalak.mjs” készíti (főoldal + helyi oldalak).
+# A blogbejegyzésekkel bővített változatot az admin „Megjelenés és elrendezés → Keresők és megosztás” részén töltheted le.
+Sitemap: https://planervo.hu/sitemap.xml
