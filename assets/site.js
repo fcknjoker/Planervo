@@ -133,12 +133,44 @@
   addEventListener('resize', hero);
 
   /* ---------- Szolgáltatások ---------- */
+  let SVC_PAIRS = [], SVC_PAIRS_CUR = [], PI = 0, PCAP = '';
+  const pairList = r => (Array.isArray(r.pairs) ? r.pairs : []).filter(p => p && p.before && p.after);
+  function pairsHtml(r, si) {
+    const ps = pairList(r); if (!ps.length) return '';
+    const cols = ps.length === 1 ? 1 : ps.length <= 4 ? 2 : ps.length <= 9 ? 3 : 4;
+    return `<div class="svc-pairs" style="--pc:${cols}" role="list" aria-label="Előtte–utána képek">${ps.map((p, j) => `<button type="button" role="listitem" class="pair-t" data-s="${si}" data-p="${j}" aria-label="Előtte–utána kép megnyitása${p.title ? ': ' + esc(p.title) : ''}">
+      <img src="${esc(p.before)}" alt="" loading="lazy"><img src="${esc(p.after)}" alt="" loading="lazy"><b>Előtte</b><b>Utána</b></button>`).join('')}</div>`;
+  }
   function renderServices(rows) {
-    $('#svcList').innerHTML = rows.map((r, i) => `<article class="svc-row"><div class="svc-pic${r.image_url ? '' : ' brandpic'}">${r.image_url ? `<img src="${esc(r.image_url)}" alt="${esc(r.title)}" loading="lazy">` : '<i></i><i></i><i></i>'}</div>
+    SVC_PAIRS = rows.map(pairList);
+    $('#svcList').innerHTML = rows.map((r, i) => `<article class="svc-row"><div class="svc-media">${pairList(r).length ? `<div class="svc-pic haspairs">${pairsHtml(r, i)}</div>` : `<div class="svc-pic${r.image_url ? '' : ' brandpic'}">${r.image_url ? `<img src="${esc(r.image_url)}" alt="${esc(r.title)}" loading="lazy">` : '<i></i><i></i><i></i>'}</div>`}</div>
       <div class="svc-txt"><span class="no">${String(i + 1).padStart(2, '0')}</span><h3>${esc(r.title)}</h3>${r.body ? `<p>${esc(r.body)}</p>` : ''}<a class="btn o arrow" href="#arajanlat">Árajánlatot kérek</a></div></article>`).join('');
     $('#szolgaltatasok').hidden = !rows.length;
     refreshCar('szolgaltatasok');
   }
+  /* szolgáltatás képpárjai: nagyítható előtte–utána csúszkával */
+  const plb = document.createElement('dialog');
+  plb.id = 'pairLb'; plb.setAttribute('aria-label', 'Előtte–utána kép');
+  plb.innerHTML = `<div class="lb"><figure style="margin:0"><div class="cmp" id="plbCmp"><img class="b" alt="Előtte"><img class="a" alt="Utána"><input type="range" min="0" max="100" value="50" aria-label="Előtte–utána csúszka"><div class="line"></div><span class="tag" style="left:14px">Előtte</span><span class="tag" style="right:14px">Utána</span></div><p id="plbCap"></p></figure>
+    <button class="lb-x" type="button" aria-label="Bezárás">×</button><button class="lb-p" type="button" aria-label="Előző pár">‹</button><button class="lb-n" type="button" aria-label="Következő pár">›</button></div>`;
+  document.body.appendChild(plb);
+  function showPair(i) {
+    const n = SVC_PAIRS_CUR.length; if (!n) return; PI = (i + n) % n; const p = SVC_PAIRS_CUR[PI], c = $('#plbCmp');
+    c.querySelector('.b').src = p.before; c.querySelector('.a').src = p.after; c.style.setProperty('--x', '50%'); c.querySelector('input').value = 50;
+    $('#plbCap').textContent = [PCAP, p.title, n > 1 ? `${PI + 1} / ${n}` : ''].filter(Boolean).join(' · ');
+    if (!plb.open) plb.showModal();
+  }
+  $('#svcList').addEventListener('click', e => {
+    const b = e.target.closest('.pair-t'); if (!b) return;
+    SVC_PAIRS_CUR = SVC_PAIRS[+b.dataset.s] || []; PCAP = (b.closest('.svc-row').querySelector('h3') || {}).textContent || '';
+    showPair(+b.dataset.p);
+  });
+  $('#plbCmp input').addEventListener('input', e => $('#plbCmp').style.setProperty('--x', e.target.value + '%'));
+  plb.querySelector('.lb-x').onclick = () => plb.close();
+  plb.querySelector('.lb-p').onclick = () => showPair(PI - 1);
+  plb.querySelector('.lb-n').onclick = () => showPair(PI + 1);
+  plb.addEventListener('click', e => { if (e.target === plb || e.target.classList.contains('lb')) plb.close(); });
+  plb.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') showPair(PI - 1); if (e.key === 'ArrowRight') showPair(PI + 1); });
 
   /* ---------- Saját ablakok ---------- */
   function renderSections(rows) {
@@ -190,23 +222,42 @@
   }
 
   /* ---------- Galéria + nagyító ---------- */
-  let GAL = [], gi = 0;
+  let GAL = [], gi = 0, GAL_ALBUMS = [], LB_TITLE = '';
   const lb = $('#lightbox');
-  function renderGallery(rows) {
-    GAL = rows;
-    $('#galList').innerHTML = rows.map((r, i) => `<figure><button type="button" data-i="${i}" aria-label="Kép megnyitása${r.caption ? ': ' + esc(r.caption) : ''}">
-      <img src="${esc(r.image_url)}" alt="${esc(r.caption || 'Elkészült munka')}" loading="lazy"></button>
-      ${r.caption ? `<figcaption>${esc(r.caption)}</figcaption>` : ''}</figure>`).join('');
+  /* mode: 'images' = külön képek; 'albums' = albumborítók (csak az albumba sorolt képekkel) */
+  function renderGallery(rows, albums, mode) {
+    let items = 0;
+    if (mode === 'albums' && albums && albums.length) {
+      const byAlbum = {};
+      rows.forEach(r => { if (r.album_id) (byAlbum[r.album_id] = byAlbum[r.album_id] || []).push(r); });
+      GAL_ALBUMS = albums.map(a => ({ ...a, imgs: byAlbum[a.id] || [] })).filter(a => a.imgs.length);
+      items = GAL_ALBUMS.length;
+      $('#galList').innerHTML = GAL_ALBUMS.map((a, i) => `<figure class="gal-album"><button type="button" data-a="${i}" aria-label="Album megnyitása: ${esc(a.title)}">
+        <img src="${esc(a.cover_url || a.imgs[0].image_url)}" alt="" loading="lazy">
+        <span class="gal-album-t">${esc(a.title)}<small>${a.imgs.length} kép</small></span></button></figure>`).join('');
+    } else {
+      GAL_ALBUMS = []; GAL = rows; items = rows.length;
+      $('#galList').innerHTML = rows.map((r, i) => `<figure><button type="button" data-i="${i}" aria-label="Kép megnyitása${r.caption ? ': ' + esc(r.caption) : ''}">
+        <img src="${esc(r.image_url)}" alt="${esc(r.caption || 'Elkészült munka')}" loading="lazy"></button>
+        ${r.caption ? `<figcaption>${esc(r.caption)}</figcaption>` : ''}</figure>`).join('');
+    }
     $$('#galList img').forEach(img => { if (img.complete) img.classList.add('ld'); else img.onload = () => img.classList.add('ld'); });
-    $('#galeria').hidden = !rows.length;
+    $('#galeria').hidden = !items;
     refreshCar('galeria');
   }
   function showLb(i) {
     gi = (i + GAL.length) % GAL.length; const r = GAL[gi];
-    $('#lbImg').src = r.image_url; $('#lbImg').alt = r.caption || ''; $('#lbCap').textContent = r.caption || '';
+    $('#lbImg').src = r.image_url; $('#lbImg').alt = r.caption || ''; $('#lbCap').textContent = [LB_TITLE, r.caption].filter(Boolean).join(' · ');
     if (!lb.open) lb.showModal();
   }
-  $('#galList').addEventListener('click', e => { const b = e.target.closest('button[data-i]'); if (b) showLb(+b.dataset.i); });
+  function openAlbum(i) {
+    const a = GAL_ALBUMS[i]; if (!a) return;
+    GAL = a.imgs; LB_TITLE = a.title; showLb(0);
+  }
+  $('#galList').addEventListener('click', e => {
+    const a = e.target.closest('button[data-a]'); if (a) return openAlbum(+a.dataset.a);
+    const b = e.target.closest('button[data-i]'); if (b) { LB_TITLE = ''; showLb(+b.dataset.i); }
+  });
   lb.querySelector('.lb-x').onclick = () => lb.close();
   lb.querySelector('.lb-p').onclick = () => showLb(gi - 1);
   lb.querySelector('.lb-n').onclick = () => showLb(gi + 1);
@@ -754,11 +805,13 @@
     if (!s) { s = document.createElement('script'); s.type = 'application/ld+json'; s.id = 'ld'; document.head.appendChild(s); }
     const base = String(TX.site_url || '').replace(/\/+$/, '');
     const abs = u => /^https?:/i.test(u || '') ? u : (base && u ? base + '/' + String(u).replace(/^\/+/, '') : '');
-    const d = { '@context': 'https://schema.org', '@type': 'HousePainter', name: TX.legal_name || 'PLANERVO', description: (document.querySelector('meta[name="description"]') || {}).content || '' };
-    if (base) d.url = base;
+    /* az index.html statikus adatából indul (település-lista, url), az admin adatai csak kiegészítik */
+    let d0 = {}; try { d0 = JSON.parse(s.textContent || '{}'); } catch (e) { /* üres */ }
+    const d = { ...d0, '@context': 'https://schema.org', '@type': 'HousePainter', name: d0.name || TX.legal_name || 'PLANERVO', description: d0.description || (document.querySelector('meta[name="description"]') || {}).content || '' };
+    if (base && !d.url) d.url = base;
     if (TX.phone) d.telephone = TX.phone;
     if (TX.email) d.email = TX.email;
-    if (TX.area) d.areaServed = TX.area;
+    if (TX.area && !d.areaServed) d.areaServed = TX.area;
     const img = abs(TX.logo_url || 'logo.png'); if (img) d.image = img;
     if (TX.legal_seat) d.address = { '@type': 'PostalAddress', streetAddress: TX.legal_seat, addressCountry: 'HU' };
     const same = ['facebook_url', 'instagram_url', 'youtube_url'].map(k => TX[k]).filter(Boolean); if (same.length) d.sameAs = same;
@@ -770,7 +823,31 @@
      háttere és láthatósága, színek, közlemény sáv. Ami nincs beállítva, az alapértelmezett marad. */
   const CARS = {};
   let META0 = null;
-  const refreshCar = key => { if (CARS[key]) CARS[key].refresh(); };
+  /* Rácsnál: „Sorok száma” beállítás. A sorokon túli kártyák rejtve vannak, egy „Tovább” gomb mutatja a többit. */
+  const EXPANDED = new Set();
+  function applyRows(key) {
+    const c = CARD_SECTIONS[key], track = c && document.getElementById(c.track), sec = track && document.getElementById(c.section);
+    if (!track || !sec) return;
+    const rows = +((getLayout(TX).cards || {})[key] || {}).rows || 0;
+    const kids = [...track.children];
+    kids.forEach(k => k.classList.remove('row-hid'));
+    let wrap = sec.querySelector(`.more-wrap[data-for="${key}"]`);
+    const limit = Math.max(1, Math.round(parseFloat(getComputedStyle(sec).getPropertyValue('--cols')) || 1)) * rows;
+    const need = rows > 0 && track.classList.contains('t-grid') && kids.length > limit;
+    if (!need) { if (wrap) wrap.hidden = true; return; }
+    if (!wrap) {
+      wrap = document.createElement('div'); wrap.className = 'more-wrap'; wrap.dataset.for = key;
+      wrap.innerHTML = '<button type="button" class="btn o">Tovább</button>';
+      track.after(wrap);
+      wrap.firstChild.addEventListener('click', () => { EXPANDED.add(key); applyRows(key); });
+    }
+    const open = EXPANDED.has(key);
+    wrap.hidden = open;
+    if (!open) kids.forEach((k, i) => { if (i >= limit) k.classList.add('row-hid'); });
+  }
+  let rowsTimer = 0;
+  addEventListener('resize', () => { clearTimeout(rowsTimer); rowsTimer = setTimeout(() => Object.keys(CARD_SECTIONS).forEach(applyRows), 150); });
+  const refreshCar = key => { if (CARS[key]) CARS[key].refresh(); applyRows(key); };
   function ensureCarousel(key) {
     if (CARS[key]) return CARS[key];
     const track = document.getElementById(CARD_SECTIONS[key].track);
@@ -817,6 +894,12 @@
   });
   addEventListener('resize', () => { const el = $('#banner'); if (!el.hidden) document.documentElement.style.setProperty('--bh', Math.max(36, Math.ceil(el.getBoundingClientRect().height)) + 'px'); });
 
+  /* Szakasz-animáció: a látható szakasz kap „fx-on” jelet. Csökkentett mozgásnál nincs animáció. */
+  const fxObs = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('fx-on'); fxObs.unobserve(e.target); }
+  }), { threshold: .12, rootMargin: '0px 0px -6% 0px' }) : null;
+  const FX_CLASSES = ['fx-up', 'fx-fade', 'fx-zoom', 'fx-slide', 'fx-on'];
+
   function applyLayout(L) {
     L = L || {};
     const root = document.documentElement.style;
@@ -846,6 +929,20 @@
       const allowed = LAYOUT_BG_ALLOWED[g], want = (L.bg || {})[g] || '';
       const bg = allowed && !allowed.includes(want) ? '' : want;
       (g === 'munkaink' ? ['elotte-utana', 'galeria'].map(id => document.getElementById(id)) : [el]).forEach(x => setBg(x, bg));
+
+      /* szakaszonkénti térköz, szélesség és animáció (a CSS-változók öröklődnek a szakasz gyermekeire) */
+      const fx = (L.fx || {})[g] || {};
+      const sp = { compact: '.6', airy: '1.4' }[fx.space] || '', wv = { narrow: '1080px', wide: '1560px' }[fx.width] || '';
+      sp ? el.style.setProperty('--bandk', sp) : el.style.removeProperty('--bandk');
+      wv ? el.style.setProperty('--wrapw', wv) : el.style.removeProperty('--wrapw');
+      const inner = el.querySelector(':scope > .wrap') || el;
+      if (fxObs) fxObs.unobserve(inner);
+      inner.classList.remove(...FX_CLASSES);
+      const anim = FX_ANIMS.some(a => a[0] === fx.anim && a[0]) ? fx.anim : '';
+      if (anim && !reduced) {
+        inner.classList.add('fx-' + anim);
+        if (fxObs) fxObs.observe(inner); else inner.classList.add('fx-on');
+      }
     });
     const main = $('main'), base = LAYOUT_GROUPS.map(x => x[0]);
     if (Array.isArray(L.order) && L.order.length) {
@@ -880,6 +977,7 @@
       if (mode === 'carousel') { track.setAttribute('tabindex', '0'); track.setAttribute('role', 'region'); track.setAttribute('aria-label', c.label); }
       else { track.removeAttribute('tabindex'); track.removeAttribute('role'); track.removeAttribute('aria-label'); }
       const ctl = ensureCarousel(key);
+      applyRows(key);
       if (mode !== 'carousel') { const bar = track.previousElementSibling; if (bar && bar.classList.contains('car-bar')) bar.hidden = true; }
       if (ctl) ctl.refresh();
     });
@@ -896,9 +994,9 @@
     if (!sb) { workLoaded = true; rooms.forEach(renderItems); return; }
     const list = t => sb.from(t).select('*').eq('visible', true).order('position').order('created_at');
     const safe = p => Promise.resolve(p).catch(error => ({ error }));
-    const [tx, svc, sec, ba, gal, vid, work, posts, soc, stp, tst] = await Promise.all([
+    const [tx, svc, sec, ba, gal, alb, vid, work, posts, soc, stp, tst] = await Promise.all([
       safe(loadTexts()), safe(list('services')), safe(list('sections')), safe(list('before_after')),
-      safe(list('gallery')), safe(list('videos')), safe(list('work_items')),
+      safe(list('gallery')), safe(list('gallery_albums')), safe(list('videos')), safe(list('work_items')),
       safe(sb.from('posts').select('title,slug,excerpt,cover_url,published_at').eq('published', true)
         .lte('published_at', new Date().toISOString()).order('published_at', { ascending: false }).limit(3)),
       safe(sb.from('social_posts').select('*').eq('visible', true).order('published_at', { ascending: false }).limit(30)),
@@ -909,7 +1007,7 @@
     if (!svc.error) renderServices(svc.data || []);
     if (!sec.error) renderSections(sec.data || []);
     if (!ba.error) renderBA(ba.data || []);
-    if (!gal.error) renderGallery(gal.data || []);
+    if (!gal.error) renderGallery(gal.data || [], alb.error ? [] : (alb.data || []), (TX && TX.gallery_mode) || 'images');
     loadVideos(vid.error ? [] : (vid.data || []));
     if (!posts.error) renderPosts(posts.data || []);
     if (!soc.error) renderSocial(soc.data || []);

@@ -38,7 +38,9 @@
       label: 'Szolgáltatások', single: 'szolgáltatás', addLabel: 'Új szolgáltatás',
       help: 'A főoldal szolgáltatás-sorai. Ha képet is adsz meg, a sor mellett nagy képként jelenik meg; kép nélkül a logó színsávjai látszanak.',
       empty: 'Még nincs szolgáltatás. Ha üres, a szakasz nem jelenik meg a főoldalon.',
-      fields: [{ k: 'title', l: 'Cím', req: 1 }, { k: 'body', l: 'Leírás', t: 'textarea' }, { k: 'image_url', l: 'Kép (nem kötelező)', t: 'image', folder: 'szolgaltatasok' }],
+      fields: [{ k: 'title', l: 'Cím', req: 1 }, { k: 'body', l: 'Leírás', t: 'textarea' }, { k: 'image_url', l: 'Kép (nem kötelező)', t: 'image', folder: 'szolgaltatasok' },
+        { k: 'pairs', l: 'Előtte–utána képpárok', t: 'pairs', folder: 'szolgaltatasok', hint: 'Annyi párt adhatsz hozzá, amennyit szeretnél; minél több van, annál kisebb bélyegképként jelennek meg a kártyán. A látogató rákattintva nagyban, csúszkával nézheti meg őket. Képet feltölthetsz, vagy kiválaszthatsz a galériából.' }],
+      beforeSave: (o, cur) => { if (!(o.pairs || []).length && !('pairs' in cur)) delete o.pairs; return null; },
       thumb: 'image_url', title: r => r.title, sub: r => r.body
     },
     sections: {
@@ -84,10 +86,22 @@
     },
     gallery: {
       label: 'Galéria', single: 'kép', addLabel: 'Egy kép hozzáadása', multi: true,
-      help: 'Egyszerre több képet is feltölthetsz. A sorrendet a nyilakkal állíthatod, a képaláírás a kép fölé húzott egérrel látszik.',
+      help: 'Egyszerre több képet is feltölthetsz; a felső választóval előre kiválaszthatod az albumot, amelybe kerülnek. A sorrendet a nyilakkal állíthatod, a képaláírás a kép fölé húzott egérrel látszik. A főoldalon a Beállítások → Galéria résznél dől el, hogy az albumok vagy a külön képek látszanak.',
       empty: 'Még nincs kép a galériában. Tölts fel néhányat a „Több kép feltöltése” gombbal.',
-      fields: [{ k: 'image_url', l: 'Kép', t: 'image', req: 1, folder: 'galeria' }, { k: 'caption', l: 'Képaláírás' }],
-      thumb: 'image_url', title: r => r.caption || 'Kép aláírás nélkül'
+      fields: [{ k: 'image_url', l: 'Kép', t: 'image', req: 1, folder: 'galeria' }, { k: 'caption', l: 'Képaláírás' }, { k: 'album_id', l: 'Album (opcionális)', t: 'select', o: [['', '— nincs album —']] }],
+      thumb: 'image_url', title: r => r.caption || 'Kép aláírás nélkül',
+      sub: r => r.album_id ? 'Album: ' + ((ALBUMS.find(a => a.id === r.album_id) || {}).title || '(ismeretlen)') : 'Nincs albumban'
+    },
+    gallery_albums: {
+      label: 'Galéria albumok', single: 'album', addLabel: 'Új album', visLabel: 'Látható',
+      help: 'Az albumok képcsoportokat fognak össze. A főoldalon csak akkor látszanak, ha a Galéria beállításainál az „Albumok” van kiválasztva; ekkor az albumba nem sorolt képek nem jelennek meg. Az album törlése nem törli a benne lévő képeket, azok album nélkül maradnak.',
+      empty: 'Még nincs album. Hozz létre egyet, majd a Galéria menüben az albumot kiválasztva tölts fel képeket.',
+      fields: [
+        { k: 'title', l: 'Album neve', req: 1, max: 120 },
+        { k: 'cover_url', l: 'Borítókép (opcionális, különben az album első képe)', t: 'image', folder: 'galeria' },
+        { k: 'visible', l: 'Látható az oldalon', t: 'bool' }
+      ],
+      thumb: 'cover_url', title: r => r.title, sub: r => 'Képek száma: ' + (ALBUM_COUNT[r.id] || 0)
     },
     process_steps: {
       label: 'Hogyan dolgozunk', single: 'lépés', addLabel: 'Új lépés',
@@ -148,14 +162,19 @@
     }
   };
 
-  const NAV = [
-    ['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések'], ['work_items', 'Munkafolyamatok és díjak'],
-    ['layout', 'Megjelenés és elrendezés'], ['texts', 'Oldal szövegei'],
-    ['sections', 'Főoldal ablakok'], ['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozunk'], ['testimonials', 'Vélemények'], ['before_after', 'Előtte–utána'],
-    ['gallery', 'Galéria'], ['videos', 'YouTube-videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog'],
-    ['backup', 'Mentés és visszaállítás']
+  /* Menücsoportok: a címek a lista fölött, a sorrend a munkamenetet követi (napi feladat → beállítás → tartalom → rendszer) */
+  const NAV_GROUPS = [
+    { t: 'Napi munka', items: [['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések']] },
+    { t: 'Főoldal', items: [['layout', 'Megjelenés'], ['texts', 'Szövegek'], ['sections', 'Saját ablakok']] },
+    { t: 'Tartalom', items: [['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozunk'], ['testimonials', 'Vélemények'], ['work_items', 'Árak és munkafolyamatok']] },
+    { t: 'Munkáink', items: [['before_after', 'Előtte–utána'], ['gallery', 'Galéria és albumok']] },
+    { t: 'Média', items: [['videos', 'Videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']] },
+    { t: 'Eszközök', items: [['seo', 'SEO-ellenőrző'], ['backup', 'Mentés és visszaállítás']] }
   ];
-  $('#nav').innerHTML = NAV.map(([k, l]) => `<button type="button" data-v="${k}"><span>${l}</span>${k === 'quotes' ? '<span class="badge" id="qBadge" hidden></span>' : ''}</button>`).join('');
+  /* menüben nem szereplő, de elérhető nézetek → melyik menüpont legyen kiemelve */
+  const NAV_ALIAS = { gallery_albums: 'gallery' };
+  const NAV = [...NAV_GROUPS.flatMap(g => g.items), ...Object.keys(NAV_ALIAS).map(k => [k, ''])];
+  $('#nav').innerHTML = NAV_GROUPS.map(g => `<div class="nav-g"><span class="nav-h">${esc(g.t)}</span>${g.items.map(([k, l]) => `<button type="button" data-v="${k}"><span>${l}</span>${k === 'quotes' ? '<span class="badge" id="qBadge" hidden></span>' : ''}</button>`).join('')}</div>`).join('');
   $('#nav').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) location.hash = b.dataset.v; });
 
   /* ---------- Belépés ---------- */
@@ -200,10 +219,11 @@
     if ($('#app').hidden) return;
     let v = location.hash.slice(1);
     if (!NAV.some(n => n[0] === v)) v = 'overview';
-    $$('#nav button').forEach(b => { if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    const navKey = NAV_ALIAS[v] || v;
+    $$('#nav button').forEach(b => { if (b.dataset.v === navKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -234,11 +254,66 @@
           <input type="text" id="${id}" value="${esc(v)}" placeholder="vagy illeszd be egy kép webcímét">
           <button type="button" class="link" data-clear>Kép eltávolítása</button><small class="up-st" role="status"></small></div></div>${hint}</div>`;
       case 'rich': return `<div class="fl"><span class="lbl">${lab}</span><div class="rich" id="${id}"></div>${hint}</div>`;
+      case 'pairs': return `<div class="fl pairs-ed" id="${id}" data-folder="${esc(f.folder || 'egyeb')}"><span class="lbl">${lab}</span>
+          <div class="pairs-list">${(Array.isArray(v) ? v : []).map(pairRow).join('')}</div>
+          <button type="button" class="btn o sm" data-addpair>+ Új képpár</button>${hint}</div>`;
       default: return `<label class="fl">${lab}<input id="${id}" type="text" value="${esc(v)}" maxlength="${f.max || 500}"${req}${ph}>${hint}</label>`;
     }
   }
+  /* Előtte–utána képpárok szerkesztője (szolgáltatásokhoz) */
+  function pairImg(cls, label, v) {
+    return `<div class="img-field pair-img" data-folder="" data-side="${cls}"><span class="lbl">${label}</span><div class="img-box">
+      <div class="img-prev">${v ? `<img src="${esc(v)}" alt="">` : '<span>Nincs kép</span>'}</div>
+      <div class="img-ctl"><label class="btn o sm">Feltöltés<input type="file" accept="image/*"></label>
+      <button type="button" class="btn o sm" data-gal>Galériából</button>
+      <input type="text" value="${esc(v)}" placeholder="vagy webcím"><button type="button" class="link" data-clear>Eltávolítás</button><small class="up-st" role="status"></small></div></div></div>`;
+  }
+  function pairRow(p) {
+    p = p || {};
+    return `<div class="pair-row"><div class="pair-imgs">${pairImg('before', 'Előtte', p.before)}${pairImg('after', 'Utána', p.after)}</div>
+      <div class="pair-meta"><input type="text" class="pair-title" maxlength="120" placeholder="Felirat (nem kötelező)" value="${esc(p.title)}">
+      <span class="pair-ord"><button type="button" class="btn o sm" data-pu aria-label="Fel">↑</button><button type="button" class="btn o sm" data-pd aria-label="Le">↓</button><button type="button" class="btn o sm" data-prm>Törlés</button></span></div></div>`;
+  }
+  function collectPairs(id) {
+    return $$('#' + id + ' .pair-row').map(r => ({
+      before: $('[data-side=before] input[type=text]', r).value.trim(), after: $('[data-side=after] input[type=text]', r).value.trim(), title: $('.pair-title', r).value.trim()
+    })).filter(p => p.before && p.after).map(p => (p.title ? p : { before: p.before, after: p.after }));
+  }
+  async function pickFromGallery() {
+    const { data, error } = await sb.from('gallery').select('image_url,caption').order('position');
+    if (error) { toast('A galéria nem tölthető be: ' + error.message, true); return null; }
+    const rows = data || []; if (!rows.length) { toast('A galériában még nincs kép.', true); return null; }
+    return new Promise(res => {
+      const d = document.createElement('dialog'); d.className = 'gal-pick';
+      d.innerHTML = `<form method="dialog"><header><h2>Válassz képet a galériából</h2><button type="button" class="x" data-x aria-label="Bezárás">×</button></header>
+        <div class="gp-grid">${rows.map((r, i) => `<button type="button" data-i="${i}" title="${esc(r.caption || '')}"><img src="${esc(r.image_url)}" alt="${esc(r.caption || 'Galériakép')}" loading="lazy"></button>`).join('')}</div></form>`;
+      let out = null;
+      d.onclick = e => { const b = e.target.closest('[data-i]'); if (b) { out = rows[+b.dataset.i].image_url; d.close(); } else if (e.target.closest('[data-x]') || e.target === d) d.close(); };
+      d.onclose = () => { d.remove(); res(out); };
+      document.body.appendChild(d); d.showModal();
+    });
+  }
+  function wirePairs(root) {
+    $$('.pairs-ed', root).forEach(box => {
+      const list = $('.pairs-list', box), folder = box.dataset.folder;
+      const fix = () => $$('.img-field', list).forEach(b => { b.dataset.folder = folder; });
+      fix();
+      $('[data-addpair]', box).onclick = () => { list.insertAdjacentHTML('beforeend', pairRow()); fix(); wireImages(list); };
+      list.addEventListener('click', async e => {
+        const row = e.target.closest('.pair-row'); if (!row) return;
+        if (e.target.closest('[data-prm]')) row.remove();
+        else if (e.target.closest('[data-pu]') && row.previousElementSibling) list.insertBefore(row, row.previousElementSibling);
+        else if (e.target.closest('[data-pd]') && row.nextElementSibling) list.insertBefore(row.nextElementSibling, row);
+        else if (e.target.closest('[data-gal]')) {
+          const u = await pickFromGallery(); if (!u) return;
+          const f = e.target.closest('.img-field'); const t = $('input[type=text]', f); t.value = u; t.dispatchEvent(new Event('input'));
+        }
+      });
+    });
+  }
   function wireImages(root) {
     $$('.img-field', root).forEach(box => {
+      if (box.dataset.wired) return; box.dataset.wired = '1';
       const file = $('input[type=file]', box), url = $('input[type=text]', box), prev = $('.img-prev', box), st = $('.up-st', box);
       const show = v => { prev.innerHTML = v ? `<img src="${esc(v)}" alt="">` : '<span>Nincs kép</span>'; };
       url.addEventListener('input', () => show(url.value.trim()));
@@ -253,6 +328,9 @@
     });
   }
   function makeQuill(el, html) {
+    /* A „videó” gomb a YouTube mellett Facebook, Instagram és TikTok linket is elfogad, beágyazható alakra alakítva */
+    const VideoBlot = Quill.import('formats/video');
+    if (!VideoBlot.__pvEmbed) { VideoBlot.__pvEmbed = true; VideoBlot.sanitize = u => { const e = toEmbedUrl(u); return EMBED_RE.test(e) ? e : 'about:blank'; }; }
     const q = new Quill(el, {
       theme: 'snow', placeholder: 'Írd ide a szöveget…',
       modules: {
@@ -284,6 +362,7 @@
     const out = {};
     for (const f of fields) {
       const el = document.getElementById('f_' + f.k); let v;
+      if (f.t === 'pairs') { out[f.k] = collectPairs('f_' + f.k); continue; }
       if (f.t === 'bool') v = el.checked;
       else if (f.t === 'number') v = el.value === '' ? null : +el.value;
       else if (f.t === 'rich') {
@@ -298,15 +377,29 @@
   }
 
   /* ---------- Általános listanézet ---------- */
-  let ROWS = [], CUR = null;
+  let ROWS = [], CUR = null, OPEN_NEW = null;   // OPEN_NEW: az Áttekintés gyorsgombja után az adott lista új-elem szerkesztője nyíljon meg
+  let ALBUMS = [], ALBUM_COUNT = {};
+  async function loadAlbums() {
+    const [a, g] = await Promise.all([
+      sb.from('gallery_albums').select('id,title').order('position').order('created_at'),
+      sb.from('gallery').select('album_id')
+    ]);
+    if (a.error) toast('Az albumok nem tölthetők be: ' + a.error.message + ' Futtasd le a supabase/2026-12-albumok.sql fájlt.', true);
+    ALBUMS = a.error ? [] : (a.data || []);
+    ALBUM_COUNT = {};
+    (g.data || []).forEach(r => { if (r.album_id) ALBUM_COUNT[r.album_id] = (ALBUM_COUNT[r.album_id] || 0) + 1; });
+    const s = $('#galAlbum');
+    if (s) { const cur = s.value; s.innerHTML = '<option value="">Album nélkül</option>' + ALBUMS.map(x => `<option value="${esc(x.id)}">${esc(x.title)}</option>`).join(''); s.value = ALBUMS.some(x => x.id === cur) ? cur : ''; }
+  }
   async function showTable(key) {
     const T = TABLES[key]; CUR = key;
     view.innerHTML = `<header class="vh"><div><h1>${esc(T.label)}</h1>${T.help ? `<p class="help">${esc(T.help)}</p>` : ''}</div>
-      <div class="vh-act">${T.multi ? '<label class="btn o">Több kép feltöltése<input type="file" accept="image/*" multiple hidden id="multi"></label>' : ''}
+      <div class="vh-act">${key === 'gallery' ? '<select id="galAlbum" aria-label="Album, amelybe a feltöltött képek kerülnek"><option value="">Album nélkül</option></select>' : ''}${T.multi ? '<label class="btn o">Több kép feltöltése<input type="file" accept="image/*" multiple hidden id="multi"></label>' : ''}
       ${T.importList ? '<button type="button" class="btn o" id="importList">Árlista betöltése</button>' : ''}
       ${T.bulkPrice ? '<button type="button" class="btn o" id="bulkPrice">Árak módosítása</button>' : ''}
       <button type="button" class="btn" id="addNew">${esc(T.addLabel)}</button></div></header>
       ${T.search ? `<div class="filt"><input type="search" id="fltQ" placeholder="Keresés a megnevezésben…" aria-label="Keresés"><select id="fltC" aria-label="Kategória"><option value="">Minden kategória</option></select><span class="muted" id="fltN"></span></div>` : ''}
+      ${key === 'gallery' || key === 'gallery_albums' ? `<nav class="tabs" aria-label="Galéria részei"><a href="#gallery"${key === 'gallery' ? ' aria-current="page"' : ''}>Képek</a><a href="#gallery_albums"${key === 'gallery_albums' ? ' aria-current="page"' : ''}>Albumok</a></nav>` : ''}
       ${key === 'videos' ? '<form class="vsrc" id="vsrc" novalidate><p class="muted">Betöltés…</p></form><h2 class="sub-h">Kézzel felvett videók</h2>' : ''}
       <div id="list" class="list"><p class="muted">Betöltés…</p></div>`;
     $('#addNew').onclick = () => openEditor(key, null);
@@ -316,6 +409,7 @@
     if (T.bulkPrice) $('#bulkPrice').onclick = bulkPriceDialog;
     if (T.search) { $('#fltQ').oninput = applyFilter; $('#fltC').onchange = applyFilter; }
     await loadList(key);
+    if (OPEN_NEW === key && CUR === key) { OPEN_NEW = null; openEditor(key, null); }
   }
   /* ---------- Videós ablak forrása (csatorna / lejátszási lista / kézi) ---------- */
   const VS_KEYS = ['video_source', 'youtube_url', 'youtube_playlist', 'video_count'];
@@ -408,6 +502,8 @@
   }
   async function loadList(key) {
     const T = TABLES[key];
+    if (key === 'gallery' || key === 'gallery_albums') await loadAlbums();
+    if (CUR !== key) return;
     let q = sb.from(key).select('*');
     q = T.noPos ? q.order('published_at', { ascending: false }) : q.order('position').order('created_at');
     const { data, error } = await q;
@@ -481,11 +577,14 @@
   async function multiUpload(key, files) {
     if (!files.length) return;
     let ok = 0, pos = nextPos();
+    const albumId = key === 'gallery' && $('#galAlbum') ? ($('#galAlbum').value || null) : null;
     for (let i = 0; i < files.length; i++) {
       toast(`Feltöltés: ${i + 1} / ${files.length}`);
       try {
         const u = await uploadMedia(files[i], 'galeria');
-        const { error } = await sb.from(key).insert({ image_url: u, position: pos }); if (error) throw error;
+        const row = { image_url: u, position: pos };
+        if (key === 'gallery') row.album_id = albumId;
+        const { error } = await sb.from(key).insert(row); if (error) throw error;
         pos += 10; ok++;
       } catch (e) { toast(`${files[i].name}: ${e.message}`, true); }
     }
@@ -494,13 +593,14 @@
 
   function openEditor(key, row) {
     const T = TABLES[key], isNew = !row, cur = row || {};
+    if (key === 'gallery') T.fields.find(f => f.k === 'album_id').o = [['', '— nincs album —'], ...ALBUMS.map(a => [a.id, a.title])];
     dlgBody.innerHTML = `<form class="ed" id="edForm" novalidate>
       <header><h2>${isNew ? 'Új ' + esc(T.single) : 'Szerkesztés'}</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
       <div class="ed-fields">${T.fields.map(f => fieldHtml(f, cur[f.k] ?? (isNew && f.t === 'bool' ? key !== 'posts' : undefined))).join('')}</div>
       <footer><button type="button" class="btn o" data-close>Mégse</button><button class="btn" type="submit">Mentés</button></footer></form>`;
     const quills = {};
     T.fields.filter(f => f.t === 'rich').forEach(f => { quills[f.k] = makeQuill(document.getElementById('f_' + f.k), cur[f.k]); });
-    wireImages(dlgBody);
+    wireImages(dlgBody); wirePairs(dlgBody);
     $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
     dlg.showModal();
     $('#edForm').addEventListener('submit', async e => {
@@ -694,10 +794,19 @@
     CUR = 'overview';
     view.innerHTML = `<header class="vh"><div><h1>Áttekintés</h1><p class="help">Egy pillantás az oldalad állapotára. Kattints egy csempére, és a megfelelő szerkesztőre ugrasz.</p></div>
       <div class="vh-act"><a class="btn o" href="index.html" target="_blank" rel="noopener">Weboldal megnyitása</a></div></header>
+      <div class="quick" id="quick" aria-label="Gyorsműveletek">
+        <a class="btn gold sm" href="#quotes">Árajánlat-kérések</a>
+        <a class="btn o sm" href="#gallery">Képek feltöltése</a>
+        <button type="button" class="btn o sm" data-new="before_after">Új előtte–utána pár</button>
+        <button type="button" class="btn o sm" data-new="posts">Új blogbejegyzés</button>
+        <button type="button" class="btn o sm" data-new="testimonials">Új vélemény</button>
+        <a class="btn o sm" href="#seo">SEO-ellenőrző</a>
+      </div>
       <div class="stats" id="stats"><p class="muted">Betöltés…</p></div>
       <div id="ovAppts"></div>
       <h2 class="sub-h">Legutóbbi árajánlat-kérések</h2><div class="list" id="ovQuotes"><p class="muted">Betöltés…</p></div>
       <h2 class="sub-h">Tennivalók</h2><ul class="todo" id="todo"></ul>`;
+    $('#quick').onclick = e => { const b = e.target.closest('[data-new]'); if (!b) return; OPEN_NEW = b.dataset.new; location.hash = b.dataset.new; };
     const count = (t, f) => { let q = sb.from(t).select('id', { count: 'exact', head: true }); if (f) q = f(q); return Promise.resolve(q).then(r => r.error ? null : r.count).catch(() => null); };
     const [qNew, qAll, work, svc, ba, gal, vid, soc, posts, tstOk, tstWait, txr, last] = await Promise.all([
       count('quotes', q => q.eq('status', 'new')), count('quotes'), count('work_items', q => q.eq('visible', true)),
@@ -719,7 +828,7 @@
     $('#stats').innerHTML = tiles.map(([k, v, l, s, hot]) => `<a class="stat${hot ? ' hot' : ''}" href="#${k}"><b>${n(v)}</b><span>${esc(l)}</span>${s ? `<small>${esc(s)}</small>` : ''}</a>`).join('');
     const ap = await sb.from('quotes').select('id,name,city,phone,appointment_at,appointment_note').gte('appointment_at', new Date(Date.now() - 3600000).toISOString()).order('appointment_at').limit(6);
     if (CUR === 'overview' && ap && !ap.error && (ap.data || []).length) {
-      $('#ovAppts').innerHTML = `<h2 class="sub-h">Közelgő felmérések</h2><div class="list">${ap.data.map(a => `<a class="qrow appt" href="#quotes"><span class="st st-scheduled">${new Date(a.appointment_at).toLocaleString('hu-HU', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span><b>${esc(a.name)}</b><span>${esc(a.city)}</span><span><a href="tel:${esc(String(a.phone || '').replace(/[^\\d+]/g, ''))}">${esc(a.phone)}</a></span><span class="num"></span><time>${esc(a.appointment_note || '')}</time></a>`).join('')}</div>`;
+      $('#ovAppts').innerHTML = `<h2 class="sub-h">Közelgő felmérések</h2><div class="list">${ap.data.map(a => `<div class="qrow appt"><span class="st st-scheduled">${new Date(a.appointment_at).toLocaleString('hu-HU', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span><b><a href="#quotes">${esc(a.name || a.phone || 'Árajánlat-kérés')}</a></b><span>${esc(a.city)}</span><span><a href="tel:${esc(String(a.phone || '').replace(/[^\d+]/g, ''))}">${esc(a.phone)}</a></span><span class="num"></span><time>${esc(a.appointment_note || '')}</time></div>`).join('')}</div>`;
     }
     const rows = (last && !last.error && last.data) || [];
     $('#ovQuotes').innerHTML = rows.length ? rows.map(q => `<a class="qrow" href="#quotes"><span class="st st-${q.status}">${STATUS[q.status] || q.status}</span><b>${esc(q.name)}</b><span>${esc(q.city)}</span><span></span><span class="num">${fmtFt(q.estimate)}</span><time>${new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></a>`).join('')
@@ -759,8 +868,13 @@
       const bgs = allowed ? LAYOUT_BGS.filter(b => allowed.includes(b[0])) : LAYOUT_BGS;
       return `<li data-g="${g}"><b>${esc(name)}</b>
         <span class="mv"><button type="button" data-mv="-1" aria-label="Feljebb"${i ? '' : ' disabled'}>↑</button><button type="button" data-mv="1" aria-label="Lejjebb"${i < ord.length - 1 ? '' : ' disabled'}>↓</button></span>
-        <label class="sw"><input type="checkbox" data-vis${hid.has(g) ? '' : ' checked'}${g === 'arajanlat' ? ' disabled' : ''}>Látható</label>
-        ${lySel('bg.' + g, bgs, (LY.bg || {})[g])}</li>`;
+        <div class="ly-ctl">
+          <label class="sw"><input type="checkbox" data-vis${hid.has(g) ? '' : ' checked'}${g === 'arajanlat' ? ' disabled' : ''}>Látható</label>
+          ${lySel('bg.' + g, bgs, (LY.bg || {})[g])}
+          ${lySel('fx.' + g + '.space', FX_SPACES, lyGet('fx.' + g + '.space'))}
+          ${lySel('fx.' + g + '.width', FX_WIDTHS, lyGet('fx.' + g + '.width'))}
+          ${lySel('fx.' + g + '.anim', FX_ANIMS, lyGet('fx.' + g + '.anim'))}
+        </div></li>`;
     }).join('');
   }
 
@@ -779,6 +893,7 @@
       return `<details class="card lycard"><summary><b>${esc(c.label)}</b></summary><div class="lygrid">
         ${lyField('Elrendezés', lySel(p('mode'), c.modes.map(m => m), v('mode') || c.mode), 'Lefelé folytatódó rács, vagy oldalra lapozható sáv nyilakkal.')}
         ${lyField('Kártyák egy sorban', lySel(p('cols'), CARD_COLS, v('cols')), 'Asztali gépen. Táblagépen és telefonon az oldal automatikusan csökkenti.')}
+        ${lyField('Látható sorok (rácsnál)', lySel(p('rows'), CARD_ROWS, v('rows')), 'Ha több kártya van, a többi egy „Tovább” gomb mögött jelenik meg. Lapozható sávnál nem számít.')}
         ${lyField('Kártyák közti távolság', lySel(p('gap'), CARD_GAPS, v('gap')))}
         ${lyField('Sarkok', lySel(p('radius'), CARD_RADII, v('radius')))}
         ${c.ratios ? lyField('Képarány', lySel(p('ratio'), c.ratios, v('ratio'))) : ''}
@@ -788,7 +903,7 @@
     const b = LY.banner || {}, m = LY.meta || {};
     $('#lyForm').innerHTML = `
       <fieldset class="card"><legend>Szakaszok sorrendje, láthatósága és háttere</legend>
-        <p class="muted">A nyilakkal mozgathatod a szakaszokat a főoldalon. Az Árajánlatkérő mindig látható marad, mert a menü gombja oda vezet. A főoldal tetejét (a festőhengeres részt) nem lehet áthelyezni.</p>
+        <p class="muted">A nyilakkal mozgathatod a szakaszokat a főoldalon. Szakaszonként állíthatod a hátteret, a függőleges térközt (szűk / tágas), a tartalom szélességét (keskeny / széles) és a görgetésnél megjelenő animációt. Az Árajánlatkérő mindig látható marad, mert a menü gombja oda vezet. A főoldal tetejét (a festőhengeres részt) nem lehet áthelyezni.</p>
         <ul class="lyorder" id="lyOrder"></ul></fieldset>
       <fieldset class="card"><legend>Kártyák és ablakok</legend>
         <p class="muted">Szakaszonként választhatod ki, hogy a kártyák lefelé (rács) vagy oldalra lapozva jelenjenek meg, hány férjen egymás mellé, mekkorák legyenek a távolságok és a sarkok. Ami „Alap”, az az eddigi megjelenés.</p>
@@ -869,6 +984,7 @@
       const day = v => String(v || new Date().toISOString()).slice(0, 10);
       const urls = [[base + '/', todayStr(), 'weekly', '1.0'], [base + '/blog.html', todayStr(), 'weekly', '0.6']];
       (posts || []).forEach(p => urls.push([`${base}/blog.html?p=${encodeURIComponent(p.slug)}`, day(p.updated_at || p.published_at), 'monthly', '0.5']));
+      SEO_PAGES.forEach(f => urls.push([`${base}/${f}`, todayStr(), 'monthly', '0.8']));
       ['adatkezeles.html', 'impresszum.html', 'sutik.html'].forEach(f => urls.push([`${base}/${f}`, todayStr(), 'yearly', '0.2']));
       const x = u => String(u).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
@@ -893,8 +1009,66 @@
   });
   addEventListener('beforeunload', e => { if (lyDirty && CUR === 'layout') { e.preventDefault(); e.returnValue = ''; } });
 
+  /* ---------- SEO-ellenőrző (csak olvas, semmit nem ment) ---------- */
+  async function showSeo() {
+    CUR = 'seo';
+    const enc = encodeURIComponent('https://planervo.hu/');
+    view.innerHTML = `<header class="vh"><div><h1>SEO-ellenőrző</h1><p class="help">Megnézi, mi segíti és mi hátráltatja, hogy a Google-ben rád találjanak, ha festőt keresnek. Zöld: rendben. Sárga: érdemes javítani. Piros: fontos hiány.</p></div></header>
+      <ul class="chk-list" id="seoList"><li><span></span><span class="muted">Ellenőrzés…</span></li></ul>
+      <h2 class="sub-h">Helyi keresőoldalak</h2><p class="muted">Ezeket a seo/oldalak.mjs készíti. Megnyitva ellenőrizheted, hogy feltöltötted-e a tárhelyre.</p><div class="seo-links" id="seoPages"></div>
+      <h2 class="sub-h">Külső eszközök</h2><div class="seo-links">
+        <a class="btn o sm" href="https://business.google.com/" target="_blank" rel="noopener">Google Cégprofil</a>
+        <a class="btn o sm" href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a>
+        <a class="btn o sm" href="https://pagespeed.web.dev/analysis?url=${enc}" target="_blank" rel="noopener">Sebességmérés (PageSpeed)</a>
+        <a class="btn o sm" href="https://search.google.com/test/rich-results?url=${enc}" target="_blank" rel="noopener">Strukturált adat teszt</a>
+        <a class="btn o sm" href="#layout">Sitemap letöltése (Megjelenés)</a></div>`;
+    $('#seoPages').innerHTML = SEO_PAGES.map(f => `<a class="btn o sm" href="${esc(f)}" target="_blank" rel="noopener">${esc(f.replace('.html', ''))}</a>`).join('');
+    const since = new Date(Date.now() - 60 * 864e5).toISOString();
+    const safe = p => Promise.resolve(p).catch(error => ({ error }));
+    const cnt = q => safe(q.select('id', { count: 'exact', head: true }));
+    const [txr, gal, svc, tst, posts, idx] = await Promise.all([
+      safe(sb.from('settings').select('value').eq('key', 'texts').maybeSingle()),
+      safe(sb.from('gallery').select('caption').eq('visible', true)),
+      cnt(sb.from('services')).then(r => r), cnt(sb.from('testimonials')),
+      safe(sb.from('posts').select('id', { count: 'exact', head: true }).eq('published', true).gte('published_at', since)),
+      safe(fetch('index.html', { cache: 'no-store' }).then(r => r.text()))
+    ]);
+    if (CUR !== 'seo') return;
+    const tx = { ...TEXT_DEFAULTS, ...((txr && txr.data && txr.data.value) || {}) }, meta = getLayout(tx).meta || {};
+    const html = typeof idx === 'string' ? idx : '';
+    const grab = re => { const x = html.match(re); return x ? x[1].replace(/&amp;/g, '&') : ''; };
+    const title = meta.title || grab(/<title>([^<]*)<\/title>/i), desc = meta.desc || grab(/<meta name="description" content="([^"]*)"/i);
+    const out = [], add = (st, t, d, fix) => out.push({ st, t, d, fix });
+    const num = r => (r && !r.error && typeof r.count === 'number') ? r.count : null;
+
+    if (!title) add('bad', 'Az oldal címe hiányzik', 'A böngészőfülön és a Google-találatban ez látszik.', '#layout');
+    else add(title.length >= 30 && title.length <= 70 && /fest/i.test(title) ? 'ok' : 'warn', 'Az oldal címe',
+      `„${title}” (${title.length} karakter${meta.title ? ', az adminban beállítva' : ''}). Ideális: 30–70 karakter, benne a „festő” szó.`, '#layout');
+    if (!desc) add('bad', 'A keresőknek szóló leírás hiányzik', 'Ez a két sor jelenik meg a Google-találat alatt.', '#layout');
+    else add(desc.length >= 70 && desc.length <= 170 ? 'ok' : 'warn', 'Leírás a keresőknek', `${desc.length} karakter. Ideális: 70–170.`, '#layout');
+    const url = String(tx.site_url || '').trim();
+    add(/^https:\/\/(www\.)?planervo\.hu\/?$/.test(url) ? 'ok' : url ? 'warn' : 'bad', 'Az oldal webcíme', url || 'Nincs megadva (Szövegek → Keresők).', '#texts');
+    add(tx.phone && tx.phone !== TEXT_DEFAULTS.phone ? 'ok' : 'bad', 'Telefonszám', tx.phone && tx.phone !== TEXT_DEFAULTS.phone ? tx.phone : 'Még a minta-szám szerepel. Ugyanaz legyen, mint a Google Cégprofilon.', '#texts');
+    add(tx.area ? 'ok' : 'warn', 'Munkaterület', tx.area || 'Nincs megadva.', '#texts');
+    add(tx.legal_name && tx.legal_seat ? 'ok' : 'warn', 'Cégadatok (impresszum)', tx.legal_name && tx.legal_seat ? tx.legal_name : 'Hiányos: a Google a valódi, ellenőrizhető vállalkozásokat részesíti előnyben.', '#texts');
+    add(tx.facebook_url || tx.instagram_url ? 'ok' : 'warn', 'Közösségi profilok', tx.facebook_url || tx.instagram_url ? 'Megadva, a keresők összekapcsolják az oldallal.' : 'Add meg a Facebook- vagy Instagram-oldalad linkjét.', '#texts');
+    if (gal && !gal.error) {
+      const imgs = gal.data || [], noCap = imgs.filter(r => !String(r.caption || '').trim()).length;
+      add(!imgs.length ? 'warn' : noCap ? 'warn' : 'ok', 'Galériaképek aláírása',
+        !imgs.length ? 'Nincs kép a galériában.' : noCap ? `${noCap} / ${imgs.length} kép aláírás nélkül. Írj hozzájuk rövid leírást, például „Nappali festése, Gyál”.` : `Mind a ${imgs.length} képnek van aláírása.`, '#gallery');
+    }
+    const s = num(svc), t = num(tst), p = num(posts);
+    if (s != null) add(s > 0 ? 'ok' : 'warn', 'Szolgáltatások', s > 0 ? `${s} szolgáltatás felvéve.` : 'Nincs saját szolgáltatás, az alapértelmezettek látszanak.', '#services');
+    if (t != null) add(t >= 3 ? 'ok' : 'warn', 'Vélemények az oldalon', t ? `${t} vélemény. Legalább 3 ajánlott.` : 'Nincs vélemény. Kérj az ügyfelektől, és vedd fel őket.', '#testimonials');
+    if (p != null) add(p > 0 ? 'ok' : 'warn', 'Friss blogbejegyzés', p > 0 ? `${p} bejegyzés az elmúlt 60 napban.` : 'Az elmúlt 60 napban nem jelent meg bejegyzés. Havi egy rövid cikk sokat segít.', '#posts');
+
+    const order = { bad: 0, warn: 1, ok: 2 };
+    out.sort((a, b) => order[a.st] - order[b.st]);
+    $('#seoList').innerHTML = out.map(c => `<li class="${c.st}"><span class="dot" aria-hidden="true"></span><div><b>${esc(c.t)}</b><small>${esc(c.d)}</small></div>${c.st !== 'ok' ? `<a class="btn o sm" href="${c.fix}">Javítás</a>` : ''}</li>`).join('');
+  }
+
   /* ---------- Mentés és visszaállítás ---------- */
-  const BACKUP_TABLES = ['services', 'process_steps', 'testimonials', 'sections', 'before_after', 'gallery', 'videos', 'social_posts', 'posts', 'work_items'];
+  const BACKUP_TABLES = ['services', 'process_steps', 'testimonials', 'sections', 'before_after', 'gallery_albums', 'gallery', 'videos', 'social_posts', 'posts', 'work_items'];
   function showBackup() {
     CUR = 'backup';
     view.innerHTML = `<header class="vh"><div><h1>Mentés és visszaállítás</h1><p class="help">Az oldal tartalmáról egyetlen fájlba menthetsz másolatot, és bármikor vissza is töltheted. Érdemes nagyobb átalakítás előtt menteni.</p></div></header>
@@ -949,21 +1123,23 @@
     dlgBody.innerHTML = `<form class="ed" id="bpForm" novalidate><header><h2>Árak módosítása</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
       <div class="ed-fields">
         <p class="muted">Az összes (vagy egy kategória) munkadíját módosítja egyszerre, például árváltozás után. A kerekítés a tiszta árakért van.</p>
-        <label class="fl">Változás százalékban<input id="bpPct" type="number" step="0.1" value="5" placeholder="pl. 5 vagy -10"><span class="hint">Pozitív szám emel, negatív csökkent.</span></label>
+        <div class="fl"><label for="bpPct">Változás százalékban</label><div class="bp-pct"><button type="button" class="btn o" id="bpSign" aria-label="Előjel váltása (emelés / csökkentés)">+ / −</button><input id="bpPct" type="text" inputmode="decimal" autocomplete="off" value="5" placeholder="pl. 5"></div><span class="hint">Pozitív szám emel, negatív csökkent. Telefonon a „+ / −” gombbal válthatsz előjelet.</span></div>
         <label class="fl">Melyik tételekre<select id="bpCat"><option value="">Minden tételre (${ROWS.length})</option>${cats.map(c => `<option>${esc(c)}</option>`).join('')}</select></label>
         <label class="fl">Kerekítés<select id="bpRound"><option value="10">10 Ft-ra</option><option value="50">50 Ft-ra</option><option value="100">100 Ft-ra</option><option value="1">Nincs kerekítés</option></select></label>
         <p class="bp-sum" id="bpSum" role="status"></p></div>
       <footer><button type="button" class="btn o" data-close>Mégse</button><button class="btn" type="submit">Árak módosítása</button></footer></form>`;
     $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
     const calc = () => {
-      const pct = parseFloat($('#bpPct').value) || 0, step = +$('#bpRound').value || 1, cat = $('#bpCat').value;
+      const pct = parseFloat(String($('#bpPct').value).replace(',', '.').replace('−', '-')) || 0, step = +$('#bpRound').value || 1, cat = $('#bpCat').value;
       const sel = ROWS.filter(r => !cat || (r.category || '') === cat);
       const np = v => Math.max(0, Math.round((+v || 0) * (1 + pct / 100) / step) * step);
       const ex = sel.find(r => +r.price > 0);
       $('#bpSum').textContent = sel.length ? `${sel.length} tétel módosul${ex ? `. Például: „${ex.name}”: ${fmtFt(ex.price)} → ${fmtFt(np(ex.price))}` : ''}.` : 'Nincs ilyen tétel.';
       return { pct, sel, np };
     };
-    ['#bpPct', '#bpCat', '#bpRound'].forEach(s => $(s).addEventListener('input', calc)); calc();
+    ['#bpPct', '#bpCat', '#bpRound'].forEach(s => $(s).addEventListener('input', calc));
+    $('#bpSign').onclick = () => { const v = parseFloat(String($('#bpPct').value).replace(',', '.').replace('−', '-')) || 0; $('#bpPct').value = String(-v); calc(); };
+    calc();
     dlg.showModal();
     $('#bpForm').addEventListener('submit', async e => {
       e.preventDefault();

@@ -41,6 +41,7 @@ const TEXT_FIELDS = [
   { g: 'Előtte–utána', k: 'ba_text', l: 'Bevezető', d: 'Húzd el a csúszkát, és nézd meg, mit hozunk ki egy falból.', t: 'textarea' },
   { g: 'Galéria', k: 'gallery_title', l: 'Cím', d: 'Galéria' },
   { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáinkból.', t: 'textarea' },
+  { g: 'Galéria', k: 'gallery_mode', l: 'Mit mutasson a főoldal galériája', t: 'select', d: 'images', o: [['images', 'Külön képek'], ['albums', 'Albumok (albumborítókkal)']], hint: 'Albumok módban csak az albumba sorolt képek jelennek meg, albumonként egy borítóval.' },
   { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videóink' },
   { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Nézd meg, hogyan dolgozunk.', t: 'textarea' },
   { g: 'Videók', k: 'video_source', l: 'Mit mutasson a videós ablak', t: 'select', d: 'channel',
@@ -155,6 +156,9 @@ const LAYOUT_GROUPS = [
 const LAYOUT_BGS = [['', 'Alapértelmezett'], ['light', 'Fehér'], ['soft', 'Halvány homok'], ['peach', 'Barack'], ['dark', 'Sötét'], ['gold', 'Arany']];
 const LAYOUT_BG_ALLOWED = { arajanlat: ['', 'light', 'soft', 'peach'] };   // az árajánlatkérő űrlapja világos háttéren olvasható
 const CARD_COLS = [['', 'Automatikus'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5']];
+/* A seo/oldalak.mjs által generált helyi keresőoldalak (az admin sitemap-letöltése is ezeket listázza). Új oldalnál ide is vedd fel. */
+const SEO_PAGES = ['festo-budapest.html', 'homlokzatfestes-hoszigeteles.html', 'festo-gyal.html', 'festo-vecses.html', 'festo-ullo.html', 'festo-gyomro.html', 'festo-maglod.html', 'festo-monor.html', 'festo-monorierdo.html', 'festo-kistarcsa.html'];
+const CARD_ROWS = [['', 'Mind látszik'], ['1', '1 sor'], ['2', '2 sor'], ['3', '3 sor'], ['4', '4 sor'], ['5', '5 sor'], ['6', '6 sor']];
 const CARD_GAPS = [['', 'Alap'], ['s', 'Kicsi'], ['m', 'Közepes'], ['l', 'Nagy']];
 const CARD_GAP_PX = { s: 10, m: 18, l: 30 };
 const CARD_RADII = [['', 'Alap'], ['0', 'Éles sarok'], ['12', 'Enyhén kerek'], ['22', 'Kerek'], ['34', 'Nagyon kerek']];
@@ -179,6 +183,10 @@ const CARD_SECTIONS = {
 const LAYOUT_WIDTHS = [['', 'Normál'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
 const LAYOUT_SPACINGS = [['', 'Normál'], ['compact', 'Kompakt'], ['airy', 'Levegős']];
 const LAYOUT_BANNER_TONES = [['gold', 'Arany'], ['dark', 'Sötét'], ['peach', 'Barack']];
+/* szakaszonkénti beállítások (layout.fx.<szakasz>.*) */
+const FX_SPACES = [['', 'Alap térköz'], ['compact', 'Szűk'], ['airy', 'Tágas']];
+const FX_WIDTHS = [['', 'Alap szélesség'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
+const FX_ANIMS = [['', 'Nincs animáció'], ['fade', 'Áttűnés'], ['up', 'Alulról felfelé'], ['zoom', 'Nagyítva előjön'], ['slide', 'Oldalról érkezik']];
 const getLayout = tx => (tx && tx.layout && typeof tx.layout === 'object') ? tx.layout : {};
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -226,19 +234,35 @@ function workLines(w, g, sel) {
   return [line(w.name, w.unit, w.unit === 'ceiling' ? pc : price, unitQty(w.unit, g, sel && sel.qty))];
 }
 
-/* Biztonságos HTML (blog, saját ablakok). YouTube-beágyazást enged. */
+/* Beágyazható források (YouTube, Facebook, Instagram, TikTok). Csak ezek az iframe-címek engedettek. */
+const EMBED_RE = /^https:\/\/(www\.|m\.)?(youtube\.com|youtube-nocookie\.com)\/embed\/|^https:\/\/www\.facebook\.com\/plugins\/(video|post)\.php\?|^https:\/\/www\.instagram\.com\/(p|reel)\/[\w-]+\/embed\/?$|^https:\/\/www\.tiktok\.com\/embed\/(v2\/)?\d+/;
+
+/* Bármilyen megosztott link (pl. böngésző címsora) beágyazható alakra alakítása.
+   Ismeretlen linknél változatlanul adja vissza; az EMBED_RE dönt, mi engedett. */
+function toEmbedUrl(u) {
+  u = String(u || '').trim();
+  if (!u || EMBED_RE.test(u)) return u;
+  let m;
+  if ((m = u.match(/instagram\.com\/(p|reel)\/([\w-]+)/))) return `https://www.instagram.com/${m[1]}/${m[2]}/embed`;
+  if ((m = u.match(/tiktok\.com\/(?:@[\w.-]+\/video\/|embed\/(?:v2\/)?|v\/)?(\d{10,})/))) return `https://www.tiktok.com/embed/v2/${m[1]}`;
+  if (/facebook\.com|fb\.watch/.test(u)) return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(u)}&show_text=false`;
+  if ((m = u.match(/[?&]v=([\w-]{11})|youtu\.be\/([\w-]{11})|\/(?:embed|shorts|live)\/([\w-]{11})/))) return `https://www.youtube-nocookie.com/embed/${m[1] || m[2] || m[3]}`;
+  return u;
+}
+
+/* Biztonságos HTML (blog, saját ablakok). A EMBED_RE-nek megfelelő iframe-eket engedi. */
 if (window.DOMPurify) {
   DOMPurify.addHook('uponSanitizeElement', (node, data) => {
     if (data.tagName === 'iframe') {
       const src = node.getAttribute('src') || '';
-      if (!/^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com)\/embed\//.test(src)) node.remove();
+      if (!EMBED_RE.test(src)) node.remove();
     }
   });
 }
 function sanitize(html) {
   if (!html) return '';
   return window.DOMPurify
-    ? DOMPurify.sanitize(html, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allowfullscreen', 'frameborder', 'target'] })
+    ? DOMPurify.sanitize(html, { ADD_TAGS: ['iframe'], ADD_ATTR: ['allowfullscreen', 'frameborder', 'target', 'allow', 'scrolling', 'referrerpolicy', 'loading'] })
     : esc(html);
 }
 

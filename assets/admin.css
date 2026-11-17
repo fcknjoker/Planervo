@@ -2,7 +2,7 @@
 :root{
   --gold:#c49a54; --gold-d:#9c7535; --ink:#1a1a1a; --side:#151515; --bg:#f5f2ec; --card:#fff;
   --line:#e4ddd0; --mute:#6f685e; --red:#b3261e; --green:#2e7d4f; --blue:#2f5f9e;
-  --f-body:Jost,"Segoe UI",system-ui,sans-serif; --f-disp:"Cormorant Garamond",Georgia,serif;
+  --f-body:Jost,"Segoe UI",system-ui,sans-serif; --f-disp:Jost,"Segoe UI",system-ui,sans-serif;
   color-scheme:light;
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -13,7 +13,7 @@ img{max-width:100%}
 .brand{display:inline-flex;align-items:center;font-weight:500;letter-spacing:.16em;font-size:1.15rem}
 .brand i{display:inline-flex;flex-direction:column;justify-content:space-between;width:.78em;height:.7em;margin:0 .16em}
 .brand i b{display:block;height:.1em;background:var(--gold)}
-h1,h2{font-family:var(--f-disp);font-weight:600;line-height:1.05;margin:0}
+h1,h2{font-family:var(--f-disp);font-weight:600;line-height:1.2;margin:0;letter-spacing:-.01em}
 input,select,textarea{font:inherit;padding:10px 12px;border:1.5px solid #d6cdbd;border-radius:10px;background:#fff;color:var(--ink);width:100%;min-width:0}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(196,154,84,.25)}
 label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
@@ -37,7 +37,9 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 .app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
 .side{background:var(--side);color:#e9e3d8;padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px;overflow:auto}
 .side .brand{color:#fff;padding:0 10px}
-#nav{display:flex;flex-direction:column;gap:2px}
+#nav{display:flex;flex-direction:column;gap:14px}
+.nav-g{display:flex;flex-direction:column;gap:2px}
+.nav-h{display:block;padding:0 12px 4px;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#8f887c;font-weight:500;white-space:nowrap}
 #nav button{display:flex;justify-content:space-between;align-items:center;text-align:left;border:0;background:none;color:#cfc8bc;font:inherit;padding:10px 12px;border-radius:10px;cursor:pointer}
 #nav button:hover{background:#222;color:#fff}
 #nav button[aria-current=page]{background:var(--gold);color:var(--ink);font-weight:500}
@@ -49,13 +51,34 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 @media(max-width:860px){
   .app{grid-template-columns:1fr}
   .side{position:static;height:auto;padding:14px max(16px,env(safe-area-inset-right,0px)) 14px max(16px,env(safe-area-inset-left,0px));gap:12px}
-  #nav{flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:4px}
+  #nav{flex-direction:row;overflow-x:auto;gap:14px;padding-bottom:4px;scrollbar-width:thin}
+  .nav-g{flex-direction:row;flex-wrap:nowrap;gap:4px;align-items:center;flex:none;padding-right:8px;border-right:1px solid #2a2a2a}
+  .nav-g:last-child{border-right:0}
+  .nav-h{display:none}
   #nav button{white-space:nowrap;gap:8px}
   .side-foot{flex-direction:row;flex-wrap:wrap;gap:6px 16px;margin:0}
 }
 .view{padding:32px max(16px,clamp(16px,3vw,44px)) 80px;min-width:0}
 .vh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:24px}
-.vh h1{font-size:clamp(2rem,4vw,2.8rem)}
+.vh h1{font-size:clamp(1.5rem,2.6vw,1.9rem)}
+/* Fülsor egy menüponton belül (pl. Galéria: Képek / Albumok) */
+.tabs{display:flex;gap:4px;margin:-8px 0 20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs a{padding:10px 16px;color:var(--mute);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current=page]{color:var(--ink);border-bottom-color:var(--gold)}
+/* Gyorsműveletek és ellenőrzőlista */
+.quick{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
+.chk-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.chk-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}
+.chk-list .dot{width:12px;height:12px;border-radius:50%}
+.chk-list .ok .dot{background:var(--green)}
+.chk-list .warn .dot{background:var(--gold)}
+.chk-list .bad .dot{background:var(--red)}
+.chk-list b{font-weight:500;display:block}
+.chk-list small{color:var(--mute);display:block;overflow-wrap:anywhere}
+.chk-list a.btn{justify-self:end}
+@media(max-width:560px){.chk-list li{grid-template-columns:auto minmax(0,1fr)}.chk-list a.btn{grid-column:2;justify-self:start}}
+.seo-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .help{margin:8px 0 0;color:var(--mute);max-width:62ch}
 .vh-act{display:flex;gap:10px;flex-wrap:wrap}
 
@@ -130,7 +153,7 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 /* Szövegek oldal */
 .tx{display:grid;gap:18px;max-width:900px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px 24px;display:grid;gap:16px;margin:0;min-width:0}
-.card legend{font-family:var(--f-disp);font-size:1.6rem;font-weight:600;padding:0 6px;margin-left:-6px}
+.card legend{font-family:var(--f-disp);font-size:1.15rem;font-weight:600;padding:0 6px;margin-left:-6px}
 .savebar{position:sticky;bottom:0;padding:14px 0 calc(14px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--bg) 30%);display:flex;gap:12px;align-items:center}
 
 /* Árajánlat részletei */
@@ -152,7 +175,7 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 .qd-imgs a{width:96px;height:96px;border-radius:10px;overflow:hidden;background:#f1ece3;display:block}
 .qd-imgs img{width:100%;height:100%;object-fit:cover}
 .qd-total{font-size:1.2rem}
-.qd-total strong{font-family:var(--f-disp);font-size:2rem;margin-left:8px}
+.qd-total strong{font-family:var(--f-disp);font-size:1.4rem;margin-left:8px}
 .qd-manage{display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px}
 @media(max-width:620px){.qd-manage{grid-template-columns:1fr}}
 .qd-note{color:var(--mute);font-size:.9rem;margin:0}
@@ -183,7 +206,7 @@ label{display:flex;flex-direction:column;gap:6px;font-weight:500;min-width:0}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:12px;margin:0 0 28px}
 .stat{display:flex;flex-direction:column;gap:2px;padding:16px 18px;background:var(--card);border:1px solid var(--line);border-radius:14px;text-decoration:none;color:inherit;transition:transform .2s,border-color .2s}
 .stat:hover{transform:translateY(-2px);border-color:var(--gold)}
-.stat b{font:600 2.2rem/1.1 var(--f-disp);font-variant-numeric:tabular-nums}
+.stat b{font:600 1.8rem/1.1 var(--f-disp);font-variant-numeric:tabular-nums}
 .stat span{color:var(--ink);font-size:.92rem}
 .stat small{color:var(--mute);font-size:.82rem}
 .stat.hot{background:#fff6e4;border-color:var(--gold)}
@@ -199,10 +222,12 @@ a.qrow{text-decoration:none;color:inherit}
 .ly-form{display:grid;gap:16px}
 .ly-form .card legend{font-weight:600;padding:0 6px}
 .lyorder{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
-.lyorder li{display:grid;grid-template-columns:minmax(0,1fr) auto auto minmax(110px,150px);align-items:center;gap:10px 12px;padding:8px 12px;background:#fbf9f5;border:1px solid var(--line);border-radius:10px}
-.lyorder li b{font-weight:500;min-width:0}
+.lyorder li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 12px;padding:10px 12px;background:#fbf9f5;border:1px solid var(--line);border-radius:10px}
+.lyorder li b{font-weight:500;min-width:0;overflow-wrap:anywhere}
 .lyorder select{width:100%}
-@media(max-width:620px){.lyorder li{grid-template-columns:minmax(0,1fr) auto;}.lyorder li select{grid-column:1/-1}}
+.ly-ctl{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.ly-ctl select{width:auto;flex:1 1 150px;min-width:0;padding:7px 10px;font-size:.92rem}
+.ly-ctl .sw{white-space:nowrap}
 .lycard{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:0 14px;background:#fff}
 .lycard summary{padding:12px 0;cursor:pointer;list-style:none}
 .lycard summary::-webkit-details-marker{display:none}
@@ -231,6 +256,9 @@ a.qrow{text-decoration:none;color:inherit}
 /* Mentés és visszaállítás, árak módosítása */
 .bk{display:grid;gap:16px;max-width:760px}
 .bk h2{margin:0 0 6px;font-size:1.4rem}
+.bp-pct{display:flex;gap:8px;align-items:stretch}
+.bp-pct input{flex:1;min-width:0}
+.bp-pct button{min-width:64px;font-size:1.1rem;font-weight:600}
 .bp-sum{margin:0;padding:10px 12px;background:#fbf9f5;border:1px solid var(--line);border-radius:10px;font-size:.92rem}
 
 /* 2. fázis: időpontok */
@@ -244,3 +272,24 @@ a.qrow{text-decoration:none;color:inherit}
 .btn.disabled{opacity:.5;pointer-events:none}
 .qrow.appt{text-decoration:none;color:inherit}
 @media(max-width:620px){.qd-appt-row{grid-template-columns:1fr}}
+
+/* szolgáltatás képpárok szerkesztő */
+.pairs-list{display:grid;gap:12px;margin:8px 0}
+.pair-row{border:1px solid var(--line,#ddd);border-radius:12px;padding:12px;display:grid;gap:10px;background:#fff}
+.pair-imgs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair-img .img-box{display:grid;gap:8px}
+.pair-img .img-prev{aspect-ratio:4/3;max-height:150px}
+.pair-img .img-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pair-img .img-ctl input[type=text]{flex:1 1 100%;min-width:0}
+.pair-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pair-meta .pair-title{flex:1 1 180px;min-width:0}
+.pair-ord{display:flex;gap:6px}
+@media(max-width:560px){.pair-imgs{grid-template-columns:1fr}}
+dialog.gal-pick{border:0;border-radius:14px;padding:0;width:min(760px,94vw);max-height:88vh}
+dialog.gal-pick::backdrop{background:rgba(0,0,0,.55)}
+dialog.gal-pick header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #e5e0d6;position:sticky;top:0;background:#fff}
+dialog.gal-pick h2{margin:0;font-size:1.15rem}
+.gp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;padding:14px 18px 18px}
+.gp-grid button{padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:1;background:#eee}
+.gp-grid button:hover,.gp-grid button:focus-visible{border-color:#c8a24a}
+.gp-grid img{width:100%;height:100%;object-fit:cover}
