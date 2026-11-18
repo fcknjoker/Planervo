@@ -54,12 +54,17 @@
   const { data, error } = await sb.from('posts').select('title,slug,excerpt,cover_url,published_at')
     .eq('published', true).lte('published_at', now).order('published_at', { ascending: false });
   if (error) return msg('<p class="empty">A bejegyzések betöltése nem sikerült. Frissítsd az oldalt.</p>');
+  /* az admin „Aloldalak szövegei” menüjében mentett cím és bevezető */
+  const own = (TX.pages || {}).blog || {};
+  if (own.title) document.title = own.title;
+  if (own.desc) setMeta('name', 'description', own.desc);
+  const bh = own.h1 || TX.blog_title, bl = own.lead || TX.blog_text;
   main.innerHTML = `<section class="band"><div class="wrap blog-top" style="padding-top:calc(60px + env(safe-area-inset-top,0px))">
-    <h1 style="font-size:clamp(3rem,8vw,6rem)">${esc(TX.blog_title)}</h1>
-    ${TX.blog_text ? `<p class="lead">${esc(TX.blog_text)}</p>` : ''}
+    <h1>${esc(bh)}</h1>
+    ${bl ? `<p class="lead">${esc(bl)}</p>` : ''}
     ${(data || []).length ? `<div class="posts">${data.map(p => `<a class="post-card" href="blog.html?p=${encodeURIComponent(p.slug)}">
       <div class="cv">${p.cover_url ? `<img src="${esc(p.cover_url)}" alt="" loading="lazy">` : ''}</div>
       <time datetime="${esc(p.published_at)}">${fmtDate(p.published_at)}</time><h3>${esc(p.title)}</h3>${p.excerpt ? `<p>${esc(p.excerpt)}</p>` : ''}</a>`).join('')}</div>`
-      : '<p class="empty" style="margin-top:32px">Még nincs bejegyzés. Hamarosan jelentkezünk az elsővel.</p>'}
+      : '<p class="empty" style="margin-top:32px">Még nincs bejegyzés. Hamarosan jelentkezem az elsővel.</p>'}
   </div></section>`;
 })();

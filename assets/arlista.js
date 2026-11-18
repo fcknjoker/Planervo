@@ -113,8 +113,6 @@ const PRICE_LIST = [
   ['Egyéb munkák', 'Díszes polisztirol díszléc ragasztása (55–110 mm)', 'meter', 1600],
   ['Egyéb munkák', 'Rozetta ragasztása, festése 40 cm átmérőig', 'piece', 3000],
   ['Egyéb munkák', 'Rozetta ragasztása, festése 70 cm átmérőig', 'piece', 4500],
-  ['Egyéb munkák', 'Díszítő festés (dekor, antikolás)', 'sqm', 7000, 'Irányár, a pontos ár felmérés után'],
-  ['Egyéb munkák', 'Betonhatású dekorfal készítése (Jub Beton Look)', 'sqm', 12000],
   ['Egyéb munkák', 'Kapcsolók, konnektorok fedelének le- és felszerelése', 'piece', 300],
   ['Egyéb munkák', 'Radiátor le- és felszerelése', 'piece', 5000],
   ['Egyéb munkák', 'Lámpa, falikar le- és felszerelése', 'piece', 3000]

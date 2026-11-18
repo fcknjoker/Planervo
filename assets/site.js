@@ -11,6 +11,11 @@
       el.textContent = v == null ? '' : String(v);
       if (el.tagName === 'P' || el.tagName === 'EM') el.hidden = !v;
     });
+    // szolgáltatás-sor a logó alatt: pontokkal tagolva
+    $$('[data-line]').forEach(el => {
+      const parts = String(TX[el.dataset.line] || '').split(/\s*[•·|]\s*/).filter(Boolean);
+      el.innerHTML = parts.map(esc).join(' <b>•</b> '); el.hidden = !parts.length;
+    });
     // saját feltöltött logó esetén a logókép látszik, egyébként a felépülő ház és a felirat
     const custom = !!TX.logo_url && TX.logo_url !== 'logo.png';
     if (TX.logo_url) $('#heroLogo').src = TX.logo_url;
@@ -172,6 +177,16 @@
   plb.addEventListener('click', e => { if (e.target === plb || e.target.classList.contains('lb')) plb.close(); });
   plb.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') showPair(PI - 1); if (e.key === 'ArrowRight') showPair(PI + 1); });
 
+  /* ---------- Gyakori kérdések ---------- */
+  function renderFaq(rows) {
+    const list = rows.length ? rows : DEFAULT_FAQ;
+    $('#faqList').innerHTML = list.map(f => `<details class="faq-i"><summary>${esc(f.question)}</summary><p>${esc(f.answer)}</p></details>`).join('');
+    const ld = $('#ldfaq');
+    if (ld) ld.textContent = JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage',
+      mainEntity: list.map(f => ({ '@type': 'Question', name: f.question, acceptedAnswer: { '@type': 'Answer', text: f.answer } })) });
+    $('#gyik').hidden = !list.length;
+  }
+
   /* ---------- Saját ablakok ---------- */
   function renderSections(rows) {
     $$('.slot').forEach(s => s.innerHTML = '');
@@ -242,7 +257,7 @@
         ${r.caption ? `<figcaption>${esc(r.caption)}</figcaption>` : ''}</figure>`).join('');
     }
     $$('#galList img').forEach(img => { if (img.complete) img.classList.add('ld'); else img.onload = () => img.classList.add('ld'); });
-    $('#galeria').hidden = !items;
+    $('#galeria').hidden = !items; $('#navGal').hidden = !items;
     refreshCar('galeria');
   }
   function showLb(i) {
@@ -440,7 +455,7 @@
     const g = roomGeometry(r.area, r.height);
     r.el.querySelector('.geo').textContent = g.wall
       ? `≈ ${fmtNum(g.wall)} m² falfelület és ${fmtNum(g.ceiling)} m² mennyezet (négyzetes alaprajzzal becsülve)`
-      : 'Add meg az alapterületet és a belmagasságot, ebből számoljuk a fal- és mennyezetfelületet.';
+      : 'Add meg az alapterületet és a belmagasságot, ebből számolom ki a fal- és mennyezetfelületet.';
   }
   function renderItems(r) {
     const box = r.el.querySelector('.r-items');
@@ -563,7 +578,7 @@
     const strong = $('#qTotal');
     if (strong) showTotal(strong, T.rp && T.total ? [T.lo, T.hi] : [T.net]);
     const pn = $('#promoNote');
-    if (pn) { pn.hidden = !T.pr; if (T.pr) pn.textContent = `${T.pr.label}: −${fmtNum(T.pr.pct)}% a becsült munkadíjból${T.pr.until ? ', ' + new Date(T.pr.until + 'T12:00:00').toLocaleDateString('hu-HU', { month: 'long', day: 'numeric' }).replace(/\.$/, '') + '-ig' : ''}. Automatikusan levonjuk az összesítőből.`; }
+    if (pn) { pn.hidden = !T.pr; if (T.pr) pn.textContent = `${T.pr.label}: −${fmtNum(T.pr.pct)}% a becsült munkadíjból${T.pr.until ? ', ' + new Date(T.pr.until + 'T12:00:00').toLocaleDateString('hu-HU', { month: 'long', day: 'numeric' }).replace(/\.$/, '') + '-ig' : ''}. Automatikusan levonom az összesítőből.`; }
     return T.net;
   }
   function addFiles(r, files) {
@@ -574,7 +589,7 @@
       r.files.push({ file: f, url: URL.createObjectURL(f) });
     }
     renderThumbs(r); updateSum();
-    status(skipped ? `${skipped} fájlt nem csatoltunk: csak kép lehet, legfeljebb 15 MB, helyiségenként ${MAX_FILES} darab.` : '', !!skipped);
+    status(skipped ? `${skipped} fájlt nem csatoltam: csak kép lehet, legfeljebb 15 MB, helyiségenként ${MAX_FILES} darab.` : '', !!skipped);
   }
   function renderThumbs(r) {
     const t = r.el.querySelector('.thumbs');
@@ -620,7 +635,7 @@
   $('#quoteForm').addEventListener('submit', async e => {
     e.preventDefault();
     if (!validate()) return;
-    if (!sb) { status('Az árajánlatkérés most nem küldhető el. Hívj minket, vagy írj e-mailt az alábbi elérhetőségeken.', true); return; }
+    if (!sb) { status('Az árajánlatkérés most nem küldhető el. Hívj fel, vagy írj e-mailt az alábbi elérhetőségeken.', true); return; }
     const btn = $('#qSend'); btn.disabled = true; btn.classList.add('busy');
     const id = uid();
     const totalFiles = rooms.reduce((t, r) => t + r.files.length, 0);
@@ -665,7 +680,7 @@
       $('#quoteForm').hidden = true; $('#qDone').hidden = false; $('#qDone').focus();
       $('#qDone').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
     } catch (err) {
-      status(err.message + ' Próbáld újra, vagy hívj minket telefonon.', true);
+      status(err.message + ' Próbáld újra, vagy hívj fel telefonon.', true);
     } finally { btn.disabled = false; btn.classList.remove('busy'); }
   });
 
@@ -813,7 +828,7 @@
     if (TX.email) d.email = TX.email;
     if (TX.area && !d.areaServed) d.areaServed = TX.area;
     const img = abs(TX.logo_url || 'logo.png'); if (img) d.image = img;
-    if (TX.legal_seat) d.address = { '@type': 'PostalAddress', streetAddress: TX.legal_seat, addressCountry: 'HU' };
+    if (TX.legal_seat) d.address = { ...(d0.address || { '@type': 'PostalAddress', addressCountry: 'HU' }), streetAddress: TX.legal_seat };
     const same = ['facebook_url', 'instagram_url', 'youtube_url'].map(k => TX[k]).filter(Boolean); if (same.length) d.sameAs = same;
     s.textContent = JSON.stringify(d);
   }
@@ -928,7 +943,7 @@
       $$(`#navLinks a[href="#${g}"]`).forEach(a => a.classList.toggle('nav-off', hide));
       const allowed = LAYOUT_BG_ALLOWED[g], want = (L.bg || {})[g] || '';
       const bg = allowed && !allowed.includes(want) ? '' : want;
-      (g === 'munkaink' ? ['elotte-utana', 'galeria'].map(id => document.getElementById(id)) : [el]).forEach(x => setBg(x, bg));
+      (g === 'munkaink' ? [document.getElementById('elotte-utana')] : [el]).forEach(x => setBg(x, bg));
 
       /* szakaszonkénti térköz, szélesség és animáció (a CSS-változók öröklődnek a szakasz gyermekeire) */
       const fx = (L.fx || {})[g] || {};
@@ -946,9 +961,9 @@
     });
     const main = $('main'), base = LAYOUT_GROUPS.map(x => x[0]);
     if (Array.isArray(L.order) && L.order.length) {
-      const ord = [...L.order.filter(x => base.includes(x)), ...base.filter(x => !L.order.includes(x))], pos = {};
+      const ord = fullOrder(L.order), pos = {};
       ord.forEach((g, i) => { pos[g] = (i + 1) * 10; const el = document.getElementById(g); if (el) el.style.order = pos[g]; });
-      const so = { after_hero: 0, after_services: pos.szolgaltatasok + 1, after_gallery: pos.munkaink + 1, after_videos: pos.videok + 1, after_blog: pos.blog + 1, before_contact: pos.kapcsolat - 1 };
+      const so = { after_hero: 0, after_services: pos.szolgaltatasok + 1, after_gallery: pos.galeria + 1, after_videos: pos.videok + 1, after_blog: pos.blog + 1, before_contact: pos.kapcsolat - 1 };
       $$('main > .slot').forEach(s => { s.style.order = so[s.dataset.slot] ?? 0; });
       main.classList.add('flex-col');
     } else {
@@ -994,14 +1009,15 @@
     if (!sb) { workLoaded = true; rooms.forEach(renderItems); return; }
     const list = t => sb.from(t).select('*').eq('visible', true).order('position').order('created_at');
     const safe = p => Promise.resolve(p).catch(error => ({ error }));
-    const [tx, svc, sec, ba, gal, alb, vid, work, posts, soc, stp, tst] = await Promise.all([
+    const [tx, svc, sec, ba, gal, alb, vid, work, posts, soc, stp, tst, faq] = await Promise.all([
       safe(loadTexts()), safe(list('services')), safe(list('sections')), safe(list('before_after')),
       safe(list('gallery')), safe(list('gallery_albums')), safe(list('videos')), safe(list('work_items')),
       safe(sb.from('posts').select('title,slug,excerpt,cover_url,published_at').eq('published', true)
         .lte('published_at', new Date().toISOString()).order('published_at', { ascending: false }).limit(3)),
       safe(sb.from('social_posts').select('*').eq('visible', true).order('published_at', { ascending: false }).limit(30)),
       safe(list('process_steps')),
-      safe(sb.from('testimonials').select('*').eq('visible', true).order('position').order('created_at', { ascending: false }).limit(30))
+      safe(sb.from('testimonials').select('*').eq('visible', true).order('position').order('created_at', { ascending: false }).limit(30)),
+      safe(list('faqs'))
     ]);
     if (tx && !tx.error) { TX = tx; applyTexts(); applyLayout(getLayout(TX)); }
     if (!svc.error) renderServices(svc.data || []);
@@ -1013,6 +1029,7 @@
     if (!soc.error) renderSocial(soc.data || []);
     if (!stp.error) renderSteps(stp.data || []);
     if (!tst.error) renderTestimonials(tst.data || []);
+    if (!faq.error) renderFaq(faq.data || []);
     workLoaded = true;
     if (!work.error) WORK = work.data || [];
     rooms.forEach(renderItems); updateSum(); hero();

@@ -110,6 +110,16 @@
       fields: [{ k: 'title', l: 'Lépés neve', req: 1, ph: 'pl. Felmérés' }, { k: 'body', l: 'Leírás', t: 'textarea' }],
       title: r => r.title, sub: r => r.body
     },
+    faqs: {
+      label: 'Gyakori kérdések', single: 'kérdés', addLabel: 'Új kérdés',
+      help: 'A főoldal „Gyakori kérdések” szakasza. A sorrendet a nyilakkal állíthatod. Ezeket a kérdéseket a Google is látja (strukturált adatként), ezért írj valódi kérdéseket, amiket az ügyfelek tényleg megkérdeznek, rövid, egyenes válasszal.',
+      empty: 'Még nincs saját kérdés felvéve, ezért a főoldalon a beépített kérdések látszanak. Ha felveszel egyet, onnantól csak a felvett kérdések jelennek meg.',
+      fields: [
+        { k: 'question', l: 'Kérdés', req: 1, max: 200, ph: 'pl. El kell pakolnom a bútorokat?' },
+        { k: 'answer', l: 'Válasz', t: 'textarea', rows: 5, req: 1 }
+      ],
+      title: r => r.question, sub: r => String(r.answer || '').slice(0, 110)
+    },
     testimonials: {
       label: 'Vélemények', single: 'vélemény', addLabel: 'Új vélemény', visLabel: 'Jóváhagyva',
       help: 'A főoldalon csak a „Jóváhagyva” jelölésű vélemények látszanak. A látogatók a vélemény-oldalon (velemeny.html) küldhetnek újat, ezek jóváhagyásra várnak: olvasd át, és kapcsold be a „Jóváhagyva” jelzőt. Elutasításhoz töröld őket.',
@@ -165,8 +175,8 @@
   /* Menücsoportok: a címek a lista fölött, a sorrend a munkamenetet követi (napi feladat → beállítás → tartalom → rendszer) */
   const NAV_GROUPS = [
     { t: 'Napi munka', items: [['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések']] },
-    { t: 'Főoldal', items: [['layout', 'Megjelenés'], ['texts', 'Szövegek'], ['sections', 'Saját ablakok']] },
-    { t: 'Tartalom', items: [['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozunk'], ['testimonials', 'Vélemények'], ['work_items', 'Árak és munkafolyamatok']] },
+    { t: 'Oldalak', items: [['layout', 'Megjelenés'], ['texts', 'Főoldal szövegei'], ['pages', 'Aloldalak szövegei'], ['sections', 'Saját ablakok']] },
+    { t: 'Tartalom', items: [['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozom'], ['faqs', 'Gyakori kérdések'], ['testimonials', 'Vélemények'], ['work_items', 'Árak és munkafolyamatok']] },
     { t: 'Munkáink', items: [['before_after', 'Előtte–utána'], ['gallery', 'Galéria és albumok']] },
     { t: 'Média', items: [['videos', 'Videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']] },
     { t: 'Eszközök', items: [['seo', 'SEO-ellenőrző'], ['backup', 'Mentés és visszaállítás']] }
@@ -223,7 +233,7 @@
     $$('#nav button').forEach(b => { if (b.dataset.v === navKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -620,7 +630,7 @@
   /* ---------- Oldal szövegei ---------- */
   async function showTexts() {
     CUR = 'texts';
-    view.innerHTML = `<header class="vh"><div><h1>Oldal szövegei</h1><p class="help">A főoldal címei, bevezetői, elérhetőségei és a logó. Üresen hagyott bevezető nem jelenik meg.</p></div></header>
+    view.innerHTML = `<header class="vh"><div><h1>Főoldal szövegei</h1><p class="help">A főoldal címei, bevezetői, elérhetőségei és a logó. Üresen hagyott bevezető nem jelenik meg.</p></div></header>
       <form id="txForm" class="tx"><p class="muted">Betöltés…</p></form>`;
     const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
     if (CUR !== 'texts') return;
@@ -640,6 +650,117 @@
       });
       const { error } = await mergeTexts(value);
       toast(error ? 'A mentés nem sikerült: ' + error.message : 'A szövegek elmentve.', !!error);
+    };
+  }
+
+  /* ---------- Aloldalak szövegei ----------
+     A helyi oldalak, a blog, a vélemény-oldal és a jogi oldalak szövege. A mentett változat a settings.texts.pages.<kulcs>
+     alatt van, és a látogatóknál felülírja az oldal beépített szövegét. A beépített szöveg az oldal fájljából jön. */
+  const LEGAL_KEYS = ['adatkezeles', 'impresszum', 'sutik'];
+  const pageFields = key => {
+    if (LEGAL_KEYS.includes(key)) return ['title', 'desc', 'h1', 'body'];
+    if (key === 'blog') return ['title', 'desc', 'h1', 'lead'];
+    if (key === 'velemeny') return ['title', 'desc', 'h1', 'lead', 'done'];
+    return ['title', 'desc', 'h1', 'lead', 'body'];
+  };
+  const PF_LABEL = { title: 'Az oldal címe a Google-ben és a böngészőfülön', desc: 'Leírás a Google találatokban', h1: 'Főcím', lead: 'Bevezető', done: 'Köszönő szöveg beküldés után', body: 'Az oldal szövege' };
+  const PF_HINT = { title: 'Kb. 50–65 karakter. Legyen benne a szolgáltatás és a település, például: „Festő Üllőn – szobafestés, glettelés”.', desc: 'Kb. 120–160 karakter. Ez jelenik meg a cím alatt a találatok között.' };
+  /* a beépített szöveg kiolvasása: statikus oldalnál a fájlból, a jogi oldalaknál a kirajzolt sablonból */
+  function grabRendered(url, sel) {
+    return new Promise(res => {
+      const fr = document.createElement('iframe'); fr.style.cssText = 'position:absolute;width:10px;height:10px;left:-9999px;top:0'; fr.src = url;
+      let n = 0;
+      const t = setInterval(() => {
+        let el = null; try { el = fr.contentDocument && fr.contentDocument.querySelector(sel); } catch (e) { n = 99; }
+        if (el || ++n > 50) { clearInterval(t); const h = el ? el.innerHTML : ''; fr.remove(); res(h); }
+      }, 200);
+      document.body.appendChild(fr);
+    });
+  }
+  async function pageDefaults(key) {
+    const d = {};
+    try {
+      const html = await (await fetch(key + '.html', { cache: 'no-store' })).text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      d.title = (doc.querySelector('title') || {}).textContent || '';
+      d.desc = (doc.querySelector('meta[name="description"]') || {}).content || '';
+      doc.querySelectorAll('[data-edit]').forEach(el => { d[el.dataset.edit] = el.hasAttribute('data-rich') ? el.innerHTML.trim() : el.textContent.trim(); });
+    } catch (e) { /* nincs alapérték */ }
+    if (key === 'blog') { d.h1 = d.h1 || TX0.blog_title || 'Blog'; d.lead = d.lead || TX0.blog_text || ''; }
+    if (LEGAL_KEYS.includes(key)) {
+      const h = await grabRendered(key + '.html?alap=1', '#legalMain .legal');
+      const box = document.createElement('div'); box.innerHTML = h;
+      const h1 = box.querySelector('h1'); d.h1 = h1 ? h1.textContent.trim() : '';
+      box.querySelectorAll('a.back, h1').forEach(x => x.remove());
+      d.body = box.innerHTML.trim();
+    }
+    return d;
+  }
+  let TX0 = {};
+  async function showPages() {
+    CUR = 'pages';
+    const want = sessionStorage.getItem('pv-page') || SUBPAGES[0][0];
+    view.innerHTML = `<header class="vh"><div><h1>Aloldalak szövegei</h1><p class="help">A helyi keresőoldalak (pl. „Festő Üllőn”), a blog, a vélemény-oldal és a jogi oldalak szövege. Amit itt átírsz és elmentesz, az a látogatóknál felülírja az oldal eredeti szövegét. A főoldal szövegei a „Főoldal szövegei” menüben vannak.</p></div></header>
+      <div class="card pg-pick"><label class="fl">Melyik oldal?<select id="pgSel">${SUBPAGES.map(([k, l]) => `<option value="${k}"${k === want ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+      <a class="btn o sm" id="pgOpen" href="#" target="_blank" rel="noopener">Oldal megnyitása</a></div>
+      <form id="pgForm" class="tx"><p class="muted">Betöltés…</p></form>`;
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    if (CUR !== 'pages') return;
+    if (error) { $('#pgForm').innerHTML = errBox(error); return; }
+    TX0 = { ...TEXT_DEFAULTS, ...((data && data.value) || {}) };
+    $('#pgSel').onchange = () => { sessionStorage.setItem('pv-page', $('#pgSel').value); renderPageForm($('#pgSel').value); };
+    renderPageForm($('#pgSel').value);
+  }
+  async function renderPageForm(key) {
+    const form = $('#pgForm'); form.innerHTML = '<p class="muted">Az oldal szövegének betöltése…</p>';
+    $('#pgOpen').href = key + '.html';
+    const def = await pageDefaults(key);
+    if (CUR !== 'pages' || $('#pgSel').value !== key) return;
+    const saved = ((TX0.pages || {})[key]) || {};
+    const fields = pageFields(key), isLegal = LEGAL_KEYS.includes(key);
+    const val = k => saved[k] != null && saved[k] !== '' ? saved[k] : (def[k] || '');
+    const hasOwn = Object.keys(saved).some(k => saved[k]);
+    form.innerHTML = `<fieldset class="card"><legend>${esc((SUBPAGES.find(p => p[0] === key) || [, key])[1])}</legend>
+      ${hasOwn ? '<p class="muted">Ennek az oldalnak saját, mentett szövege van.</p>' : '<p class="muted">Most az oldal eredeti szövege látszik.</p>'}
+      ${fields.map(k => {
+        const lab = esc(PF_LABEL[k]), hint = PF_HINT[k] ? `<span class="hint">${esc(PF_HINT[k])}</span>` : '';
+        if (k === 'body') return `<div class="fl"><span class="lbl">${lab}</span><div class="rich" id="pg_body"></div><span class="hint">${isLegal ? 'Ha átírod és mented, a jogi adatok (név, székhely stb.) változása innentől nem frissül magától ebben a szövegben. Üresen hagyva és mentve a beépített sablon látszik.' : 'Címsorokkal (H2, H3), felsorolással és félkövérrel tagold. Írj konkrétumokat: milyen házakban dolgozol azon a településen, mire figyelsz.'}</span></div>`;
+        if (k === 'desc' || k === 'lead' || k === 'done') return `<label class="fl">${lab}<textarea id="pg_${k}" rows="3" maxlength="${k === 'desc' ? 200 : 600}">${esc(val(k))}</textarea>${hint}<small class="cnt-c" data-for="pg_${k}"></small></label>`;
+        return `<label class="fl">${lab}<input id="pg_${k}" type="text" maxlength="${k === 'title' ? 90 : 160}" value="${esc(val(k))}">${hint}${k === 'title' ? `<small class="cnt-c" data-for="pg_${k}"></small>` : ''}</label>`;
+      }).join('')}
+      </fieldset>
+      <div class="savebar"><button class="btn" type="submit">Mentés</button><button type="button" class="btn o" id="pgReset"${hasOwn ? '' : ' disabled'}>Visszaállítás az eredetire</button><span class="muted">A változás a weboldal frissítése után látszik.</span></div>`;
+    let q = null, bodyDirty = false;
+    if (fields.includes('body')) {
+      q = makeQuill(document.getElementById('pg_body'), val('body'));
+      q.on('text-change', (d, o, src) => { if (src === 'user') bodyDirty = true; });
+    }
+    $$('.cnt-c', form).forEach(c => { const inp = document.getElementById(c.dataset.for); const up = () => { c.textContent = inp.value.length + ' karakter'; }; inp.addEventListener('input', up); up(); });
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const out = {};
+      fields.forEach(k => {
+        if (k === 'body') {
+          const empty = !q.getText().trim() && !q.root.querySelector('img,iframe');
+          if (bodyDirty) out.body = empty ? '' : q.root.innerHTML; else if (saved.body) out.body = saved.body;
+          return;
+        }
+        const v = document.getElementById('pg_' + k).value.trim();
+        if (v && v !== (def[k] || '')) out[k] = v;
+      });
+      Object.keys(out).forEach(k => { if (!out[k]) delete out[k]; });
+      const pages = { ...(TX0.pages || {}) };
+      if (Object.keys(out).length) pages[key] = out; else delete pages[key];
+      const { error } = await mergeTexts({ pages });
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      TX0.pages = pages; toast('Az oldal szövege elmentve.'); renderPageForm(key);
+    };
+    $('#pgReset').onclick = async () => {
+      if (!confirm('Biztosan visszaállítod az oldal eredeti szövegét? A mentett saját szöveg törlődik.')) return;
+      const pages = { ...(TX0.pages || {}) }; delete pages[key];
+      const { error } = await mergeTexts({ pages });
+      if (error) return toast('Nem sikerült: ' + error.message, true);
+      TX0.pages = pages; toast('Visszaállítva az eredeti szövegre.'); renderPageForm(key);
     };
   }
 
@@ -859,7 +980,7 @@
   }
   const lySel = (path, opts, cur) => `<select data-p="${path}">${opts.map(([v, l]) => `<option value="${esc(v)}"${String(cur ?? '') === String(v) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
   const lyField = (label, html, hint) => `<label class="lyf"><span>${esc(label)}</span>${html}${hint ? `<small>${esc(hint)}</small>` : ''}</label>`;
-  const lyOrdered = () => { const s = LY.order || []; return [...s.filter(x => lyBase.includes(x)), ...lyBase.filter(x => !s.includes(x))]; };
+  const lyOrdered = () => fullOrder(LY.order);
 
   function lyOrderList() {
     const ord = lyOrdered(), hid = new Set(LY.hidden || []);
@@ -924,8 +1045,8 @@
         ${lyField('Link címe (opcionális)', `<input type="text" data-p="banner.url" maxlength="300" value="${esc(b.url)}" placeholder="#arajanlat vagy https://…">`)}</div></fieldset>
       <fieldset class="card"><legend>Keresők és megosztás</legend>
         <p class="muted">Ez látszik a böngésző fülén és a Google találatokban. Üresen az eredeti marad.</p><div class="lygrid one">
-        ${lyField('Az oldal címe', `<input type="text" data-p="meta.title" maxlength="70" value="${esc(m.title)}" placeholder="PLANERVO – Szobafestés, hőszigetelés, felújítás">`, 'Legfeljebb kb. 60 karakter.')}
-        ${lyField('Rövid leírás', `<textarea data-p="meta.desc" rows="3" maxlength="170" placeholder="Egy-két mondat arról, mit csináltok és hol.">${esc(m.desc)}</textarea>`, 'Legfeljebb kb. 160 karakter.')}</div>
+        ${lyField('Az oldal címe', `<input type="text" data-p="meta.title" maxlength="70" value="${esc(m.title)}" placeholder="Festő Üllőn és környékén – szobafestés, glettelés | PLANERVO">`, 'Legfeljebb kb. 60 karakter.')}
+        ${lyField('Rövid leírás', `<textarea data-p="meta.desc" rows="3" maxlength="170" placeholder="Egy-két mondat arról, mit csinálsz és hol.">${esc(m.desc)}</textarea>`, 'Legfeljebb kb. 160 karakter.')}</div>
         <div class="vs-act"><button type="button" class="btn o" id="lySitemap">Sitemap letöltése</button><span class="vs-msg" id="lySmMsg" role="status">A sitemap.xml a keresőknek mutatja az oldal lapjait. Töltsd fel a főoldal mellé, és add meg a Google Search Console-ban.</span></div></fieldset>`;
     lyOrderList();
   }
@@ -1042,8 +1163,8 @@
     const num = r => (r && !r.error && typeof r.count === 'number') ? r.count : null;
 
     if (!title) add('bad', 'Az oldal címe hiányzik', 'A böngészőfülön és a Google-találatban ez látszik.', '#layout');
-    else add(title.length >= 30 && title.length <= 70 && /fest/i.test(title) ? 'ok' : 'warn', 'Az oldal címe',
-      `„${title}” (${title.length} karakter${meta.title ? ', az adminban beállítva' : ''}). Ideális: 30–70 karakter, benne a „festő” szó.`, '#layout');
+    else add(title.length >= 30 && title.length <= 70 && /fest/i.test(title) && /üllő/i.test(title) ? 'ok' : 'warn', 'Az oldal címe',
+      `„${title}” (${title.length} karakter${meta.title ? ', az adminban beállítva' : ''}). Ideális: 30–70 karakter, benne a „festő” szó és Üllő.`, '#layout');
     if (!desc) add('bad', 'A keresőknek szóló leírás hiányzik', 'Ez a két sor jelenik meg a Google-találat alatt.', '#layout');
     else add(desc.length >= 70 && desc.length <= 170 ? 'ok' : 'warn', 'Leírás a keresőknek', `${desc.length} karakter. Ideális: 70–170.`, '#layout');
     const url = String(tx.site_url || '').trim();
@@ -1068,7 +1189,7 @@
   }
 
   /* ---------- Mentés és visszaállítás ---------- */
-  const BACKUP_TABLES = ['services', 'process_steps', 'testimonials', 'sections', 'before_after', 'gallery_albums', 'gallery', 'videos', 'social_posts', 'posts', 'work_items'];
+  const BACKUP_TABLES = ['services', 'process_steps', 'faqs', 'testimonials', 'sections', 'before_after', 'gallery_albums', 'gallery', 'videos', 'social_posts', 'posts', 'work_items'];
   function showBackup() {
     CUR = 'backup';
     view.innerHTML = `<header class="vh"><div><h1>Mentés és visszaállítás</h1><p class="help">Az oldal tartalmáról egyetlen fájlba menthetsz másolatot, és bármikor vissza is töltheted. Érdemes nagyobb átalakítás előtt menteni.</p></div></header>

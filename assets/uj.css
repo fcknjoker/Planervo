@@ -286,3 +286,16 @@ footer.site nav a:hover{color:var(--ink)}
   .rv,.rv-h{opacity:1!important;transform:none!important;filter:none!important;clip-path:none!important}
   .cmp .line::after,#hint::after{animation:none}
 }
+
+/* Gyakori kérdések */
+.faq{display:grid;gap:10px;max-width:860px}
+.faq-i{background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 20px;transition:border-color .2s}
+.faq-i[open]{border-color:var(--gold)}
+.faq-i summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;font-weight:600;font-size:1.05rem;line-height:1.4}
+.faq-i summary::-webkit-details-marker{display:none}
+.faq-i summary::after{content:"+";flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--sand);color:var(--ink);font-weight:500;font-size:1.2rem;transition:transform .25s var(--ease)}
+.faq-i[open] summary::after{transform:rotate(45deg)}
+.faq-i summary:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:6px}
+.faq-i p{margin:0 0 18px;color:var(--mute);line-height:1.65;max-width:none}
+.dark .faq-i{background:#1d1b18;border-color:#3a352c}
+.dark .faq-i p{color:#b5aea3}

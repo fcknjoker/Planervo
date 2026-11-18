@@ -293,3 +293,8 @@ dialog.gal-pick h2{margin:0;font-size:1.15rem}
 .gp-grid button{padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:1;background:#eee}
 .gp-grid button:hover,.gp-grid button:focus-visible{border-color:#c8a24a}
 .gp-grid img{width:100%;height:100%;object-fit:cover}
+
+/* aloldalak szövegei */
+.pg-pick{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px}
+.pg-pick .fl{flex:1 1 260px;margin:0}
+.cnt-c{display:block;color:#8a8478;font-size:.8rem;margin-top:4px}

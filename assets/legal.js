@@ -30,27 +30,27 @@
     privacy: {
       title: 'Adatkezelési tájékoztató',
       html: () => `
-        <p class="lead">Ez a tájékoztató azt írja le, milyen személyes adatot kezelünk, ha árajánlatot kérsz tőlünk vagy véleményt írsz, mire használjuk, meddig őrizzük, és milyen jogaid vannak.</p>
+        <p class="lead">Ez a tájékoztató azt írja le, milyen személyes adatot kezelek, ha árajánlatot kérsz tőlem vagy véleményt írsz, mire használom, meddig őrzöm, és milyen jogaid vannak.</p>
         <h2>1. Az adatkezelő</h2>${controller}
-        <h2>2. Milyen adatot kezelünk, és miért</h2>
+        <h2>2. Milyen adatot kezelek, és miért</h2>
         <h3>Árajánlat-kérés</h3>
         <p>Az árajánlatkérő űrlapon megadott adataidat: név, e-mail-cím, telefonszám, település, megjegyzés, a megadott helyiségek adatai és a kért munkák, valamint az általad feltöltött fotók. Célja az ajánlat elkészítése és a kapcsolatfelvétel veled.</p>
         <p><b>Jogalap:</b> a hozzájárulásod (GDPR 6. cikk (1) a) pont), amelyet az űrlap elküldésével, a jelölőnégyzet bejelölésével adsz meg, illetve a szerződéskötést megelőző lépések megtétele (6. cikk (1) b) pont).</p>
-        <p><b>Megőrzés:</b> az ajánlatadás vagy a megkeresés lezárásától számított legfeljebb 1 évig, ha nem jön létre szerződés. Szerződés esetén a vonatkozó számviteli és adózási jogszabályok szerinti ideig. A fotókat a munka lezárása után törölhetjük.</p>
+        <p><b>Megőrzés:</b> az ajánlatadás vagy a megkeresés lezárásától számított legfeljebb 1 évig, ha nem jön létre szerződés. Szerződés esetén a vonatkozó számviteli és adózási jogszabályok szerinti ideig. A fotókat a munka lezárása után törölhetem.</p>
         <h3>Vélemény beküldése</h3>
-        <p>Ha véleményt küldesz, a nevedet, a megadott települést és a vélemény szövegét kezeljük. Csak az átnézésünk és a jóváhagyásod után jelenik meg az oldalon. <b>Jogalap:</b> hozzájárulás. <b>Megőrzés:</b> a törlési kérésedig.</p>
+        <p>Ha véleményt küldesz, a nevedet, a megadott települést és a vélemény szövegét kezelem. Csak az átnézésem és a jóváhagyásod után jelenik meg az oldalon. <b>Jogalap:</b> hozzájárulás. <b>Megőrzés:</b> a törlési kérésedig.</p>
         <h3>Kapcsolatfelvétel e-mailben vagy telefonon</h3>
-        <p>Ha írsz vagy hívsz, a megadott elérhetőségeidet a válaszadáshoz használjuk (jogalap: jogos érdek, illetve a szerződéskötést megelőző lépés).</p>
+        <p>Ha írsz vagy hívsz, a megadott elérhetőségeidet a válaszadáshoz használom (jogalap: jogos érdek, illetve a szerződéskötést megelőző lépés).</p>
         <h3>Látogatottság</h3>
         <p>Az oldal összesített, személyes adatot nem tartalmazó látogatottsági számokat gyűjthet (süti és egyedi azonosító nélkül). Ez alapján téged nem lehet azonosítani.</p>
         <h2>3. Kik férhetnek hozzá az adataidhoz</h2>
-        <p>Az adatokat az adatkezelő kezeli. Az oldal működéséhez adatfeldolgozókat veszünk igénybe:</p>
+        <p>Az adatokat az adatkezelő kezeli. Az oldal működéséhez adatfeldolgozókat veszek igénybe:</p>
         <ul><li><b>Adatbázis és tárhely:</b> Supabase (az árajánlat-kérések és a feltöltött fotók tárolása).</li>
         <li><b>Értesítő e-mailek:</b> Resend (új árajánlat-kérésről szóló értesítés küldése).</li>
         <li><b>Az oldal tárhelye:</b> ${hosting}</li></ul>
-        <p>A YouTube-videókat csak akkor tölti be az oldal, ha a lejátszásra kattintasz (adatvédelmi szempontból kíméletesebb, „nocookie” beágyazással). A videók előnézeti képe a YouTube szervereiről érkezik. Az adataidat harmadik félnek nem adjuk át marketing célra.</p>
+        <p>A YouTube-videókat csak akkor tölti be az oldal, ha a lejátszásra kattintasz (adatvédelmi szempontból kíméletesebb, „nocookie” beágyazással). A videók előnézeti képe a YouTube szervereiről érkezik. Az adataidat harmadik félnek nem adom át marketing célra.</p>
         <h2>4. Milyen jogaid vannak</h2>
-        <p>Kérheted a rólad tárolt adatok megismerését, helyesbítését, törlését, kezelésének korlátozását, tiltakozhatsz a kezelés ellen, kérheted az adataid kiadását, és bármikor visszavonhatod a hozzájárulásodat (ez nem érinti a korábbi kezelés jogszerűségét). Kérésedet küldd erre a címre: ${mail}. Egy hónapon belül válaszolunk.</p>
+        <p>Kérheted a rólad tárolt adatok megismerését, helyesbítését, törlését, kezelésének korlátozását, tiltakozhatsz a kezelés ellen, kérheted az adataid kiadását, és bármikor visszavonhatod a hozzájárulásodat (ez nem érinti a korábbi kezelés jogszerűségét). Kérésedet küldd erre a címre: ${mail}. Egy hónapon belül válaszolok.</p>
         <p>Ha úgy érzed, hogy sérült a jogod, panaszt tehetsz a Nemzeti Adatvédelmi és Információszabadság Hatóságnál (NAIH, 1055 Budapest, Falk Miksa utca 9–11., <a href="https://www.naih.hu" target="_blank" rel="noopener">naih.hu</a>), vagy bírósághoz fordulhatsz.</p>
         <p class="muted">Hatály: ${TX.legal_updated ? esc(TX.legal_updated) : miss('Hatálybalépés dátuma')}</p>`
     },
@@ -59,7 +59,7 @@
       html: () => `
         <p class="lead">Az oldal üzemeltetőjének adatai.</p>
         <h2>Üzemeltető</h2>${controller}
-        <h2>Tevékenység</h2><p>Szobafestés, hőszigetelés, felújítás és felületképzés.${TX.area ? ' Munkaterület: ' + esc(TX.area) + '.' : ''}</p>
+        <h2>Tevékenység</h2><p>Szobafestés, glettelés, falfelújítás, gépi nemesvakolat szórás, és homlokzatfestés.${TX.area ? ' Munkaterület: ' + esc(TX.area) + '.' : ''}</p>
         <h2>Tárhelyszolgáltató</h2><p>${hosting}</p>
         <h2>Panaszkezelés</h2><p>Észrevételeidet vagy panaszodat küldd erre a címre: ${mail}.</p>`
     },
@@ -71,7 +71,7 @@
         <ul><li><b>pv-cookie</b> (a böngésző helyi tárhelye): azt jegyzi meg, hogy bezártad a süti-tájékoztatót, hogy ne jelenjen meg újra.</li>
         <li><b>pv-banner</b> (munkamenet-tárhely): azt jegyzi meg, hogy bezártál egy közleményt, a böngészőablak bezárásáig.</li>
         <li><b>Az admin felület munkamenete:</b> csak az üzemeltető belépésekor jön létre, látogatóknál nem.</li></ul>
-        <p>Ezek az oldal működéséhez szükségesek, nem tartalmaznak személyes azonosítót, és nem adjuk át őket senkinek.</p>
+        <p>Ezek az oldal működéséhez szükségesek, nem tartalmaznak személyes azonosítót, és nem adom át őket senkinek.</p>
         <h2>Harmadik felek tartalmai</h2>
         <ul><li><b>YouTube:</b> a videók csak a lejátszásra kattintás után töltenek be, adatvédelmi (nocookie) módban. A videók előnézeti képét a YouTube szolgáltatja.</li>
         <li><b>Közösségi média:</b> a bejegyzésekre mutató linkekre kattintva elhagyod az oldalt, és az adott platform szabályai érvényesek.</li></ul>
@@ -80,6 +80,11 @@
   };
 
   const p = PAGES[page] || PAGES.privacy;
-  document.title = `${p.title} – ${TX.legal_name || 'PLANERVO'}`;
-  main.innerHTML = `<div class="wrap blog-top post-body legal"><a class="back" href="index.html">Vissza a főoldalra</a><h1>${esc(p.title)}</h1>${p.html()}</div>`;
+  /* az admin „Aloldalak szövegei” menüjében mentett saját szöveg felülírja a sablont */
+  const key = { privacy: 'adatkezeles', imprint: 'impresszum', cookies: 'sutik' }[page] || 'adatkezeles';
+  const own = ((TX.pages || {})[key]) || {};
+  const h1 = own.h1 || p.title;
+  document.title = own.title || `${h1} – ${TX.legal_name || 'PLANERVO'}`;
+  if (own.desc) { const md = document.querySelector('meta[name="description"]'); if (md) md.content = own.desc; }
+  main.innerHTML = `<div class="wrap blog-top post-body legal"><a class="back" href="index.html">Vissza a főoldalra</a><h1>${esc(h1)}</h1>${own.body ? sanitize(own.body) : p.html()}</div>`;
 })();

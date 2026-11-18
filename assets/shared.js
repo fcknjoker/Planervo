@@ -19,66 +19,71 @@ const sb = (window.supabase && window.supabase.createClient)
    l = megnevezés, d = alapértelmezés, t = mezőtípus */
 const TEXT_FIELDS = [
   { g: 'Arculat', k: 'logo_url', l: 'Logó (a főoldal tetején)', d: 'logo.png', t: 'image' },
-  { g: 'Főoldal teteje', k: 'hero_title', l: 'Főcím (a festés után jelenik meg)', d: 'Minőség minden rétegben.' },
-  { g: 'Főoldal teteje', k: 'hero_text', l: 'Alcím', d: 'Szobafestés, hőszigetelés, felújítás és felületképzés. Fix áron, tisztán, határidőre.', t: 'textarea' },
+  { g: 'Főoldal teteje', k: 'hero_title', l: 'Főcím (a festés után jelenik meg)', d: 'Festő Üllőn és környékén' },
+  { g: 'Főoldal teteje', k: 'hero_text', l: 'Alcím', d: 'Szobafestő vagyok Üllőn. Festést, glettelést és gépi nemesvakolat szórást vállalok Üllőn és a környező településeken, fix áron. Egyedül dolgozom, minden munkát én végzek.', t: 'textarea' },
+  { g: 'Főoldal teteje', k: 'hero_line', l: 'Szolgáltatás-sor a logó alatt (pontokkal elválasztva)', d: 'Szobafestés • Glettelés • Nemesvakolat • Felújítás' },
   { g: 'Főoldal teteje', k: 'hero_btn', l: 'Gomb szövege', d: 'Árajánlatot kérek' },
   { g: 'Főoldal teteje', k: 'hero_hint', l: 'Görgetésre ösztönző felirat', d: 'Görgess, és a henger aranyra festi a falat' },
-  { g: 'Szolgáltatások', k: 'services_title', l: 'Cím', d: 'Amit a falaidért teszünk' },
-  { g: 'Szolgáltatások', k: 'services_text', l: 'Bevezető', d: '', t: 'textarea' },
+  { g: 'Szolgáltatások', k: 'services_title', l: 'Cím', d: 'Amit a falaidért teszek' },
+  { g: 'Szolgáltatások', k: 'services_text', l: 'Bevezető', d: 'Belül festés és glettelés, kívül gépi nemesvakolat szórás és homlokzatfestés. Alvállalkozót nem hívok: a felméréstől az átadásig én dolgozom nálad.', t: 'textarea' },
   { g: 'Számok sáv', k: 'stat1_n', l: '1. szám', d: '24' },
   { g: 'Számok sáv', k: 'stat1_u', l: '1. mértékegység', d: 'óra' },
-  { g: 'Számok sáv', k: 'stat1_t', l: '1. felirat', d: 'alatt jelentkezünk' },
+  { g: 'Számok sáv', k: 'stat1_t', l: '1. felirat', d: 'alatt jelentkezem' },
   { g: 'Számok sáv', k: 'stat2_n', l: '2. szám', d: '5' },
   { g: 'Számok sáv', k: 'stat2_u', l: '2. mértékegység', d: 'lépés' },
   { g: 'Számok sáv', k: 'stat2_t', l: '2. felirat', d: 'a felméréstől az átadásig' },
   { g: 'Számok sáv', k: 'stat3_n', l: '3. szám', d: '2' },
   { g: 'Számok sáv', k: 'stat3_u', l: '3. mértékegység', d: 'réteg' },
   { g: 'Számok sáv', k: 'stat3_t', l: '3. felirat', d: 'festék minden falon' },
-  { g: 'Számok sáv', k: 'stat4_n', l: '4. szám (üresen hagyva a doboz eltűnik)', d: '4' },
-  { g: 'Számok sáv', k: 'stat4_u', l: '4. mértékegység', d: 'szakma' },
-  { g: 'Számok sáv', k: 'stat4_t', l: '4. felirat', d: 'egy csapatban' },
+  { g: 'Számok sáv', k: 'stat4_n', l: '4. szám (üresen hagyva a doboz eltűnik)', d: '1' },
+  { g: 'Számok sáv', k: 'stat4_u', l: '4. mértékegység', d: 'ember' },
+  { g: 'Számok sáv', k: 'stat4_t', l: '4. felirat', d: 'minden munkát én végzek' },
   { g: 'Előtte–utána', k: 'ba_title', l: 'Cím', d: 'Előtte és utána' },
-  { g: 'Előtte–utána', k: 'ba_text', l: 'Bevezető', d: 'Húzd el a csúszkát, és nézd meg, mit hozunk ki egy falból.', t: 'textarea' },
+  { g: 'Előtte–utána', k: 'ba_text', l: 'Bevezető', d: 'Húzd el a csúszkát: ilyen volt a fal, mielőtt hozzányúltam, és ilyen lett az átadáskor.', t: 'textarea' },
   { g: 'Galéria', k: 'gallery_title', l: 'Cím', d: 'Galéria' },
-  { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáinkból.', t: 'textarea' },
+  { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáimból.', t: 'textarea' },
   { g: 'Galéria', k: 'gallery_mode', l: 'Mit mutasson a főoldal galériája', t: 'select', d: 'images', o: [['images', 'Külön képek'], ['albums', 'Albumok (albumborítókkal)']], hint: 'Albumok módban csak az albumba sorolt képek jelennek meg, albumonként egy borítóval.' },
-  { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videóink' },
-  { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Nézd meg, hogyan dolgozunk.', t: 'textarea' },
+  { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videók' },
+  { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Így dolgozom, közelről.', t: 'textarea' },
   { g: 'Videók', k: 'video_source', l: 'Mit mutasson a videós ablak', t: 'select', d: 'channel',
     o: [['channel', 'A YouTube-csatornám legújabb videói (automatikus, legújabb elöl)'], ['playlist', 'Egy lejátszási lista videói (a lista sorrendjében)'], ['manual', 'Csak a „YouTube-videók” menüben kézzel felvett videók']] },
   { g: 'Videók', k: 'youtube_playlist', l: 'Lejátszási lista linkje', d: '', ph: 'https://www.youtube.com/playlist?list=…' },
   { g: 'Videók', k: 'video_count', l: 'Hány videó jelenjen meg (3–15)', t: 'number', d: 12 },
-  { g: 'Hogyan dolgozunk', k: 'process_title', l: 'Cím', d: 'Hogyan dolgozunk' },
-  { g: 'Hogyan dolgozunk', k: 'process_text', l: 'Bevezető', d: 'Öt lépés az első egyeztetéstől az átadásig.', t: 'textarea' },
-  { g: 'Vélemények', k: 'testimonials_title', l: 'Cím', d: 'Ügyfeleink mondták' },
+  { g: 'Hogyan dolgozom', k: 'process_title', l: 'Cím', d: 'Hogyan dolgozom' },
+  { g: 'Hogyan dolgozom', k: 'process_text', l: 'Bevezető', d: 'Öt lépés az első telefontól az átadásig.', t: 'textarea' },
+  { g: 'Vélemények', k: 'testimonials_title', l: 'Cím', d: 'Akiknek már dolgoztam' },
   { g: 'Vélemények', k: 'testimonials_text', l: 'Bevezető', d: '', t: 'textarea' },
   { g: 'Vélemények', k: 'testimonials_cta', l: 'Gomb szövege a vélemény-íráshoz (üresen: nincs gomb)', d: 'Írd meg a véleményedet' },
-  { g: 'Közösségi média', k: 'social_title', l: 'Cím', d: 'Kövess minket' },
-  { g: 'Közösségi média', k: 'social_text', l: 'Bevezető', d: 'Legfrissebb bejegyzéseink Instagramon, TikTokon és Facebookon.', t: 'textarea' },
+  { g: 'Közösségi média', k: 'social_title', l: 'Cím', d: 'Kövess a közösségi oldalakon' },
+  { g: 'Közösségi média', k: 'social_text', l: 'Bevezető', d: 'Friss munkák Instagramon, TikTokon és Facebookon.', t: 'textarea' },
   { g: 'Blog', k: 'blog_title', l: 'Cím', d: 'Blog' },
   { g: 'Blog', k: 'blog_text', l: 'Bevezető', d: 'Tanácsok festéshez, felújításhoz és színválasztáshoz.', t: 'textarea' },
+  { g: 'Gyakori kérdések', k: 'faq_title', l: 'Cím', d: 'Gyakori kérdések' },
+  { g: 'Gyakori kérdések', k: 'faq_text', l: 'Bevezető', d: 'Amit a legtöbben megkérdeznek, mielőtt elkezdem a munkát.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_title', l: 'Cím', d: 'Árajánlatkérés' },
-  { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Add hozzá a helyiségeket, válaszd ki a munkákat, és csatolj fotókat. 24 órán belül jelentkezünk.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Add meg a helyiségeket és a munkákat, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'show_estimate', l: 'Becsült ár mutatása az ügyfélnek', d: true, t: 'bool' },
-  { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés tájékoztató jellegű munkadíj, az anyagköltséget nem tartalmazza. A végleges árat helyszíni felmérés után adjuk.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés csak a munkadíjat mutatja, az anyag ára nincs benne. Az anyagot kérésre beszerzem, de csak előre fizetéssel. A végleges árat a helyszíni felmérés után mondom meg.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_range_pct', l: 'Ár-sáv szélessége (± százalék)', t: 'number', d: 12, hint: 'A becslés „kb. 118 000 – 142 000 Ft” formában jelenik meg. 0 esetén pontos összeg látszik.' },
   { g: 'Árajánlatkérés', k: 'slots_on', l: 'Kívánt felmérési időpont kérése az űrlapon', t: 'bool', d: true },
   { g: 'Árajánlatkérés', k: 'promo_on', l: 'Akció / kedvezmény bekapcsolva', t: 'bool', d: false },
   { g: 'Árajánlatkérés', k: 'promo_label', l: 'Az akció neve', d: 'Téli akció', ph: 'pl. Téli akció' },
   { g: 'Árajánlatkérés', k: 'promo_pct', l: 'Kedvezmény (százalék)', t: 'number', d: 10, hint: 'A becsült munkadíjból automatikusan levonódik, és az árajánlat-kérésben is látszik.' },
   { g: 'Árajánlatkérés', k: 'promo_until', l: 'Az akció vége (ÉÉÉÉ-HH-NN)', d: '', ph: '2026-12-31', hint: 'Üresen hagyva nincs határidő. A megadott nap végéig érvényes.' },
-  { g: 'Árajánlatkérés', k: 'privacy_text', l: 'Adatkezelési hozzájárulás szövege', d: 'Hozzájárulok, hogy a megadott adataimat az árajánlat elkészítéséhez kezeljék.', t: 'textarea' },
-  { g: 'Árajánlatkérés', k: 'quote_success', l: 'Köszönő üzenet beküldés után', d: 'Megkaptuk az árajánlat-kérésedet. 24 órán belül jelentkezünk a megadott elérhetőségeiden.', t: 'textarea' },
-  { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Beszéljünk a falaidról.' },
-  { g: 'Kapcsolat', k: 'contact_text', l: 'Bevezető', d: 'Hívj, írj, vagy kérj árajánlatot az űrlapon.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'privacy_text', l: 'Adatkezelési hozzájárulás szövege', d: 'Hozzájárulok, hogy a megadott adataimat az árajánlat elkészítéséhez kezelje.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'quote_success', l: 'Köszönő üzenet beküldés után', d: 'Megkaptam az árajánlat-kérésedet. 24 órán belül jelentkezem telefonon vagy e-mailben.', t: 'textarea' },
+  { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Kapcsolat' },
+  { g: 'Kapcsolat', k: 'contact_text', l: 'Bevezető', d: 'Hívj, írj, vagy kérj árajánlatot az űrlapon. Ha épp festek és nem tudom felvenni, visszahívlak.', t: 'textarea' },
   { g: 'Kapcsolat', k: 'phone', l: 'Telefonszám', d: '+36 30 123 4567' },
   { g: 'Kapcsolat', k: 'email', l: 'E-mail-cím', d: 'planervo@gmail.com' },
-  { g: 'Kapcsolat', k: 'area', l: 'Munkaterület', d: 'Budapest és vonzáskörzete' },
+  { g: 'Kapcsolat', k: 'area', l: 'Munkaterület', d: 'Üllő és környéke: Vecsés, Gyömrő, Monor, Monorierdő, Maglód, Gyál, Kistarcsa, Budapest' },
   { g: 'Kapcsolat', k: 'hours', l: 'Elérhetőség ideje', d: 'Hétfőtől szombatig, 8:00–18:00' },
   { g: 'Kapcsolat', k: 'facebook_url', l: 'Facebook-oldal linkje', d: '' },
   { g: 'Kapcsolat', k: 'instagram_url', l: 'Instagram-oldal linkje', d: '' },
   { g: 'Kapcsolat', k: 'youtube_url', l: 'YouTube-csatorna linkje (ebből jönnek a videók is)', d: '', ph: 'https://www.youtube.com/@csatornam' },
-  { g: 'Lábléc', k: 'footer_text', l: 'Cégadatok a láblécben', d: 'PLANERVO – Minőség minden rétegben', t: 'textarea' },
+  { g: 'Kapcsolat', k: 'areas_title', l: 'Munkaterület blokk címe', d: 'Festő Üllőn és környékén' },
+  { g: 'Kapcsolat', k: 'areas_text', l: 'Munkaterület blokk szövege', d: 'Üllőn lakom, innen járok ki a környező településekre és Budapest keleti, déli kerületeibe.', t: 'textarea' },
+  { g: 'Lábléc', k: 'footer_text', l: 'Cégadatok a láblécben', d: 'PLANERVO – festő Üllőn és környékén', t: 'textarea' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_name', l: 'Vállalkozó vagy cég neve', d: '', ph: 'pl. Minta Péter egyéni vállalkozó' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_seat', l: 'Székhely', d: '', ph: 'irányítószám, település, utca, házszám' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_tax', l: 'Adószám', d: '' },
@@ -87,27 +92,58 @@ const TEXT_FIELDS = [
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_hosting', l: 'Tárhelyszolgáltató neve és címe', d: '', ph: 'ahová az oldal fel van töltve' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_updated', l: 'Az adatkezelési tájékoztató hatálya', d: '', ph: 'pl. 2026. december 1.' },
   { g: 'Keresők (SEO)', k: 'site_url', l: 'Az oldal webcíme', d: '', ph: 'https://www.planervo.hu', hint: 'A sitemap.xml és a keresőknek szánt adatok használják. Üresen a keresőmotor-adatok egy része nem jelenik meg.' },
-  { g: 'Süti-tájékoztató', k: 'cookie_text', l: 'A tájékoztató sáv szövege', d: 'Az oldal nem használ követő vagy hirdetési sütiket. Csak a működéshez szükséges tárolást használjuk.', t: 'textarea' },
+  { g: 'Süti-tájékoztató', k: 'cookie_text', l: 'A tájékoztató sáv szövege', d: 'Az oldal nem használ követő vagy hirdetési sütiket, csak a működéshez szükséges tárolást.', t: 'textarea' },
   { g: 'Süti-tájékoztató', k: 'cookie_btn', l: 'A gomb szövege', d: 'Rendben' }
 ];
 const TEXT_DEFAULTS = Object.fromEntries(TEXT_FIELDS.map(f => [f.k, f.d]));
 
 const DEFAULT_SERVICES = [
-  { title: 'Szobafestés', body: 'Glettelés, alapozás, kétrétegű festés bútortakarással és takarítással.' },
-  { title: 'Hőszigetelés', body: 'Homlokzati szigetelés szakszerűen, a páratechnikai részletekre figyelve.' },
-  { title: 'Felújítás', body: 'Komplett lakásfelújítás egy kézből, egyeztetett ütemtervvel.' },
-  { title: 'Felületképzés', body: 'Beton-, márvány- és antikolt hatású felületek, akcentfalak.' }
+  { title: 'Szobafestés', body: 'Lakások és családi házak festése két rétegben, glettelés és alapozás után. A padlót és a bent maradt bútort letakarom, a végén kitakarítok.' },
+  { title: 'Glettelés, falfelújítás', body: 'Mállott, repedezett, sokszor átfestett falak kaparása, javítása és glettelése, hogy a festés évekig szép maradjon.' },
+  { title: 'Gépi nemesvakolat szórás', body: 'Homlokzatok vékonyvakolata géppel szórva, egyenletes szemcsével. Régi és új házakon is, homlokzatfestéssel együtt is.' }
 ];
 
 /* Mértékegységek. A „surface” tételnél az ügyfél választ: fal, mennyezet vagy mindkettő.
    Az „sqm”, „meter” és „piece” tételnél az ügyfél adja meg a mennyiséget. */
 const DEFAULT_STEPS = [
-  { title: 'Felmérés', body: 'Megnézzük a helyiségeket, egyeztetünk az elképzelésről, a színekről és a határidőről.' },
-  { title: 'Ajánlat', body: 'Helyiségenként, munkánként bontott, fix árú ajánlatot adunk. Ami az ajánlatban van, azt fizeted.' },
-  { title: 'Előkészítés', body: 'Letakarjuk a bútorokat és a padlót, kijavítjuk a hibákat, glettelünk és alapozunk.' },
-  { title: 'Festés', body: 'Két rétegben, tiszta szélekkel dolgozunk, a megbeszélt napokon.' },
-  { title: 'Átadás', body: 'Kitakarítunk, végigmegyünk együtt a munkán, és csak akkor végeztünk, ha elégedett vagy.' }
+  { title: 'Felmérés', body: 'Kimegyek, megnézem a helyiségeket, és megbeszéljük a színeket, az anyagot és a kezdés napját.' },
+  { title: 'Ajánlat', body: 'Helyiségenként és munkánként bontott, fix árú ajánlatot küldök. Ami benne van, azt fizeted.' },
+  { title: 'Előkészítés', body: 'A bútorokat kérlek, előre pakold el vagy told a szoba közepére, mert mozgatást nem vállalok. Letakarom a padlót és ami bent marad, kijavítom a hibákat, glettelek, alapozok.' },
+  { title: 'Festés', body: 'Két rétegben festek, tiszta szélekkel, a megbeszélt napokon.' },
+  { title: 'Átadás', body: 'Kitakarítok, együtt átnézzük a falakat, és ha valami nem tetszik, kijavítom.' }
 ];
+
+/* Gyakori kérdések alapértelmezése (amíg az adminban nincs saját kérdés felvéve) */
+const DEFAULT_FAQ = [
+  { question: 'Hol vállalsz munkát?', answer: 'Üllőn lakom, és a környéken dolgozom: Vecsés, Gyömrő, Monor, Monorierdő, Maglód, Gyál, Kistarcsa, valamint Budapest keleti és déli kerületei. Ha a településed nincs a listában, hívj fel, és megmondom, ki tudok-e menni.' },
+  { question: 'Mennyibe kerül a felmérés?', answer: 'A felmérés ingyenes. Kimegyek, megnézem a falakat, és utána írásban küldöm el a fix árat.' },
+  { question: 'Ki veszi meg a festéket és a többi anyagot?', answer: 'Ha kéred, én szerzem be az anyagot, de csak előre fizetéssel: az anyag árát a munka előtt kérem. Ha inkább te vásárolnál, megírom, miből mennyi kell.' },
+  { question: 'El kell pakolnom a bútorokat?', answer: 'Igen. Egyedül dolgozom, ezért bútormozgatást nem vállalok. Kérlek, a munka előtt pakold ki a helyiséget, vagy told a bútorokat a szoba közepére. Amit bent hagysz, azt fóliával letakarom.' },
+  { question: 'Egyedül dolgozol?', answer: 'Igen. A felmérést, a festést és az átadást is én csinálom, így mindig velem egyeztetsz, és tudod, ki dolgozik a lakásodban.' },
+  { question: 'Mi az a gépi nemesvakolat szórás?', answer: 'A homlokzat vékony, színezett záróvakolata, amelyet géppel szórok fel. Egyenletesebb lesz a szemcse és a szín, mint kézi felhordásnál, és nagy felületen is gyorsabban halad a munka.' },
+  { question: 'Mennyi ideig tart egy szoba festése?', answer: 'Egy jó állapotú szoba festése általában 1–2 munkanap. Ha kaparni vagy glettelni is kell, a száradás miatt több. A pontos időt a felmérés után megírom.' },
+  { question: 'Lakott lakásban is festesz?', answer: 'Igen. Helyiségenként haladok, a padlót és a bent maradt bútort letakarom, és minden nap után összetakarítok.' },
+  { question: 'Hogyan kérhetek árajánlatot?', answer: 'Az oldal árajánlatkérőjében helyiségenként megadod, mit szeretnél, vagy egyszerűen felhívsz. 24 órán belül jelentkezem.' }
+];
+
+/* Aloldalak, amelyek szövege az admin „Aloldalak szövegei” menüjében szerkeszthető.
+   Az oldalon data-edit="…" jelöli a szerkeszthető részeket; a mentett szöveg a settings.texts.pages.<kulcs> alatt van. */
+const SUBPAGES = [
+  ['festo-ullo', 'Festő Üllőn'], ['homlokzat-nemesvakolat', 'Nemesvakolat és homlokzatfestés'], ['festo-vecses', 'Festő Vecsésen'],
+  ['festo-gyomro', 'Festő Gyömrőn'], ['festo-monor', 'Festő Monoron'], ['festo-monorierdo', 'Festő Monorierdőn'], ['festo-maglod', 'Festő Maglódon'],
+  ['festo-gyal', 'Festő Gyálon'], ['festo-kistarcsa', 'Festő Kistarcsán'], ['festo-budapest', 'Festő Budapesten'],
+  ['blog', 'Blog oldal'], ['velemeny', 'Vélemény írása'], ['adatkezeles', 'Adatkezelési tájékoztató'], ['impresszum', 'Impresszum'], ['sutik', 'Sütik']
+];
+/* a mentett aloldal-szövegek alkalmazása (a statikus HTML a keresőknek mentett változat nélkül is olvasható) */
+function applyPageTexts(key, TX) {
+  const pg = ((TX && TX.pages) || {})[key]; if (!pg) return;
+  if (pg.title) document.title = pg.title;
+  const md = document.querySelector('meta[name="description"]'); if (md && pg.desc) md.content = pg.desc;
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    const v = pg[el.dataset.edit]; if (v == null || v === '') return;
+    if (el.hasAttribute('data-rich')) el.innerHTML = sanitize(v); else el.textContent = v;
+  });
+}
 
 const UNITS = {
   surface: 'm² fal és/vagy mennyezet (az ügyfél választja)',
@@ -144,20 +180,28 @@ const SOCIAL_LABEL = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Face
 const LAYOUT_GROUPS = [
   ['szolgaltatasok', 'Szolgáltatások'],
   ['szamok', 'Számok sáv'],
-  ['folyamat', 'Hogyan dolgozunk'],
-  ['munkaink', 'Munkáink (előtte–utána és galéria)'],
+  ['folyamat', 'Hogyan dolgozom'],
+  ['munkaink', 'Munkáink (előtte–utána)'],
+  ['galeria', 'Galéria'],
   ['velemenyek', 'Vélemények'],
   ['kozossegi', 'Közösségi média'],
   ['videok', 'Videók'],
   ['blog', 'Blog'],
+  ['gyik', 'Gyakori kérdések'],
   ['arajanlat', 'Árajánlatkérő'],
   ['kapcsolat', 'Kapcsolat']
 ];
+/* mentett sorrend kiegészítése az újonnan bevezetett szakaszokkal: a hiányzó szakasz az alapsorrend szerinti elődje után kerül */
+function fullOrder(saved) {
+  const base = LAYOUT_GROUPS.map(x => x[0]), out = (saved || []).filter(x => base.includes(x));
+  base.forEach((g, i) => { if (out.includes(g)) return; const prev = base.slice(0, i).reverse().find(x => out.includes(x)); out.splice(prev ? out.indexOf(prev) + 1 : 0, 0, g); });
+  return out;
+}
 const LAYOUT_BGS = [['', 'Alapértelmezett'], ['light', 'Fehér'], ['soft', 'Halvány homok'], ['peach', 'Barack'], ['dark', 'Sötét'], ['gold', 'Arany']];
 const LAYOUT_BG_ALLOWED = { arajanlat: ['', 'light', 'soft', 'peach'] };   // az árajánlatkérő űrlapja világos háttéren olvasható
 const CARD_COLS = [['', 'Automatikus'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5']];
 /* A seo/oldalak.mjs által generált helyi keresőoldalak (az admin sitemap-letöltése is ezeket listázza). Új oldalnál ide is vedd fel. */
-const SEO_PAGES = ['festo-budapest.html', 'homlokzatfestes-hoszigeteles.html', 'festo-gyal.html', 'festo-vecses.html', 'festo-ullo.html', 'festo-gyomro.html', 'festo-maglod.html', 'festo-monor.html', 'festo-monorierdo.html', 'festo-kistarcsa.html'];
+const SEO_PAGES = ['festo-ullo.html', 'homlokzat-nemesvakolat.html', 'festo-vecses.html', 'festo-gyomro.html', 'festo-monor.html', 'festo-monorierdo.html', 'festo-maglod.html', 'festo-gyal.html', 'festo-kistarcsa.html', 'festo-budapest.html'];
 const CARD_ROWS = [['', 'Mind látszik'], ['1', '1 sor'], ['2', '2 sor'], ['3', '3 sor'], ['4', '4 sor'], ['5', '5 sor'], ['6', '6 sor']];
 const CARD_GAPS = [['', 'Alap'], ['s', 'Kicsi'], ['m', 'Közepes'], ['l', 'Nagy']];
 const CARD_GAP_PX = { s: 10, m: 18, l: 30 };
