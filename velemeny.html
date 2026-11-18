@@ -3,73 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="only light">
 <title>Írd meg a véleményedet – PLANERVO</title>
 <meta name="description" content="Elégedett voltál a munkámmal? Írd meg a véleményedet, sokat jelent nekem.">
-<meta name="robots" content="noindex">
-<link rel="icon" href="logo.png">
-<link rel="preload" href="assets/fonts/jost-latin-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/fonts/fonts.css">
+<meta name="robots" content="noindex, follow">
+<meta name="color-scheme" content="only light">
+<meta name="theme-color" content="#fbf6ee">
+<link rel="icon" type="image/png" sizes="48x48" href="assets/img/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/img/favicon-192.png">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preload" href="assets/fonts/jost-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css">
-<link rel="stylesheet" href="assets/uj.css">
 </head>
 <body>
-<nav class="topnav solid" id="topnav">
-  <a class="brand" href="index.html" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
+<a class="skip" href="#main">Ugrás a tartalomra</a>
+<nav class="topnav solid" id="topnav" aria-label="Fő menü">
+  <a class="brand" href="./" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
   <div class="links" id="navLinks">
-    <a href="index.html#szolgaltatasok">Szolgáltatások</a>
-    <a href="index.html#munkaink">Munkáink</a>
+    <a href="./#szolgaltatasok">Szolgáltatások</a>
+    <a href="./#munkaink">Munkáim</a>
     <a href="blog.html">Blog</a>
-    <a href="index.html#kapcsolat">Kapcsolat</a>
+    <a href="./#kapcsolat">Kapcsolat</a>
   </div>
-  <a class="pill" href="index.html#arajanlat">Árajánlat</a>
+  <a class="pill" href="./#arajanlat">Árajánlat</a>
   <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="navLinks" aria-label="Menü megnyitása"><span></span></button>
 </nav>
 
-<main>
-  <section class="band">
-    <div class="wrap blog-top review">
-      <a class="back" href="index.html">Vissza a főoldalra</a>
-      <h1 data-edit="h1">Írd meg a véleményedet</h1>
-      <p class="lead" data-edit="lead">Köszönöm, hogy rám bíztad a falaidat. Pár mondat is sokat segít annak, aki most keres festőt.</p>
+<main id="main">
+  <div class="wrap page-top page-body review">
+    <a class="back" href="./">Vissza a főoldalra</a>
+    <h1 data-edit="h1">Írd meg a véleményedet</h1>
+    <p class="lead" data-edit="lead">Köszönöm, hogy rám bíztad a falaidat. Pár mondat is sokat segít annak, aki most keres festőt.</p>
 
-      <form id="rvForm" novalidate>
-        <div class="fields">
-          <label>Név<input id="rvName" autocomplete="name" required maxlength="80"></label>
-          <label>Település (nem kötelező)<input id="rvPlace" autocomplete="address-level2" maxlength="80"></label>
-          <fieldset class="full rate" id="rvRate"><legend>Hány csillagot adnál?</legend>
-            <div class="stars-in" role="radiogroup" aria-label="Értékelés csillagokban">
-              <input type="radio" name="rate" id="r5" value="5" checked><label for="r5" title="5 csillag"><span class="vh">5 csillag</span></label>
-              <input type="radio" name="rate" id="r4" value="4"><label for="r4" title="4 csillag"><span class="vh">4 csillag</span></label>
-              <input type="radio" name="rate" id="r3" value="3"><label for="r3" title="3 csillag"><span class="vh">3 csillag</span></label>
-              <input type="radio" name="rate" id="r2" value="2"><label for="r2" title="2 csillag"><span class="vh">2 csillag</span></label>
-              <input type="radio" name="rate" id="r1" value="1"><label for="r1" title="1 csillag"><span class="vh">1 csillag</span></label>
-            </div>
-          </fieldset>
-          <label class="full">A véleményed<textarea id="rvBody" rows="6" required minlength="10" maxlength="800" placeholder="Milyen munkát végeztem, és hogy voltál vele elégedett?"></textarea></label>
-          <label class="hp" aria-hidden="true">Ne töltsd ki<input id="rvWeb" tabindex="-1" autocomplete="off"></label>
-          <label class="chk full"><input type="checkbox" id="rvOk" required><span>Hozzájárulok, hogy a nevemet, a településemet és a véleményemet a jóváhagyás után megjelenítse az oldalon. <a href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató</a></span></label>
-        </div>
-        <div class="q-actions"><button class="btn gold" type="submit" id="rvSend">Vélemény elküldése</button><div id="rvStatus" role="status"></div></div>
-      </form>
-
-      <div class="done" id="rvDone" hidden tabindex="-1">
-        <h3>Köszönöm!</h3>
-        <p data-edit="done">Megkaptam a véleményedet. Átnézem, és utána megjelenik az oldalon.</p>
-        <a class="btn" href="index.html">Vissza a főoldalra</a>
+    <form id="rvForm" novalidate>
+      <div class="fields">
+        <label>Név<input id="rvName" autocomplete="name" required maxlength="80"></label>
+        <label>Település (nem kötelező)<input id="rvPlace" autocomplete="address-level2" maxlength="80"></label>
+        <fieldset class="full">
+          <legend>Hány csillagot adnál?</legend>
+          <div class="stars-in" role="radiogroup" aria-label="Értékelés csillagokban">
+            <input type="radio" name="rate" id="r5" value="5" checked><label for="r5" title="5 csillag"><span class="vh">5 csillag</span></label>
+            <input type="radio" name="rate" id="r4" value="4"><label for="r4" title="4 csillag"><span class="vh">4 csillag</span></label>
+            <input type="radio" name="rate" id="r3" value="3"><label for="r3" title="3 csillag"><span class="vh">3 csillag</span></label>
+            <input type="radio" name="rate" id="r2" value="2"><label for="r2" title="2 csillag"><span class="vh">2 csillag</span></label>
+            <input type="radio" name="rate" id="r1" value="1"><label for="r1" title="1 csillag"><span class="vh">1 csillag</span></label>
+          </div>
+        </fieldset>
+        <label class="full">A véleményed<textarea id="rvBody" rows="6" required minlength="10" maxlength="800" placeholder="Milyen munkát végeztem, és hogy voltál vele elégedett?"></textarea></label>
+        <label class="hp" aria-hidden="true">Ne töltsd ki<input id="rvWeb" tabindex="-1" autocomplete="off"></label>
+        <label class="chk full"><input type="checkbox" id="rvOk" required><span>Hozzájárulok, hogy a nevemet, a településemet és a véleményemet a jóváhagyás után megjelenítse az oldalon. <a href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató</a></span></label>
       </div>
+      <div class="q-actions"><button class="btn gold" type="submit" id="rvSend">Vélemény elküldése</button><div class="q-status" id="rvStatus" role="status"></div></div>
+    </form>
+
+    <div class="done" id="rvDone" tabindex="-1" hidden>
+      <h2>Köszönöm!</h2>
+      <p data-edit="done">Megkaptam a véleményedet. Átnézem, és utána megjelenik az oldalon.</p>
+      <a class="btn" href="./">Vissza a főoldalra</a>
     </div>
-  </section>
+  </div>
 </main>
 
 <footer class="site">
-  <a class="brand" href="index.html">PLAN<i><b></b><b></b><b></b></i>RVO</a>
-  <em data-t="footer_text">PLANERVO – festő Üllőn és környékén</em>
-  <nav aria-label="Lábléc"><a href="index.html">Főoldal</a><a href="adatkezeles.html">Adatkezelés</a><a href="impresszum.html">Impresszum</a><a href="sutik.html">Sütik</a></nav>
+  <a class="brand" href="./" aria-label="PLANERVO főoldal">PLAN<i><b></b><b></b><b></b></i>RVO</a>
+  <p data-t="footer_text">PLANERVO – festő Üllőn és környékén</p>
+  <nav aria-label="Lábléc"><a href="./">Főoldal</a><a href="adatkezeles.html">Adatkezelés</a><a href="impresszum.html">Impresszum</a><a href="sutik.html">Sütik</a></nav>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js" integrity="sha384-z4iWwfGok6nwo14qorcgp9QHDhY0q4kM3S2mWKmdxg/N9+jiyxlx6oqp6vHl3t8V" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js" integrity="sha384-+VfUPEb0PdtChMwmBcBmykRMDd+v6D/oFmB3rZM/puCMDYcIvF968OimRh4KQY9a" crossorigin="anonymous"></script>
 <script src="assets/shared.js"></script>
 <script src="assets/review.js"></script>
 </body>

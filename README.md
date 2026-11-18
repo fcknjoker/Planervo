@@ -1,184 +1,99 @@
-# PLANERVO weboldal – telepítési útmutató
+# PLANERVO weboldal
 
-Statikus weboldal (HTML + JS) Supabase háttérrel. Bármilyen tárhelyre feltölthető
-(pl. Netlify, Vercel, cPanel), szerver nem kell hozzá.
+Statikus weboldal (HTML, CSS, JavaScript) Supabase-háttérrel. Bármilyen statikus tárhelyre feltölthető
+(GitHub Pages, Netlify, cPanel), szerver nem kell hozzá. Ugyanazt a Supabase-adatbázist használja, mint a korábbi változat,
+így minden tartalom, beállítás és árajánlat-kérés megmarad.
 
-## Fájlok
+## Mappaszerkezet
 
-| Fájl | Mi ez |
+| Elem | Mi ez |
 |---|---|
-| `index.html` | Főoldal: festőhengeres logó, szolgáltatások, saját ablakok, előtte–utána, galéria, videók, blog-előnézet, árajánlatkérő, kapcsolat |
-| `blog.html` | Blog lista és egyes bejegyzések (`blog.html?p=webcim`) |
-| `belepes-7k2m9x.html` (titkos cím, sehol nincs belinkelve) | Admin felület (belépés után) |
-| `logo.png` | Alapértelmezett logó (az adminban lecserélhető) |
-| `assets/shared.js` | Közös beállítások: **itt van a Supabase URL és a nyilvános kulcs** |
-| `assets/site.js`, `assets/blog.js`, `assets/admin.js` | Az oldalak működése |
-| `assets/style.css`, `assets/admin.css` | Megjelenés |
-| `supabase/schema.sql` | Adatbázis, jogosultságok, tárhely, kezdő adatok |
-| `supabase/functions/notify-quote/index.ts` | E-mail értesítő új árajánlat-kérésről |
+| `index.html` | Főoldal: felépülő logó és festőhenger, szolgáltatások, számok, folyamat, előtte–utána, galéria, vélemények, közösségi média, videók, blog, GYIK, árajánlatkérő, kapcsolat |
+| `festo-*.html`, `homlokzat-nemesvakolat.html` | Helyi keresőoldalak (az `eszkozok/oldalak.mjs` készíti) |
+| `blog.html` | Blog lista és bejegyzések (`blog.html?p=webcim`) |
+| `velemeny.html` | Vélemény beküldése (nem indexelt) |
+| `adatkezeles.html`, `impresszum.html`, `sutik.html` | Jogi oldalak (nem indexeltek) |
+| `404.html` | Hibaoldal nem létező címekhez |
+| `belepes-7k2m9x.html` | Admin felület. Titkos cím, sehol nincs belinkelve, a keresők nem indexelik |
+| `sitemap.xml`, `robots.txt`, `CNAME` | Keresőknek, illetve a planervo.hu domainhez (GitHub Pages) |
+| `assets/style.css` | A nyilvános oldalak teljes megjelenése (a betűtípussal együtt) |
+| `assets/shared.js` | Közös beállítások: Supabase-cím és nyilvános kulcs, szerkeszthető szövegek, segédfüggvények |
+| `assets/site.js` | A főoldal működése és mozgásai |
+| `assets/blog.js`, `legal.js`, `review.js`, `page.js` | Az aloldalak működése |
+| `assets/pdf.js` | PDF-becslés letöltése (a pdfmake csak gombnyomásra töltődik be) |
+| `assets/admin.js`, `admin.css`, `arlista.js` | Admin felület és a betölthető alap árlista |
+| `eszkozok/` | Csak a géphez: oldalgenerátor és helyi megtekintő. **Nem kell feltölteni** |
+| `supabase/` | Adatbázis-kiegészítések és a `youtube-feed` függvény. **Nem kell feltölteni** |
 
-## 1. Adatbázis létrehozása
+## Feltöltés
 
-1. Nyisd meg a Supabase projektet → **SQL Editor** → **New query**.
-2. Másold be a `supabase/schema.sql` teljes tartalmát, majd **Run**.
-   Létrejönnek a táblák, a jogosultságok, a `media` (nyilvános) és a `quote-uploads` (privát) tárhely,
-   valamint néhány minta szolgáltatás és munkafolyamat. **A munkadíjak példák**, az adminban írd át őket.
+Töltsd fel a mappa tartalmát a tárhely gyökerébe, az `eszkozok` és a `supabase` mappa kivételével.
+A régi változatból maradt fájlokat érdemes törölni a tárhelyről: `assets/uj.css`, `assets/uj.js`, `assets/fonts/fonts.css`,
+`assets/fonts/cormorant-*.woff2`, `assets/fonts/jost-*-400.woff2`, `assets/fonts/jost-*-var.woff2`, `assets/ures.txt`, `logo.png`,
+`admin.html`, `homlokzatfestes-hoszigeteles.html`, `KERESEK_ES_VALASZOK.md`, `inditas.bat`, `seo/`.
 
-## 2. Admin felhasználó
-
-1. **Authentication → Users → Add user → Create new user**
-   - e-mail: `planervo@gmail.com`, jelszó: amit szeretnél, **Auto Confirm User** bekapcsolva.
-2. **Authentication → Sign In / Providers**: kapcsold ki az **Allow new users to sign up** opciót,
-   így más nem tud regisztrálni.
-3. **Authentication → URL Configuration → Site URL**: add meg a weboldal címét
-   (pl. `https://planervo.hu`). Ez kell az „Elfelejtettem a jelszót” levélhez.
-
-Másik admin e-mail-címet az SQL Editorban így adhatsz hozzá:
-```sql
-insert into public.admins(email) values ('masik@cim.hu');
-```
-
-## 3. E-mail értesítés (planervo@gmail.com)
-
-A levelet a [Resend](https://resend.com) szolgáltatás küldi (havi 3000 levél ingyenes).
-
-1. Regisztrálj a Resendnél **a planervo@gmail.com címmel**, és hozz létre egy API kulcsot.
-   A tesztfeladó (`onboarding@resend.dev`) csak a regisztrált címre küld, ami itt pont jó.
-   Ha később saját domainről (pl. `ajanlat@planervo.hu`) küldenél, a Resendben igazold a domaint,
-   és írd át a `MAIL_FROM` értéket.
-2. Telepítsd a függvényt. Két lehetőség:
-
-   **a) Supabase Dashboardon:** Edge Functions → **Deploy a new function** → Via Editor →
-   név: `notify-quote` → illeszd be az `index.ts` tartalmát → Deploy.
-   Utána a függvény beállításainál kapcsold **ki** a **Verify JWT** opciót.
-   Edge Functions → **Secrets**: add hozzá:
-   - `RESEND_API_KEY` = a Resend kulcs
-   - `MAIL_TO` = `planervo@gmail.com`
-   - `MAIL_FROM` = `PLANERVO <onboarding@resend.dev>`
-
-   **b) Supabase CLI-vel:**
-   ```bash
-   supabase functions deploy notify-quote --no-verify-jwt --project-ref jodzzaqawursaidefdea
-   supabase secrets set RESEND_API_KEY=re_xxx MAIL_TO=planervo@gmail.com \
-     MAIL_FROM="PLANERVO <onboarding@resend.dev>" --project-ref jodzzaqawursaidefdea
-   ```
-
-A levél tartalmazza a helyiségeket, a kiválasztott munkákat, a becsült árat és a fotók
-7 napig érvényes letöltési linkjeit. A kérés e-mail nélkül is megjelenik az adminban.
-
-## 4. Feltöltés a tárhelyre
-
-Töltsd fel a mappa teljes tartalmát (a `supabase` mappa kivételével) a tárhely gyökerébe.
 Az oldal csak webcímről működik, a számítógépen dupla kattintással megnyitva (`file://`) nem.
 
-## Árlista és fal / mennyezet választás (2026. november)
+## Helyi megtekintés
 
-1. Supabase → **SQL Editor** → futtasd le a `supabase/2026-11-arlista.sql` fájlt (egyszer kell, adatot nem töröl).
-   Ez felveszi a mennyezet külön munkadíját és az új mértékegységeket.
-2. Admin → **Munkafolyamatok és díjak** → **Árlista betöltése**. Betölti a kb. 100 tételes árlistát
-   (csak munkadíj, `assets/arlista.js`). Rákérdez, hogy a régi tételeket elrejtse-e.
-3. Utána minden tétel szerkeszthető: megnevezés, kategória, mértékegység, munkadíj, mennyezet díja.
+```bash
+node eszkozok/szerver.mjs
+```
 
-Mértékegységek: a **fal és/vagy mennyezet** tételnél az ügyfél választ (Fal / Mennyezet / Mindkettő);
-az **m² (megadott)**, **folyóméter** és **darab** tételnél az ügyfél írja be a mennyiséget.
+Utána: http://localhost:8091/
 
-## Videós ablak: YouTube-csatorna vagy lejátszási lista (2026. november)
+## Helyi keresőoldalak és sitemap
 
-A főoldal videói automatikusan jöhetnek a YouTube-csatornádról (a legújabb elöl) vagy egy lejátszási listából.
-Ehhez egy kis függvény kell a Supabase-ben, API-kulcs nem kell hozzá:
+A helyi oldalak kiinduló szövege az `eszkozok/oldalak.mjs` fájlban van. Ha ott módosítasz, futtasd újra:
 
-1. Supabase → **Edge Functions** → **Deploy a new function** → Via Editor → név: `youtube-feed` →
-   illeszd be a `supabase/functions/youtube-feed/index.ts` tartalmát → **Deploy**.
-2. A függvény beállításainál kapcsold **ki** a **Verify JWT** opciót (ugyanúgy, mint a `notify-quote`-nál).
-   CLI-vel: `supabase functions deploy youtube-feed --no-verify-jwt --project-ref jodzzaqawursaidefdea`
-3. Admin → **YouTube-videók** → felül válaszd ki a forrást (csatorna / lejátszási lista / kézi),
-   add meg a linket, nyomd meg a **Kipróbálom** gombot, majd **Beállítás mentése**.
+```bash
+node eszkozok/oldalak.mjs
+```
 
-A függvény a YouTube csatornaoldalát olvassa (a YouTube RSS-hírcsatornája leállt, ezért nem az kell). Legfeljebb 15 videót ad ki, a dátum helyett a YouTube saját szövegével (pl. „2 héttel ezelőtt"). Ha a lekérés nem sikerül, a kézzel felvett videók jelennek meg.
+Ez újraírja a `festo-*.html`, a `homlokzat-nemesvakolat.html` és a `sitemap.xml` fájlt. Feltöltés nélkül az admin
+„Aloldalak szövegei” menüjében is átírhatod őket. A blogbejegyzésekkel bővített sitemapet az admin „Megjelenés” oldalán töltheted le.
 
-**Ha a függvényt már korábban telepítetted:** nyisd meg újra a `youtube-feed` függvényt a Supabase-ben, cseréld ki a kódot a `supabase/functions/youtube-feed/index.ts` friss tartalmára, és nyomd meg a Deploy gombot.
+## Supabase
 
-## Közösségi média ablak (2026. november)
+Az adatbázis már be van állítva, új teendő nincs. A `supabase` mappa SQL-fájljai az eddigi bővítések
+(mind többször is futtatható, adatot nem töröl); csak akkor kellenek, ha egy új Supabase-projektet állítasz be.
 
-Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt, utána az admin
-**Közösségi média** menüjében adhatod hozzá az Instagram-, TikTok- és Facebook-bejegyzéseket.
+- **Admin felhasználó:** Authentication → Users. Új admin e-mail-címet az SQL Editorban adhatsz hozzá:
+  `insert into public.admins(email) values ('masik@cim.hu');`
+- **E-mail értesítés új árajánlatról:** a `notify-quote` Edge Function (Resend). Titkok: `RESEND_API_KEY`, `MAIL_TO`, `MAIL_FROM`.
+- **YouTube-videók:** a `youtube-feed` Edge Function (`supabase/functions/youtube-feed/index.ts`), a **Verify JWT** kikapcsolva.
+  CLI-vel: `supabase functions deploy youtube-feed --no-verify-jwt --project-ref jodzzaqawursaidefdea`
 
-## Megjelenés, elrendezés és új admin funkciók (2026. november)
+A `sb_publishable_…` kulcs nyilvános, a helye a `shared.js`-ben van. A secret / service_role kulcsot soha ne tedd a fájlokba.
+Az adatokat a sorszintű jogosultságok (RLS) védik; az ügyfelek fotói privát tárhelyre kerülnek, csak az admin látja őket.
 
-Új SQL nem kell hozzá, minden a meglévő beállítás-táblába kerül. Töltsd fel az `index.html`, `belepes-7k2m9x.html` (titkos cím, sehol nincs belinkelve) és az `assets` mappa fájljait.
+## Mi változott az előző változathoz képest
 
-- **Megjelenés és elrendezés** (admin menü): szakaszok sorrendje, láthatósága, háttere; szakaszonként a kártyák módja (lefelé rács vagy oldalra lapozható sáv), hány férjen egymás mellé, távolság, sarkok, képarány; tartalom szélessége, szakaszok közti térköz, kiemelő szín; közlemény sáv az oldal tetején; oldalcím és leírás a keresőknek. Jobbra élő előnézet asztali, tablet és telefon méretben, mentés előtt is.
-- **Áttekintés**: új kérések, tartalmak száma, tennivalók.
-- **Árlista**: „Árak módosítása” gomb (százalékos emelés/csökkentés kategóriánként, kerekítéssel), minden listában „Másolás” gomb.
-- **Árajánlat-kérések**: keresés és CSV letöltés (Excelben megnyitható).
-- **Mentés és visszaállítás**: a teljes tartalom egy fájlba menthető és visszatölthető (az árajánlat-kérések és a képfájlok nélkül).
+**Kód**
+- A két, egymást felülíró stíluslap (`style.css` + `uj.css`) és a külön betűtípus-fájl egyetlen `style.css`-be került, a felülírt, már nem érvényes szabályok nélkül.
+- A főoldal két szkriptje (`site.js` + `uj.js`) egy fájl lett. A logó-felépülés animációja CSS-ben fut, így a GSAP könyvtár (kb. 70 KB) kikerült.
+- Kikerültek a régi fejlesztésekből maradt megjegyzések, a nem használt betűtípusok (Cormorant, dupla Jost-fájlok), az üres és felesleges fájlok.
+- Minden külső könyvtár SRI-ellenőrzéssel (integrity) töltődik.
 
-## 1. fázis: vélemények, lépések, jogi oldalak, SEO (2026. december)
+**Javított hibák**
+- A mobil menü pontjai a panel széléhez tapadtak (egymást felülíró stílusok miatt).
+- A jogi oldalak és a vélemény-oldal teteje a rögzített menü alá csúszott.
+- A közlemény sáv megjelenésekor a főoldal teteje nem húzódott lejjebb.
+- A felső menü logójának „E” betűje eltűnt az arany háttér előtt.
+- Az árajánlat összegének kiemelő animációja minden képkockában újraindult.
+- A vélemény-oldal hibaüzenete nem volt piros.
+- Az admin „Aloldalak szövegei” menüje a jogi oldalaknál a mentett szöveget mutatta „eredeti” helyett.
+- Az admin Áttekintés mindig azt írta, hogy a telefonszám még a minta.
+- Az előtte–utána képarány „4:3 (alap)” néven szerepelt, pedig az alap 16:9.
+- A „Munkáim” link üres szakaszra vitt, ha nem volt előtte–utána kép (most a galériára mutat, vagy eltűnik).
+- Egyes szám első személy mindenhol: „Munkáim”, „Hogyan dolgozom”, „szünetelek”.
 
-1. Supabase → SQL Editor → futtasd le a `supabase/2026-12-bovites.sql` fájlt (vélemények és „Hogyan dolgozunk” lépések tábla, az öt alap lépéssel).
-2. Töltsd fel az egész mappát (új: `adatkezeles.html`, `impresszum.html`, `sutik.html`, `velemeny.html`, `robots.txt`, `assets/fonts`, `assets/legal.js`, `assets/review.js`).
-3. Admin → **Oldal szövegei** → töltsd ki a **Jogi adatok** és a **Keresők (SEO)** csoportot (cégnév, székhely, adószám, tárhely, az oldal webcíme). Amíg hiányoznak, az adatkezelési és impresszum oldalon sárgán jelölve látszanak. A jogi szöveg sablon, élesítés előtt érdemes jogásszal átnézetni.
-4. Admin → **Vélemények**: vegyél fel véleményt kézzel, vagy küldd el az ügyfeleknek a `velemeny.html` linkjét. A beküldött vélemény jóváhagyásig nem látszik (Jóváhagyva kapcsoló).
-5. Admin → **Hogyan dolgozunk**: a lépések szerkeszthetők. Admin → **Megjelenés és elrendezés** → Keresők: a **Sitemap letöltése** gomb elkészíti a sitemap.xml fájlt (előbb add meg az oldal webcímét), töltsd fel a főoldal mellé, és add meg a Google Search Console-ban.
-6. A betűtípusok az `assets/fonts` mappából töltődnek, a Google Fonts-hoz az oldal már nem fordul.
+**Keresőoptimalizálás**
+- `WebSite` és bővebb `HousePainter` strukturált adat, nemzetközi formátumú telefonszám.
+- Blog: statikus főcím és bevezető (JavaScript nélkül is olvasható), `Blog`, `BlogPosting` és morzsamenü-adat, `article:*` meta.
+- Morzsamenü a helyi oldalakon és a blogon (látható és strukturált adatként is).
+- A belső linkek a `./` főoldalra mutatnak (nem `index.html`-re), így nincs duplikált cím.
+- A nem indexelt oldalakról lekerült a canonical, a 404-es oldal is `noindex`.
+- `preconnect` a Supabase és a CDN felé, a betűtípus előtöltése, szélesség/magasság a videó-bélyegképeken.
 
-## Admin felület (`/belepes-7k2m9x.html`)
-
-- **Árajánlat-kérések:** beérkezett kérések, állapot (Új, Folyamatban, Ajánlat elküldve, Elfogadva, Lezárva),
-  saját jegyzet, csatolt fotók, törlés. Az új kérések száma a menüben látszik.
-- **Munkafolyamatok és díjak:** az árajánlatkérőben választható munkák. Mértékegységek:
-  falfelület m², mennyezet m², fal + mennyezet m², alapterület m², darab, helyiségenkénti átalány.
-  A falfelületet az alapterületből és a belmagasságból számolja (négyzetes alaprajzzal becsülve).
-- **Oldal szövegei:** minden cím, bevezető, elérhetőség, logó, közösségi linkek, és hogy az ügyfél lássa-e a becsült árat.
-- **Főoldal ablakok:** új szakaszok szöveggel, képpel, gombbal; elrendezés, háttérszín és hely választható.
-- **Szolgáltatások, Előtte–utána, Galéria (több kép egyszerre), YouTube-videók:** hozzáadás, szerkesztés,
-  elrejtés, sorrend nyilakkal.
-- **Blog:** szövegszerkesztő (címsorok, félkövér, listák, idézet, link, kép, videó), borítókép,
-  rövid bevezető, webcím, időzített megjelenés, piszkozat.
-
-## Biztonság
-
-- A `sb_publishable_…` kulcs nyilvános, a weboldalon a helye. A **secret / service_role kulcsot soha ne tedd a fájlokba**.
-- Az adatbázist a sorszintű jogosultságok (RLS) védik: a látogató csak a látható tartalmat olvassa,
-  árajánlatot csak beküldeni tud, olvasni nem. Szerkeszteni csak az `admins` táblában szereplő fiók tud.
-- Az ügyfelek fotói privát tárhelyre kerülnek, csak az admin látja őket.
-
-## Amit érdemes még beállítani
-
-- Adatkezelési tájékoztató (GDPR) oldal, és a linkje a hozzájárulás szövegébe.
-- Saját domain a Resendben, hogy a levél ne a tesztcímről jöjjön.
-
-## 2. fázis: kalkulátor és időpontkérés
-
-**Egyszeri teendő:** a Supabase-ben (SQL Editor) futtasd le újra a `supabase/2026-12-bovites.sql` fájlt (többször futtatható). Ez adja az új `quotes` oszlopokat (ár-sáv, kedvezmény, kívánt időpontok, felmérés időpontja) és az „Időpont megbeszélve” állapotot. Amíg nem futtattad, az űrlap működik, de az új adatok a megjegyzés végére kerülnek, és az admin időpont-mentése hibát jelez.
-
-- **Ár-sáv, akció, időpontkérés beállításai:** Admin → Oldal szövegei → *Árajánlatkérés* (sáv ±%, akció be/ki, felirat, százalék, lejárat, időpontkérés be/ki).
-- **Látogatói oldal:** ár-sáv, helyiség másolása, akció sor, PDF letöltés (a pdfmake a gombra tölt be a jsdelivr CDN-ről), legfeljebb 3 kívánt időpont, lépésjelző.
-- **Admin → Árajánlatok:** kívánt időpontok, ár-sáv, akció a részleteknél; „Felmérés időpontja” + megjegyzés mentése (állapot automatikusan „Időpont megbeszélve”), `.ics` letöltés és Google Naptár link; az Áttekintésen „Közelgő felmérések”; a CSV új oszlopokkal bővült.
-
-## Új dizájn (ez a mappa: planervo-uj)
-
-Ez a mappa az eredeti PLANERVO oldal teljes másolata, az új dizájnnal. Minden funkció ugyanúgy működik (admin, árajánlatkérő árlistával, PDF, időpontkérés, akció, előtte–utána, galéria, videók, közösségi média, blog, vélemények, jogi oldalak, sütitájékoztató, elrendezés-szerkesztő), ugyanazzal a Supabase-adatbázissal.
-
-**Mi változott**
-- Főoldal teteje: betöltéskor a logó háza apránként felépül, görgetésre a henger ugyanúgy aranyra festi a falat, mint eddig.
-- Szolgáltatások: nagy, váltakozó kép–szöveg sorok. Az adminban (Szolgáltatások) mostantól képet is adhatsz egy szolgáltatáshoz; kép nélkül a logó színsávjai látszanak.
-- Új „Számok sáv” (pl. 24 óra, 5 lépés, 2 réteg, 4 szakma): Admin → Oldal szövegei → Számok sáv. Elrejtés és sorrend: Admin → Megjelenés.
-- Hogyan dolgozunk: függőleges, magát megrajzoló idővonal. Előtte–utána: pulzáló csúszka. Galéria: oszlopos, a többi kép elhalványul.
-- Vélemények, videók, közösségi média, blog: világos kártyák, egérrel fénycsóva és enyhe dőlés.
-- Kapcsolat és lábléc új elrendezésben; minden szakasz világos, és lefelé gördül.
-- A dizájn két új fájlban van: `assets/uj.css` (megjelenés) és `assets/uj.js` (mozgások). Az eredeti `style.css` és `site.js` működése megmaradt.
-
-**Egyszeri teendő:** a Supabase SQL Editorban futtasd le a `supabase/2026-12-uj-dizajn.sql` fájlt (a szolgáltatás-képekhez kell). Amíg nem futtattad, minden működik, csak a szolgáltatáshoz nem tudsz képet menteni.
-
-**Élesítés:** ennek a mappának a tartalmát töltsd fel a tárhelyre a régi helyett (előtte érdemes a régit elmenteni).
-
-## Keresőoptimalizálás, GYIK, aloldalak szövegei (2026. november)
-
-1. Supabase → SQL Editor → futtasd le a `supabase/2026-12-seo-gyik-szovegek.sql` fájlt (GYIK-tábla, új szövegek az adatbázisban).
-2. Töltsd fel: az összes `.html` fájlt, az `assets` mappát, a `sitemap.xml`-t és a `robots.txt`-t.
-3. Töröld a tárhelyről: `admin.html` és `homlokzatfestes-hoszigeteles.html`.
-4. Az admin új címe: `/belepes-7k2m9x.html` (sehol nincs belinkelve, a keresők nem indexelik). Tedd el könyvjelzőbe.
-5. Search Console: küldd be újra a `https://planervo.hu/sitemap.xml`-t.
-
-A helyi oldalak kiinduló szövege a `seo/oldalak.mjs`-ben van; az admin „Aloldalak szövegei” menüjében átírhatod őket feltöltés nélkül.
+**Új: lebegő kapcsolat-kártya** a főoldal jobb szélén (telefonszám és közösségi ikonok). Az admin „Lebegő kártya” menüjében szerkeszthető; mentés a `settings` tábla `texts` rekordjának `float` mezőjébe történik, adatbázis-módosítás nem kell.

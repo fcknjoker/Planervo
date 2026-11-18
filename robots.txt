@@ -1,6 +1,4 @@
 User-agent: *
-Disallow: /velemeny.html
+Allow: /
 
-# A sitemap.xml-t a „node seo/oldalak.mjs” készíti (főoldal + helyi oldalak).
-# A blogbejegyzésekkel bővített változatot az admin „Megjelenés és elrendezés → Keresők és megosztás” részén töltheted le.
 Sitemap: https://planervo.hu/sitemap.xml
