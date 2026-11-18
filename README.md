@@ -9,7 +9,7 @@ Statikus weboldal (HTML + JS) Supabase háttérrel. Bármilyen tárhelyre feltö
 |---|---|
 | `index.html` | Főoldal: festőhengeres logó, szolgáltatások, saját ablakok, előtte–utána, galéria, videók, blog-előnézet, árajánlatkérő, kapcsolat |
 | `blog.html` | Blog lista és egyes bejegyzések (`blog.html?p=webcim`) |
-| `admin.html` | Admin felület (belépés után) |
+| `belepes-7k2m9x.html` (titkos cím, sehol nincs belinkelve) | Admin felület (belépés után) |
 | `logo.png` | Alapértelmezett logó (az adminban lecserélhető) |
 | `assets/shared.js` | Közös beállítások: **itt van a Supabase URL és a nyilvános kulcs** |
 | `assets/site.js`, `assets/blog.js`, `assets/admin.js` | Az oldalak működése |
@@ -105,7 +105,7 @@ Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt
 
 ## Megjelenés, elrendezés és új admin funkciók (2026. november)
 
-Új SQL nem kell hozzá, minden a meglévő beállítás-táblába kerül. Töltsd fel az `index.html`, `admin.html` és az `assets` mappa fájljait.
+Új SQL nem kell hozzá, minden a meglévő beállítás-táblába kerül. Töltsd fel az `index.html`, `belepes-7k2m9x.html` (titkos cím, sehol nincs belinkelve) és az `assets` mappa fájljait.
 
 - **Megjelenés és elrendezés** (admin menü): szakaszok sorrendje, láthatósága, háttere; szakaszonként a kártyák módja (lefelé rács vagy oldalra lapozható sáv), hány férjen egymás mellé, távolság, sarkok, képarány; tartalom szélessége, szakaszok közti térköz, kiemelő szín; közlemény sáv az oldal tetején; oldalcím és leírás a keresőknek. Jobbra élő előnézet asztali, tablet és telefon méretben, mentés előtt is.
 - **Áttekintés**: új kérések, tartalmak száma, tennivalók.
@@ -122,7 +122,7 @@ Supabase → SQL Editor → futtasd le a `supabase/2026-11-kozossegi.sql` fájlt
 5. Admin → **Hogyan dolgozunk**: a lépések szerkeszthetők. Admin → **Megjelenés és elrendezés** → Keresők: a **Sitemap letöltése** gomb elkészíti a sitemap.xml fájlt (előbb add meg az oldal webcímét), töltsd fel a főoldal mellé, és add meg a Google Search Console-ban.
 6. A betűtípusok az `assets/fonts` mappából töltődnek, a Google Fonts-hoz az oldal már nem fordul.
 
-## Admin felület (`/admin.html`)
+## Admin felület (`/belepes-7k2m9x.html`)
 
 - **Árajánlat-kérések:** beérkezett kérések, állapot (Új, Folyamatban, Ajánlat elküldve, Elfogadva, Lezárva),
   saját jegyzet, csatolt fotók, törlés. Az új kérések száma a menüben látszik.
@@ -172,3 +172,13 @@ Ez a mappa az eredeti PLANERVO oldal teljes másolata, az új dizájnnal. Minden
 **Egyszeri teendő:** a Supabase SQL Editorban futtasd le a `supabase/2026-12-uj-dizajn.sql` fájlt (a szolgáltatás-képekhez kell). Amíg nem futtattad, minden működik, csak a szolgáltatáshoz nem tudsz képet menteni.
 
 **Élesítés:** ennek a mappának a tartalmát töltsd fel a tárhelyre a régi helyett (előtte érdemes a régit elmenteni).
+
+## Keresőoptimalizálás, GYIK, aloldalak szövegei (2026. november)
+
+1. Supabase → SQL Editor → futtasd le a `supabase/2026-12-seo-gyik-szovegek.sql` fájlt (GYIK-tábla, új szövegek az adatbázisban).
+2. Töltsd fel: az összes `.html` fájlt, az `assets` mappát, a `sitemap.xml`-t és a `robots.txt`-t.
+3. Töröld a tárhelyről: `admin.html` és `homlokzatfestes-hoszigeteles.html`.
+4. Az admin új címe: `/belepes-7k2m9x.html` (sehol nincs belinkelve, a keresők nem indexelik). Tedd el könyvjelzőbe.
+5. Search Console: küldd be újra a `https://planervo.hu/sitemap.xml`-t.
+
+A helyi oldalak kiinduló szövege a `seo/oldalak.mjs`-ben van; az admin „Aloldalak szövegei” menüjében átírhatod őket feltöltés nélkül.

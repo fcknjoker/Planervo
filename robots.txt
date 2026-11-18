@@ -1,5 +1,4 @@
 User-agent: *
-Disallow: /admin.html
 Disallow: /velemeny.html
 
 # A sitemap.xml-t a „node seo/oldalak.mjs” készíti (főoldal + helyi oldalak).

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="only light">
 <title>Írd meg a véleményedet – PLANERVO</title>
-<meta name="description" content="Elégedett voltál a munkánkkal? Írd meg a véleményedet, nekünk sokat jelent.">
+<meta name="description" content="Elégedett voltál a munkámmal? Írd meg a véleményedet, sokat jelent nekem.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="logo.png">
 <link rel="preload" href="assets/fonts/jost-latin-var.woff2" as="font" type="font/woff2" crossorigin>
@@ -30,8 +30,8 @@
   <section class="band">
     <div class="wrap blog-top review">
       <a class="back" href="index.html">Vissza a főoldalra</a>
-      <h1>Írd meg a véleményedet</h1>
-      <p class="lead">Köszönjük, hogy ránk bíztad a falaidat. Pár mondat is sokat segít annak, aki most dönt.</p>
+      <h1 data-edit="h1">Írd meg a véleményedet</h1>
+      <p class="lead" data-edit="lead">Köszönöm, hogy rám bíztad a falaidat. Pár mondat is sokat segít annak, aki most keres festőt.</p>
 
       <form id="rvForm" novalidate>
         <div class="fields">
@@ -46,16 +46,16 @@
               <input type="radio" name="rate" id="r1" value="1"><label for="r1" title="1 csillag"><span class="vh">1 csillag</span></label>
             </div>
           </fieldset>
-          <label class="full">A véleményed<textarea id="rvBody" rows="6" required minlength="10" maxlength="800" placeholder="Mit végeztünk, és milyen volt az élmény? Mi tetszett?"></textarea></label>
+          <label class="full">A véleményed<textarea id="rvBody" rows="6" required minlength="10" maxlength="800" placeholder="Milyen munkát végeztem, és hogy voltál vele elégedett?"></textarea></label>
           <label class="hp" aria-hidden="true">Ne töltsd ki<input id="rvWeb" tabindex="-1" autocomplete="off"></label>
-          <label class="chk full"><input type="checkbox" id="rvOk" required><span>Hozzájárulok, hogy a nevemet, a településemet és a véleményemet a jóváhagyás után megjelenítsék az oldalon. <a href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató</a></span></label>
+          <label class="chk full"><input type="checkbox" id="rvOk" required><span>Hozzájárulok, hogy a nevemet, a településemet és a véleményemet a jóváhagyás után megjelenítse az oldalon. <a href="adatkezeles.html" target="_blank" rel="noopener">Adatkezelési tájékoztató</a></span></label>
         </div>
         <div class="q-actions"><button class="btn gold" type="submit" id="rvSend">Vélemény elküldése</button><div id="rvStatus" role="status"></div></div>
       </form>
 
       <div class="done" id="rvDone" hidden tabindex="-1">
-        <h3>Köszönjük!</h3>
-        <p>Megkaptuk a véleményedet. Átnézzük, és jóváhagyás után megjelenik az oldalon.</p>
+        <h3>Köszönöm!</h3>
+        <p data-edit="done">Megkaptam a véleményedet. Átnézem, és utána megjelenik az oldalon.</p>
         <a class="btn" href="index.html">Vissza a főoldalra</a>
       </div>
     </div>
@@ -64,11 +64,12 @@
 
 <footer class="site">
   <a class="brand" href="index.html">PLAN<i><b></b><b></b><b></b></i>RVO</a>
-  <em data-t="footer_text"></em>
+  <em data-t="footer_text">PLANERVO – festő Üllőn és környékén</em>
   <nav aria-label="Lábléc"><a href="index.html">Főoldal</a><a href="adatkezeles.html">Adatkezelés</a><a href="impresszum.html">Impresszum</a><a href="sutik.html">Sütik</a></nav>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <script src="assets/shared.js"></script>
 <script src="assets/review.js"></script>
 </body>

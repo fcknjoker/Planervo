@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="only light">
+<meta name="robots" content="noindex, nofollow">
+<title>PLANERVO admin</title>
+<link rel="icon" href="logo.png">
+<link rel="preload" href="assets/fonts/jost-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/fonts/fonts.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
+<link rel="stylesheet" href="assets/admin.css">
+</head>
+<body>
+
+<div id="login" class="login" hidden>
+  <form id="loginForm" class="login-card">
+    <span class="brand">PLAN<i><b></b><b></b><b></b></i>RVO</span>
+    <h1>Admin belépés</h1>
+    <label>E-mail-cím<input id="lEmail" type="email" autocomplete="username" required></label>
+    <label>Jelszó<input id="lPass" type="password" autocomplete="current-password" required></label>
+    <button class="btn" type="submit">Belépés</button>
+    <button type="button" class="link" id="forgot">Elfelejtettem a jelszót</button>
+    <p class="lmsg" id="lMsg" role="status"></p>
+  </form>
+  <form id="resetForm" class="login-card" hidden>
+    <span class="brand">PLAN<i><b></b><b></b><b></b></i>RVO</span>
+    <h1>Új jelszó</h1>
+    <label>Új jelszó (legalább 8 karakter)<input id="rPass" type="password" autocomplete="new-password" minlength="8" required></label>
+    <button class="btn" type="submit">Jelszó mentése</button>
+    <p class="lmsg" id="rMsg" role="status"></p>
+  </form>
+</div>
+
+<div id="app" class="app" hidden>
+  <aside class="side">
+    <span class="brand">PLAN<i><b></b><b></b><b></b></i>RVO</span>
+    <nav id="nav" aria-label="Admin menü"></nav>
+    <div class="side-foot">
+      <small id="who"></small>
+      <a href="index.html" target="_blank" rel="noopener">Weboldal megnyitása</a>
+      <button type="button" class="link" id="logout">Kilépés</button>
+    </div>
+  </aside>
+  <main id="view" class="view"></main>
+</div>
+
+<dialog id="dlg" class="dlg"><div id="dlgBody"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+<script src="assets/shared.js"></script>
+<script src="assets/arlista.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>
