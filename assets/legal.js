@@ -1,21 +1,17 @@
 /* PLANERVO – jogi oldalak (adatkezelés, impresszum, sütik)
-   A szöveg sablon; a cégadatokat az admin „Oldal szövegei / Jogi adatok” mezőiből tölti.
-   Ami hiányzik, azt kiemelve jelöli, hogy kitöltés nélkül ne maradhasson észrevétlen.
-   A sablon nem helyettesíti a jogi tanácsadást: élesítés előtt érdemes ügyvéddel átnézetni. */
+   Sablon: a cégadatokat az admin „Főoldal szövegei / Jogi adatok” mezőiből tölti, a hiányzót kiemelve jelöli.
+   Az admin „Aloldalak szövegei” menüjében mentett saját szöveg felülírja; „?alap=1” mellett mindig a sablon látszik. */
 (async function () {
-  const main = document.getElementById('legalMain');
+  const box = document.getElementById('legalMain');
   const page = document.body.dataset.legal;
-  let TX = { ...TEXT_DEFAULTS };
-  try { TX = await loadTexts(); } catch (e) { /* alapértelmezett szövegek */ }
-  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = TX[el.dataset.t] || ''; });
+  const TX = await loadTextsSafe();
+  applyDataTexts(TX);
 
   const miss = label => `<mark class="miss">[${esc(label)}: hiányzik]</mark>`;
   const val = (k, label) => TX[k] ? esc(TX[k]) : miss(label);
   const email = TX.legal_email || TX.email || '';
   const mail = email ? `<a href="mailto:${esc(email)}">${esc(email)}</a>` : miss('E-mail-cím');
-  const phone = TX.phone ? esc(TX.phone) : '';
   const hosting = val('legal_hosting', 'Tárhelyszolgáltató');
-
   const dl = rows => `<dl class="facts">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
   const controller = dl([
     ['Név', val('legal_name', 'Vállalkozó vagy cég neve')],
@@ -23,12 +19,12 @@
     ['Adószám', val('legal_tax', 'Adószám')],
     ['Nyilvántartási szám', val('legal_reg', 'Nyilvántartási szám')],
     ['E-mail', mail],
-    ...(phone ? [['Telefon', phone]] : [])
+    ...(TX.phone ? [['Telefon', esc(TX.phone)]] : [])
   ]);
 
   const PAGES = {
     privacy: {
-      title: 'Adatkezelési tájékoztató',
+      key: 'adatkezeles', title: 'Adatkezelési tájékoztató',
       html: () => `
         <p class="lead">Ez a tájékoztató azt írja le, milyen személyes adatot kezelek, ha árajánlatot kérsz tőlem vagy véleményt írsz, mire használom, meddig őrzöm, és milyen jogaid vannak.</p>
         <h2>1. Az adatkezelő</h2>${controller}
@@ -55,21 +51,22 @@
         <p class="muted">Hatály: ${TX.legal_updated ? esc(TX.legal_updated) : miss('Hatálybalépés dátuma')}</p>`
     },
     imprint: {
-      title: 'Impresszum',
+      key: 'impresszum', title: 'Impresszum',
       html: () => `
         <p class="lead">Az oldal üzemeltetőjének adatai.</p>
         <h2>Üzemeltető</h2>${controller}
-        <h2>Tevékenység</h2><p>Szobafestés, glettelés, falfelújítás, gépi nemesvakolat szórás, és homlokzatfestés.${TX.area ? ' Munkaterület: ' + esc(TX.area) + '.' : ''}</p>
+        <h2>Tevékenység</h2><p>Szobafestés, glettelés, falfelújítás, gépi nemesvakolat szórás és homlokzatfestés.${TX.area ? ' Munkaterület: ' + esc(TX.area) + '.' : ''}</p>
         <h2>Tárhelyszolgáltató</h2><p>${hosting}</p>
         <h2>Panaszkezelés</h2><p>Észrevételeidet vagy panaszodat küldd erre a címre: ${mail}.</p>`
     },
     cookies: {
-      title: 'Sütik és tárolt adatok',
+      key: 'sutik', title: 'Sütik és tárolt adatok',
       html: () => `
         <p class="lead">Az oldal <b>nem használ követő vagy hirdetési sütiket</b>, és nem épít be marketing- vagy hirdetési szolgáltatásokat.</p>
         <h2>Mi kerül a böngésződbe</h2>
         <ul><li><b>pv-cookie</b> (a böngésző helyi tárhelye): azt jegyzi meg, hogy bezártad a süti-tájékoztatót, hogy ne jelenjen meg újra.</li>
         <li><b>pv-banner</b> (munkamenet-tárhely): azt jegyzi meg, hogy bezártál egy közleményt, a böngészőablak bezárásáig.</li>
+        <li><b>pv-review</b> (a böngésző helyi tárhelye): a vélemény beküldésének időpontja, hogy egy percen belül ne lehessen kétszer elküldeni.</li>
         <li><b>Az admin felület munkamenete:</b> csak az üzemeltető belépésekor jön létre, látogatóknál nem.</li></ul>
         <p>Ezek az oldal működéséhez szükségesek, nem tartalmaznak személyes azonosítót, és nem adom át őket senkinek.</p>
         <h2>Harmadik felek tartalmai</h2>
@@ -80,11 +77,11 @@
   };
 
   const p = PAGES[page] || PAGES.privacy;
-  /* az admin „Aloldalak szövegei” menüjében mentett saját szöveg felülírja a sablont */
-  const key = { privacy: 'adatkezeles', imprint: 'impresszum', cookies: 'sutik' }[page] || 'adatkezeles';
-  const own = ((TX.pages || {})[key]) || {};
+  const template = new URLSearchParams(location.search).has('alap');
+  const own = template ? {} : ((TX.pages || {})[p.key] || {});
   const h1 = own.h1 || p.title;
   document.title = own.title || `${h1} – ${TX.legal_name || 'PLANERVO'}`;
-  if (own.desc) { const md = document.querySelector('meta[name="description"]'); if (md) md.content = own.desc; }
-  main.innerHTML = `<div class="wrap blog-top post-body legal"><a class="back" href="index.html">Vissza a főoldalra</a><h1>${esc(h1)}</h1>${own.body ? sanitize(own.body) : p.html()}</div>`;
+  if (own.desc) setMeta('name', 'description', own.desc);
+  box.innerHTML = `<a class="back" href="./">Vissza a főoldalra</a><h1>${esc(h1)}</h1>${own.body ? sanitize(own.body) : p.html()}`;
+  box.dataset.ready = '1';
 })();

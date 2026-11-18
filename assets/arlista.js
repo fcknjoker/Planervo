@@ -1,13 +1,6 @@
-/* =====================================================================
-   PLANERVO – betölthető alap árlista (csak munkadíj, anyagdíj nélkül)
-   Forrás: kissfestes.hu/szobafestes_arak.html, 2026. január 1-jétől érvényes árak.
-   Az admin „Munkafolyamatok és díjak” menüjében az „Árlista betöltése” gombbal
-   kerül az adatbázisba; utána ott szerkeszthető, elrejthető, törölhető.
-   Sor: [kategória, megnevezés, mértékegység, munkadíj (Ft), megjegyzés]
-   Mértékegységek: lásd UNITS a shared.js-ben.
-   ===================================================================== */
+/* PLANERVO – betölthető alap árlista (csak munkadíj). Admin → Árak és munkafolyamatok → „Árlista betöltése”.
+   Sor: [kategória, megnevezés, mértékegység (UNITS a shared.js-ben), munkadíj Ft-ban, megjegyzés] */
 const PRICE_LIST = [
-  // ---- Alapmunkák ----
   ['Alapmunkák', 'Padló takarása fóliával, szegélyek maszkolása krepp szalaggal', 'floor', 550],
   ['Alapmunkák', 'Laminált padló takarása fóliával, szenzitív krepp szalaggal', 'floor', 550],
   ['Alapmunkák', 'Padló és bútorok takarása fóliával, maszkolás', 'floor', 850],
@@ -37,7 +30,6 @@ const PRICE_LIST = [
   ['Alapmunkák', 'Villanyszerelési kötődobozok elfedése', 'piece', 500],
   ['Alapmunkák', 'Szerelvénydoboz vakolófedél elhelyezése', 'piece', 150],
 
-  // ---- Festési munkák ----
   ['Festési munkák', 'Festés két rétegben, fehér színben', 'surface', 1650],
   ['Festési munkák', 'Festés három rétegben, fehér színben', 'surface', 2300],
   ['Festési munkák', 'Festés két rétegben, helyszínen színezett festékkel', 'surface', 1850],
@@ -55,7 +47,6 @@ const PRICE_LIST = [
   ['Festési munkák', 'Homlokzatfestés két rétegben (durva felületen)', 'sqm', 5000],
   ['Festési munkák', 'Színhatár képzése', 'meter', 450],
 
-  // ---- Mázolási munkák ----
   ['Mázolási munkák', 'Új fa nyílászáró mázolása vizes bázisú rendszerrel', 'sqm', 10900],
   ['Mázolási munkák', 'Régi fa nyílászáró mázolása vizes bázisú rendszerrel', 'sqm', 10900],
   ['Mázolási munkák', 'Nyílászárók égetése', 'sqm', 10000],
@@ -69,7 +60,6 @@ const PRICE_LIST = [
   ['Mázolási munkák', 'Lazúrozás 1 rétegben', 'sqm', 3000],
   ['Mázolási munkák', 'Lakkozás felújítása 1 rétegben', 'sqm', 3000],
 
-  // ---- Tapétázási munkák ----
   ['Tapétázási munkák', 'Makulatúra ragasztása', 'surface', 1500],
   ['Tapétázási munkák', 'Makulatúra csíkragasztása', 'meter', 1000],
   ['Tapétázási munkák', 'Folyékony makulatúra felhordása', 'surface', 1000],
@@ -83,7 +73,6 @@ const PRICE_LIST = [
   ['Tapétázási munkák', 'Üvegszálas tapéta ragasztása', 'surface', 3500],
   ['Tapétázási munkák', 'Bordűr felragasztása', 'meter', 1200],
 
-  // ---- Gipszkartonozás ----
   ['Gipszkartonozás', 'Gipszkarton válaszfal építése, 2×1 réteg', 'sqm', 6000, '100 m² felett'],
   ['Gipszkartonozás', 'Gipszkarton válaszfal építése, 2×2 réteg', 'sqm', 7000, '100 m² felett'],
   ['Gipszkartonozás', 'Gipszkarton válaszfal, egyik oldalt 1, másik oldalt 2 réteg', 'sqm', 6500, '100 m² felett'],
@@ -104,7 +93,6 @@ const PRICE_LIST = [
   ['Gipszkartonozás', 'Gipszkarton ragasztása (szárazvakolat)', 'sqm', 2500],
   ['Gipszkartonozás', 'Íves fal készítése', 'sqm', 25000],
 
-  // ---- Egyéb munkák ----
   ['Egyéb munkák', 'Polisztirol díszléc ragasztása (50 mm-ig)', 'meter', 1000],
   ['Egyéb munkák', 'Polisztirol díszléc ragasztása tetőtérben / tagolt felületen', 'meter', 1200],
   ['Egyéb munkák', 'Polisztirol díszléc ragasztása (55–110 mm)', 'meter', 1400],

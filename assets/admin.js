@@ -7,7 +7,7 @@
     const t = $('#toast'); t.textContent = m; t.className = err ? 'show err' : 'show';
     clearTimeout(t._t); t._t = setTimeout(() => { t.className = ''; }, err ? 6000 : 3000);
   }
-  const errBox = e => `<div class="errbox">Hiba történt: ${esc(e.message || e)}. Ha az adatbázis még nincs beállítva, futtasd a supabase/schema.sql fájlt.</div>`;
+  const errBox = e => `<div class="errbox">Hiba történt: ${esc(e.message || e)}. Ha ez egy új funkció, futtasd le a hozzá tartozó fájlt a supabase mappából (Supabase → SQL Editor).</div>`;
 
   const STATUS = { new: 'Új', in_progress: 'Folyamatban', scheduled: 'Időpont megbeszélve', sent: 'Ajánlat elküldve', won: 'Elfogadva', closed: 'Lezárva' };
 
@@ -26,7 +26,6 @@
         { k: 'price_ceiling', l: 'Mennyezet munkadíja (Ft / m²), ha eltér a faltól', t: 'number', hint: 'Csak a „fal és/vagy mennyezet” és a „csak mennyezet” tételeknél számít. Üresen hagyva a fenti munkadíj érvényes a mennyezetre is.' },
         { k: 'description', l: 'Rövid megjegyzés az ügyfélnek', ph: 'pl. Irányár, a pontos ár felmérés után' }
       ],
-      // az új mezőt csak akkor küldjük, ha van értéke vagy az adatbázis már ismeri (lásd supabase/2026-11-arlista.sql)
       beforeSave: (o, cur) => { if (o.price_ceiling == null && !('price_ceiling' in cur)) delete o.price_ceiling; return null; },
       title: r => r.name,
       sub: r => {
@@ -65,7 +64,7 @@
       help: 'Két kép ugyanarról a helyről. A látogató csúszkával hasonlítja össze őket. Ugyanolyan képarányú fotók mutatnak a legjobban.',
       empty: 'Még nincs előtte–utána pár. Ha üres, a szakasz nem jelenik meg.',
       fields: [
-        { k: 'title', l: 'Cím', ph: 'pl. Nappali felújítás, Budaörs' },
+        { k: 'title', l: 'Cím', ph: 'pl. Nappali felújítás, Üllő' },
         { k: 'before_url', l: 'Előtte kép', t: 'image', req: 1, folder: 'elotte-utana' },
         { k: 'after_url', l: 'Utána kép', t: 'image', req: 1, folder: 'elotte-utana' }
       ],
@@ -86,7 +85,7 @@
     },
     gallery: {
       label: 'Galéria', single: 'kép', addLabel: 'Egy kép hozzáadása', multi: true,
-      help: 'Egyszerre több képet is feltölthetsz; a felső választóval előre kiválaszthatod az albumot, amelybe kerülnek. A sorrendet a nyilakkal állíthatod, a képaláírás a kép fölé húzott egérrel látszik. A főoldalon a Beállítások → Galéria résznél dől el, hogy az albumok vagy a külön képek látszanak.',
+      help: 'Egyszerre több képet is feltölthetsz; a felső választóval előre kiválaszthatod az albumot, amelybe kerülnek. A sorrendet a nyilakkal állíthatod, a képaláírás a kép fölé húzott egérrel látszik. A „Főoldal szövegei” menü Galéria csoportjában dől el, hogy az albumok vagy a külön képek látszanak.',
       empty: 'Még nincs kép a galériában. Tölts fel néhányat a „Több kép feltöltése” gombbal.',
       fields: [{ k: 'image_url', l: 'Kép', t: 'image', req: 1, folder: 'galeria' }, { k: 'caption', l: 'Képaláírás' }, { k: 'album_id', l: 'Album (opcionális)', t: 'select', o: [['', '— nincs album —']] }],
       thumb: 'image_url', title: r => r.caption || 'Kép aláírás nélkül',
@@ -104,8 +103,8 @@
       thumb: 'cover_url', title: r => r.title, sub: r => 'Képek száma: ' + (ALBUM_COUNT[r.id] || 0)
     },
     process_steps: {
-      label: 'Hogyan dolgozunk', single: 'lépés', addLabel: 'Új lépés',
-      help: 'A főoldali „Hogyan dolgozunk” szakasz lépései, a megadott sorrendben (a nyilakkal rendezheted). Érdemes 3–6 lépést megadni, mindegyikhez egy-két mondatot.',
+      label: 'Hogyan dolgozom', single: 'lépés', addLabel: 'Új lépés',
+      help: 'A főoldali „Hogyan dolgozom” szakasz lépései, a megadott sorrendben (a nyilakkal rendezheted). Érdemes 3–6 lépést megadni, mindegyikhez egy-két mondatot.',
       empty: 'Még nincs lépés. Ha üres, a szakasz nem jelenik meg a főoldalon.',
       fields: [{ k: 'title', l: 'Lépés neve', req: 1, ph: 'pl. Felmérés' }, { k: 'body', l: 'Leírás', t: 'textarea' }],
       title: r => r.title, sub: r => r.body
@@ -172,16 +171,15 @@
     }
   };
 
-  /* Menücsoportok: a címek a lista fölött, a sorrend a munkamenetet követi (napi feladat → beállítás → tartalom → rendszer) */
+  /* ---------- Menü ---------- */
   const NAV_GROUPS = [
     { t: 'Napi munka', items: [['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések']] },
-    { t: 'Oldalak', items: [['layout', 'Megjelenés'], ['texts', 'Főoldal szövegei'], ['pages', 'Aloldalak szövegei'], ['sections', 'Saját ablakok']] },
+    { t: 'Oldalak', items: [['layout', 'Megjelenés'], ['float', 'Lebegő kártya'], ['texts', 'Főoldal szövegei'], ['pages', 'Aloldalak szövegei'], ['sections', 'Saját ablakok']] },
     { t: 'Tartalom', items: [['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozom'], ['faqs', 'Gyakori kérdések'], ['testimonials', 'Vélemények'], ['work_items', 'Árak és munkafolyamatok']] },
-    { t: 'Munkáink', items: [['before_after', 'Előtte–utána'], ['gallery', 'Galéria és albumok']] },
+    { t: 'Munkáim', items: [['before_after', 'Előtte–utána'], ['gallery', 'Galéria és albumok']] },
     { t: 'Média', items: [['videos', 'Videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']] },
     { t: 'Eszközök', items: [['seo', 'SEO-ellenőrző'], ['backup', 'Mentés és visszaállítás']] }
   ];
-  /* menüben nem szereplő, de elérhető nézetek → melyik menüpont legyen kiemelve */
   const NAV_ALIAS = { gallery_albums: 'gallery' };
   const NAV = [...NAV_GROUPS.flatMap(g => g.items), ...Object.keys(NAV_ALIAS).map(k => [k, ''])];
   $('#nav').innerHTML = NAV_GROUPS.map(g => `<div class="nav-g"><span class="nav-h">${esc(g.t)}</span>${g.items.map(([k, l]) => `<button type="button" data-v="${k}"><span>${l}</span>${k === 'quotes' ? '<span class="badge" id="qBadge" hidden></span>' : ''}</button>`).join('')}</div>`).join('');
@@ -215,7 +213,7 @@
     const { data: ok, error } = await sb.rpc('is_admin');
     if (error || !ok) {
       await sb.auth.signOut(); showLogin();
-      lmsg('#lMsg', error ? 'Az adatbázis nincs beállítva. Futtasd a supabase/schema.sql fájlt.' : 'Ez a fiók nem admin. Vedd fel az e-mail-címét az admins táblába.', true);
+      lmsg('#lMsg', error ? 'Az adatbázis nincs beállítva (hiányzik az is_admin függvény).' : 'Ez a fiók nem admin. Vedd fel az e-mail-címét az admins táblába.', true);
       return;
     }
     const { data: { user } } = await sb.auth.getUser();
@@ -233,7 +231,7 @@
     $$('#nav button').forEach(b => { if (b.dataset.v === navKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'float') showFloat(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -387,7 +385,7 @@
   }
 
   /* ---------- Általános listanézet ---------- */
-  let ROWS = [], CUR = null, OPEN_NEW = null;   // OPEN_NEW: az Áttekintés gyorsgombja után az adott lista új-elem szerkesztője nyíljon meg
+  let ROWS = [], CUR = null, OPEN_NEW = null;
   let ALBUMS = [], ALBUM_COUNT = {};
   async function loadAlbums() {
     const [a, g] = await Promise.all([
@@ -462,7 +460,7 @@
         const n = (d && d.items || []).length;
         msg(n ? `Rendben: ${n} videót találtam${d.title ? ` („${d.title}”)` : ''}. Az első: „${d.items[0].title}”.` : 'A forrás elérhető, de nincs benne nyilvános videó.', !n);
       } catch (x) {
-        msg(`Nem sikerült lekérni a videókat: ${x.message} Ha a youtube-feed függvény még nincs telepítve a Supabase-ben, a README leírja, hogyan kell.`, true);
+        msg(`Nem sikerült lekérni a videókat: ${x.message} Ha a youtube-feed függvény még nincs telepítve a Supabase-ben, a README.md leírja, hogyan kell.`, true);
       }
     };
     box.onsubmit = async e => {
@@ -627,7 +625,7 @@
     });
   }
 
-  /* ---------- Oldal szövegei ---------- */
+  /* ---------- Főoldal szövegei ---------- */
   async function showTexts() {
     CUR = 'texts';
     view.innerHTML = `<header class="vh"><div><h1>Főoldal szövegei</h1><p class="help">A főoldal címei, bevezetői, elérhetőségei és a logó. Üresen hagyott bevezető nem jelenik meg.</p></div></header>
@@ -688,7 +686,7 @@
     } catch (e) { /* nincs alapérték */ }
     if (key === 'blog') { d.h1 = d.h1 || TX0.blog_title || 'Blog'; d.lead = d.lead || TX0.blog_text || ''; }
     if (LEGAL_KEYS.includes(key)) {
-      const h = await grabRendered(key + '.html?alap=1', '#legalMain .legal');
+      const h = await grabRendered(key + '.html?alap=1', '#legalMain[data-ready]');
       const box = document.createElement('div'); box.innerHTML = h;
       const h1 = box.querySelector('h1'); d.h1 = h1 ? h1.textContent.trim() : '';
       box.querySelectorAll('a.back, h1').forEach(x => x.remove());
@@ -765,7 +763,7 @@
   }
 
   /* ---------- Árajánlat-kérések ---------- */
-  let QUOTES = [], qFilter = 'all';
+  let QUOTES = [], qFilter = 'all', qSearch = '';
   async function refreshBadge() {
     const { count } = await sb.from('quotes').select('id', { count: 'exact', head: true }).eq('status', 'new');
     const b = $('#qBadge'); if (!b) return;
@@ -794,7 +792,7 @@
     $('#qList').innerHTML = list.length ? list.map(q => `<button type="button" class="qrow" data-id="${q.id}">
         <span class="st st-${q.status}">${STATUS[q.status] || q.status}</span>
         <b>${esc(q.name)}</b><span>${esc(q.city)}</span><span>${(q.rooms || []).length} helyiség</span>
-        <span class="num">${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? fmtInt0(q.estimate_min) + '–' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</span><time>${q.appointment_at ? '📅 ' + new Date(q.appointment_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
+        <span class="num">${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? fmtInt(q.estimate_min) + '–' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</span><time>${q.appointment_at ? '📅 ' + new Date(q.appointment_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
       : `<div class="emptybox"><p>${QUOTES.length ? 'Nincs a szűrésnek megfelelő árajánlat-kérés.' : 'Még nem érkezett árajánlat-kérés. Amint valaki kitölti az űrlapot a weboldalon, itt jelenik meg.'}</p></div>`;
     $('#qList').onclick = e => { const b = e.target.closest('.qrow'); if (b) openQuote(b.dataset.id); };
   }
@@ -824,9 +822,9 @@
           ${(r.images || []).length ? `<div class="qd-imgs">${r.images.map((p, j) => urls[p] ? `<a href="${urls[p]}" target="_blank" rel="noopener"><img src="${urls[p]}" alt="${j + 1}. fotó"></a>` : '').join('')}</div>` : ''}
         </div>`).join('')}
         ${q.discount && q.discount.amount ? `<div class="qd-promo">${esc(q.discount.label || 'Akció')} (−${esc(q.discount.pct)}%): −${fmtFt(q.discount.amount)}</div>` : ''}
-        <div class="qd-total">Becsült munkadíj összesen:<strong>${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? 'kb. ' + fmtInt0(q.estimate_min) + ' – ' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</strong>${q.estimate_min && +q.estimate_min !== +q.estimate_max ? `<small class="muted"> középérték: ${fmtFt(q.estimate)}</small>` : ''}</div>
+        <div class="qd-total">Becsült munkadíj összesen:<strong>${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? 'kb. ' + fmtInt(q.estimate_min) + ' – ' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</strong>${q.estimate_min && +q.estimate_min !== +q.estimate_max ? `<small class="muted"> középérték: ${fmtFt(q.estimate)}</small>` : ''}</div>
         <div class="qd-appt"><b>Felmérés időpontja</b>
-          <div class="qd-appt-row"><label>Időpont<input type="datetime-local" id="qApptAt" value="${q.appointment_at ? toLocalInput(q.appointment_at) : ''}"></label>
+          <div class="qd-appt-row"><label>Időpont<input type="datetime-local" id="qApptAt" value="${q.appointment_at ? toLocal(q.appointment_at) : ''}"></label>
             <label>Megjegyzés (cím, kapucsengő, parkolás)<input type="text" id="qApptNote" maxlength="200" value="${esc(q.appointment_note)}"></label></div>
           <div class="vs-act"><button type="button" class="btn o sm" id="qIcs">Naptárfájl (.ics)</button><a class="btn o sm" id="qGcal" target="_blank" rel="noopener" href="#">Google Naptár</a><span class="vs-msg" id="qApptMsg" role="status"></span></div></div>
         <div class="qd-manage">
@@ -877,9 +875,7 @@
   }
 
   /* ---------- Időpontok: naptárfájl, formázás ---------- */
-  const fmtInt0 = n => Math.round(+n || 0).toLocaleString('hu-HU');
   const slotLabel = sl => (sl.date ? new Date(sl.date + 'T12:00:00').toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }) : '') + (sl.part ? ', ' + sl.part : '');
-  const toLocalInput = v => { const d = new Date(v); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   const icsDate = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
   const icsText = t => String(t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
   function buildIcs(a) {
@@ -908,13 +904,12 @@
     a.download = name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
-  const todayStr = () => new Date().toISOString().slice(0, 10);
 
   /* ---------- Áttekintés ---------- */
   async function showOverview() {
     CUR = 'overview';
     view.innerHTML = `<header class="vh"><div><h1>Áttekintés</h1><p class="help">Egy pillantás az oldalad állapotára. Kattints egy csempére, és a megfelelő szerkesztőre ugrasz.</p></div>
-      <div class="vh-act"><a class="btn o" href="index.html" target="_blank" rel="noopener">Weboldal megnyitása</a></div></header>
+      <div class="vh-act"><a class="btn o" href="./" target="_blank" rel="noopener">Weboldal megnyitása</a></div></header>
       <div class="quick" id="quick" aria-label="Gyorsműveletek">
         <a class="btn gold sm" href="#quotes">Árajánlat-kérések</a>
         <a class="btn o sm" href="#gallery">Képek feltöltése</a>
@@ -955,7 +950,7 @@
     $('#ovQuotes').innerHTML = rows.length ? rows.map(q => `<a class="qrow" href="#quotes"><span class="st st-${q.status}">${STATUS[q.status] || q.status}</span><b>${esc(q.name)}</b><span>${esc(q.city)}</span><span></span><span class="num">${fmtFt(q.estimate)}</span><time>${new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></a>`).join('')
       : '<div class="emptybox"><p>Még nem érkezett árajánlat-kérés.</p></div>';
     const tx = { ...TEXT_DEFAULTS, ...((txr && txr.data && txr.data.value) || {}) }, todo = [];
-    if (tx.phone === TEXT_DEFAULTS.phone) todo.push(['texts', 'A telefonszám még a minta: írd át az „Oldal szövegei” menüben.']);
+    if (!tx.phone || tx.phone.replace(/\s/g, '') === OLD_SAMPLE_PHONE) todo.push(['texts', 'A telefonszám hiányzik vagy még a minta: írd át a „Főoldal szövegei” menüben.']);
     if (work === 0) todo.push(['work_items', 'Nincs munkafolyamat az árajánlatkérőben: töltsd be az árlistát.']);
     if ((tx.video_source || 'channel') !== 'manual' && !(tx.video_source === 'playlist' ? tx.youtube_playlist : tx.youtube_url) && !vid) todo.push(['videos', 'A videós ablak üres: add meg a YouTube-csatornádat vagy egy lejátszási listát.']);
     if (svc === 0) todo.push(['services', 'Nincs szolgáltatás felvéve, ezért az alapértelmezettek látszanak.']);
@@ -963,12 +958,12 @@
     if (qNew > 0) todo.push(['quotes', `${qNew} új árajánlat-kérés vár válaszra.`]);
     if (tstWait > 0) todo.push(['testimonials', `${tstWait} új vélemény vár jóváhagyásra.`]);
     if (!tx.legal_name || !tx.legal_seat) todo.push(['texts', 'A jogi adatok (név, székhely, adószám) hiányosak: az adatkezelési tájékoztató és az impresszum ezektől teljes.']);
-    if (!tx.site_url) todo.push(['texts', 'Add meg az oldal webcímét („Keresők (SEO)” csoport), hogy a keresők megtalálják és jól jelenítsék meg.']);
+    if (siteBase(tx) !== SITE_URL) todo.push(['texts', 'Add meg az oldal webcímét („Keresők (SEO)” csoport), hogy a keresők megtalálják és jól jelenítsék meg.']);
     $('#todo').innerHTML = todo.length ? todo.map(([k, t]) => `<li><a href="#${k}">${esc(t)}</a></li>`).join('') : '<li class="ok">Minden rendben, nincs teendő.</li>';
   }
 
   /* ---------- Megjelenés és elrendezés ---------- */
-  let LY = {}, lyDirty = false, lyTimer = 0;
+  let LY = {}, lyDirty = false;
   const lyBase = LAYOUT_GROUPS.map(x => x[0]);
   const lyGet = (path) => path.split('.').reduce((o, k) => o == null ? undefined : o[k], LY);
   function lySet(path, val) {
@@ -999,14 +994,7 @@
     }).join('');
   }
 
-  function lyPreview() {
-    lyDirty = true;
-    clearTimeout(lyTimer);
-    lyTimer = setTimeout(() => {
-      const f = $('#lyFrame');
-      if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'planervo-layout', layout: JSON.parse(JSON.stringify(LY)) }, location.origin);
-    }, 120);
-  }
+  function lyPreview() { lyDirty = true; }
 
   function lyBuild() {
     const card = (key, c) => {
@@ -1040,7 +1028,7 @@
         <p class="muted">Például ünnepi nyitvatartás, akció vagy szabad időpontok. A látogató bezárhatja.</p><div class="lygrid">
         <label class="lyf chk"><input type="checkbox" data-p="banner.on"${b.on ? ' checked' : ''}><span>Közlemény mutatása</span></label>
         ${lyField('Színe', lySel('banner.tone', LAYOUT_BANNER_TONES, b.tone || 'gold'))}
-        ${lyField('Szöveg', `<input type="text" data-p="banner.text" maxlength="200" value="${esc(b.text)}" placeholder="pl. Karácsonykor december 23-tól január 2-ig szünetelünk.">`)}
+        ${lyField('Szöveg', `<input type="text" data-p="banner.text" maxlength="200" value="${esc(b.text)}" placeholder="pl. Karácsonykor december 23-tól január 2-ig szünetelek.">`)}
         ${lyField('Link szövege (opcionális)', `<input type="text" data-p="banner.link_text" maxlength="40" value="${esc(b.link_text)}" placeholder="pl. Részletek">`)}
         ${lyField('Link címe (opcionális)', `<input type="text" data-p="banner.url" maxlength="300" value="${esc(b.url)}" placeholder="#arajanlat vagy https://…">`)}</div></fieldset>
       <fieldset class="card"><legend>Keresők és megosztás</legend>
@@ -1053,19 +1041,15 @@
 
   async function showLayout() {
     CUR = 'layout';
-    view.innerHTML = `<header class="vh"><div><h1>Megjelenés és elrendezés</h1><p class="help">Itt állítod be, hogyan nézzen ki a főoldal: milyen sorrendben jönnek a szakaszok, a kártyák lefelé vagy oldalra lapozva jelennek-e meg, mekkorák legyenek, milyen színűek. A jobb oldali előnézet mentés előtt is mutatja a változást.</p></div>
+    view.innerHTML = `<header class="vh"><div><h1>Megjelenés és elrendezés</h1><p class="help">Itt állítod be, hogyan nézzen ki a főoldal: milyen sorrendben jönnek a szakaszok, a kártyák lefelé vagy oldalra lapozva jelennek-e meg, mekkorák legyenek, milyen színűek. A változás a Mentés után jelenik meg a főoldalon.</p></div>
       <div class="vh-act"><button type="button" class="btn o" id="lyReset">Alapértelmezés</button><button type="button" class="btn" id="lySave">Mentés</button></div></header>
-      <div class="ly"><form id="lyForm" class="ly-form" novalidate><p class="muted">Betöltés…</p></form>
-        <aside class="ly-prev"><div class="ly-bar" role="group" aria-label="Előnézet mérete">
-          <button type="button" class="btn sm o" data-w="100%" aria-pressed="true">Asztali</button><button type="button" class="btn sm o" data-w="768px" aria-pressed="false">Tablet</button><button type="button" class="btn sm o" data-w="390px" aria-pressed="false">Telefon</button>
-          <a class="link" href="index.html" target="_blank" rel="noopener">Megnyitás új lapon</a></div>
-          <div class="ly-frame"><iframe id="lyFrame" src="index.html" title="A főoldal élő előnézete"></iframe></div></aside></div>`;
+      <div class="ly"><form id="lyForm" class="ly-form" novalidate><p class="muted">Betöltés…</p></form></div>`;
     const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
     if (CUR !== 'layout') return;
     if (error) { $('#lyForm').innerHTML = errBox(error); return; }
     LY = JSON.parse(JSON.stringify(getLayout((data && data.value) || {}))); lyDirty = false;
     lyBuild();
-    const form = $('#lyForm'), frame = $('#lyFrame');
+    const form = $('#lyForm');
     const onInput = e => {
       const t = e.target;
       if (t.dataset.accent !== undefined) {
@@ -1092,24 +1076,20 @@
       if (v.checked) set.delete(g); else set.add(g);
       lySet('hidden', set.size ? [...set] : ''); lyPreview();
     });
-    $$('.ly-bar [data-w]').forEach(b => b.onclick = () => {
-      $$('.ly-bar [data-w]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-      frame.style.width = b.dataset.w;
-    });
     $('#lySitemap').onclick = async () => {
       const msg = (t, err) => { const m = $('#lySmMsg'); m.textContent = t; m.classList.toggle('err', !!err); };
       const { data: st } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
-      const base = String((st && st.value && st.value.site_url) || '').trim().replace(/\/+$/, '');
-      if (!/^https?:\/\/[^\s/]+\.[^\s/]+/.test(base)) return msg('Előbb add meg az oldal webcímét az „Oldal szövegei” menü „Keresők (SEO)” csoportjában, például https://www.planervo.hu', true);
+      const base = siteBase(st && st.value);
+      if (!/^https?:\/\/[^\s/]+\.[^\s/]+/.test(base)) return msg('Az oldal webcíme hibás. Javítsd a „Főoldal szövegei” menü „Keresők (SEO)” csoportjában, például https://planervo.hu', true);
       const { data: posts } = await sb.from('posts').select('slug,updated_at,published_at').eq('published', true).lte('published_at', new Date().toISOString());
-      const day = v => String(v || new Date().toISOString()).slice(0, 10);
-      const urls = [[base + '/', todayStr(), 'weekly', '1.0'], [base + '/blog.html', todayStr(), 'weekly', '0.6']];
-      (posts || []).forEach(p => urls.push([`${base}/blog.html?p=${encodeURIComponent(p.slug)}`, day(p.updated_at || p.published_at), 'monthly', '0.5']));
-      SEO_PAGES.forEach(f => urls.push([`${base}/${f}`, todayStr(), 'monthly', '0.8']));
-      ['adatkezeles.html', 'impresszum.html', 'sutik.html'].forEach(f => urls.push([`${base}/${f}`, todayStr(), 'yearly', '0.2']));
+      const day = v => String(v || '').slice(0, 10);
+      /* lastmod csak ott, ahol valódi dátum van (a bejegyzéseknél) */
+      const urls = [[base + '/'], [base + '/blog.html', day((posts || []).map(p => p.updated_at || p.published_at).sort().pop())]];
+      (posts || []).forEach(p => urls.push([`${base}/blog.html?p=${encodeURIComponent(p.slug)}`, day(p.updated_at || p.published_at)]));
+      SEO_PAGES.forEach(f => urls.push([`${base}/${f}`]));
       const x = u => String(u).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-        urls.map(([l, m, f, p]) => `  <url><loc>${x(l)}</loc><lastmod>${m}</lastmod><changefreq>${f}</changefreq><priority>${p}</priority></url>`).join('\n') + '\n</urlset>\n';
+        urls.map(([l, m]) => `  <url><loc>${x(l)}</loc>${m ? `<lastmod>${m}</lastmod>` : ''}</url>`).join('\n') + '\n</urlset>\n';
       downloadFile('sitemap.xml', xml, 'application/xml'); msg(`Letöltve: ${urls.length} oldal. Töltsd fel a főoldal mellé.`);
     };
     $('#lyReset').onclick = () => {
@@ -1124,11 +1104,56 @@
       lyDirty = false; toast('Elmentve. A főoldalon frissítés után mindenki ezt látja.');
     };
   }
-  addEventListener('message', e => {
-    if (e.origin !== location.origin || !e.data || e.data.type !== 'planervo-ready' || CUR !== 'layout') return;
-    const f = $('#lyFrame'); if (f && e.source === f.contentWindow) f.contentWindow.postMessage({ type: 'planervo-layout', layout: JSON.parse(JSON.stringify(LY)) }, location.origin);
-  });
   addEventListener('beforeunload', e => { if (lyDirty && CUR === 'layout') { e.preventDefault(); e.returnValue = ''; } });
+
+  /* ---------- Lebegő kártya (telefonszám és közösségi ikonok a főoldal jobb szélén) ---------- */
+  async function showFloat() {
+    CUR = 'float';
+    view.innerHTML = `<header class="vh"><div><h1>Lebegő kártya</h1><p class="help">A főoldalon, görgetés közben is a jobb szélen marad egy kis kártya a telefonszámmal és a közösségi ikonokkal. Az ikonra kattintva megnyílik az oldal. A telefonszámot a „Főoldal szövegei” menü „Kapcsolat” csoportjában írhatod át.</p></div>
+      <div class="vh-act"><button type="button" class="btn" id="flSave">Mentés</button></div></header>
+      <div class="ly"><form id="flForm" class="ly-form" novalidate><p class="muted">Betöltés…</p></form></div>`;
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    if (CUR !== 'float') return;
+    const form = $('#flForm');
+    if (error) { form.innerHTML = errBox(error); return; }
+    const tx = (data && data.value) || {}, F = getFloat(tx);
+    const typeOpts = sel => Object.entries(FLOAT_TYPES).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${esc(v.l)}</option>`).join('');
+    const row = l => `<div class="fl-row"><select aria-label="Melyik oldal">${typeOpts(l.t)}</select><input type="text" aria-label="Link" value="${esc(l.u)}" placeholder="https://www.facebook.com/oldalad"><span class="fl-act"><button type="button" class="btn sm o" data-mv="-1" aria-label="Feljebb">↑</button><button type="button" class="btn sm o" data-mv="1" aria-label="Lejjebb">↓</button><button type="button" class="btn sm danger" data-del>Törlés</button></span></div>`;
+    form.innerHTML = `<fieldset class="card"><legend>Kártya</legend>
+        <label class="lyf chk"><input type="checkbox" id="flOn"${F.on ? ' checked' : ''}> Megjelenjen a kártya a főoldalon</label>
+        <label class="lyf chk"><input type="checkbox" id="flPhone"${F.phone ? ' checked' : ''}> Telefonszám is szerepeljen rajta (${esc(tx.phone || TEXT_DEFAULTS.phone)})</label></fieldset>
+      <fieldset class="card"><legend>Közösségi ikonok</legend>
+        <p class="muted">Az ikonok sorrendje megegyezik a kártyán láthatóval. A link legyen teljes webcím (https://…); e-mailnél elég a cím, WhatsAppnál a telefonszám.</p>
+        <div id="flRows" class="fl-rows">${F.links.map(row).join('')}</div>
+        <div><button type="button" class="btn sm o" id="flAdd">+ Ikon hozzáadása</button></div></fieldset>`;
+    const rows = $('#flRows');
+    let dirty = false;
+    const mark = () => { dirty = true; };
+    $('#flAdd').onclick = () => { rows.insertAdjacentHTML('beforeend', row({ t: 'facebook', u: '' })); mark(); const i = rows.querySelectorAll('input'); i[i.length - 1].focus(); };
+    form.onchange = form.oninput = mark;
+    rows.onclick = e => {
+      const r = e.target.closest('.fl-row'); if (!r) return;
+      if (e.target.closest('[data-del]')) { r.remove(); return mark(); }
+      const mv = e.target.closest('[data-mv]'); if (!mv) return;
+      const other = +mv.dataset.mv < 0 ? r.previousElementSibling : r.nextElementSibling;
+      if (!other) return;
+      if (+mv.dataset.mv < 0) rows.insertBefore(r, other); else rows.insertBefore(other, r);
+      mark();
+    };
+    $('#flSave').onclick = async () => {
+      const links = [...rows.querySelectorAll('.fl-row')].map(r => ({ t: r.querySelector('select').value, u: r.querySelector('input').value.trim() })).filter(l => l.u);
+      const bad = links.find(l => !floatHref(l));
+      if (bad) return toast('Ez a link nem érvényes: ' + bad.u + ' (https://-sel kezdődjön)', true);
+      const btn = $('#flSave'); btn.disabled = true;
+      const { error: err } = await mergeTexts({ float: { on: $('#flOn').checked, phone: $('#flPhone').checked, links } });
+      btn.disabled = false;
+      if (err) return toast('A mentés nem sikerült: ' + err.message, true);
+      dirty = false; toast('Elmentve. A főoldalon frissítés után mindenki ezt látja.');
+    };
+    flDirty = () => dirty;
+  }
+  let flDirty = () => false;
+  addEventListener('beforeunload', e => { if (CUR === 'float' && flDirty()) { e.preventDefault(); e.returnValue = ''; } });
 
   /* ---------- SEO-ellenőrző (csak olvas, semmit nem ment) ---------- */
   async function showSeo() {
@@ -1136,7 +1161,7 @@
     const enc = encodeURIComponent('https://planervo.hu/');
     view.innerHTML = `<header class="vh"><div><h1>SEO-ellenőrző</h1><p class="help">Megnézi, mi segíti és mi hátráltatja, hogy a Google-ben rád találjanak, ha festőt keresnek. Zöld: rendben. Sárga: érdemes javítani. Piros: fontos hiány.</p></div></header>
       <ul class="chk-list" id="seoList"><li><span></span><span class="muted">Ellenőrzés…</span></li></ul>
-      <h2 class="sub-h">Helyi keresőoldalak</h2><p class="muted">Ezeket a seo/oldalak.mjs készíti. Megnyitva ellenőrizheted, hogy feltöltötted-e a tárhelyre.</p><div class="seo-links" id="seoPages"></div>
+      <h2 class="sub-h">Helyi keresőoldalak</h2><p class="muted">Ezeket az eszkozok/oldalak.mjs készíti. Megnyitva ellenőrizheted, hogy feltöltötted-e a tárhelyre.</p><div class="seo-links" id="seoPages"></div>
       <h2 class="sub-h">Külső eszközök</h2><div class="seo-links">
         <a class="btn o sm" href="https://business.google.com/" target="_blank" rel="noopener">Google Cégprofil</a>
         <a class="btn o sm" href="https://search.google.com/search-console" target="_blank" rel="noopener">Search Console</a>
@@ -1152,7 +1177,7 @@
       safe(sb.from('gallery').select('caption').eq('visible', true)),
       cnt(sb.from('services')).then(r => r), cnt(sb.from('testimonials')),
       safe(sb.from('posts').select('id', { count: 'exact', head: true }).eq('published', true).gte('published_at', since)),
-      safe(fetch('index.html', { cache: 'no-store' }).then(r => r.text()))
+      safe(fetch('./', { cache: 'no-store' }).then(r => r.text()))
     ]);
     if (CUR !== 'seo') return;
     const tx = { ...TEXT_DEFAULTS, ...((txr && txr.data && txr.data.value) || {}) }, meta = getLayout(tx).meta || {};
@@ -1167,9 +1192,10 @@
       `„${title}” (${title.length} karakter${meta.title ? ', az adminban beállítva' : ''}). Ideális: 30–70 karakter, benne a „festő” szó és Üllő.`, '#layout');
     if (!desc) add('bad', 'A keresőknek szóló leírás hiányzik', 'Ez a két sor jelenik meg a Google-találat alatt.', '#layout');
     else add(desc.length >= 70 && desc.length <= 170 ? 'ok' : 'warn', 'Leírás a keresőknek', `${desc.length} karakter. Ideális: 70–170.`, '#layout');
-    const url = String(tx.site_url || '').trim();
-    add(/^https:\/\/(www\.)?planervo\.hu\/?$/.test(url) ? 'ok' : url ? 'warn' : 'bad', 'Az oldal webcíme', url || 'Nincs megadva (Szövegek → Keresők).', '#texts');
-    add(tx.phone && tx.phone !== TEXT_DEFAULTS.phone ? 'ok' : 'bad', 'Telefonszám', tx.phone && tx.phone !== TEXT_DEFAULTS.phone ? tx.phone : 'Még a minta-szám szerepel. Ugyanaz legyen, mint a Google Cégprofilon.', '#texts');
+    const url = siteBase(tx);
+    add(url === SITE_URL ? 'ok' : 'warn', 'Az oldal webcíme', url === SITE_URL ? url : `${url}: a canonical címek ${SITE_URL} alakúak, ezt add meg (www nélkül).`, '#texts');
+    const phoneOk = tx.phone && tx.phone.replace(/\s/g, '') !== OLD_SAMPLE_PHONE;
+    add(phoneOk ? 'ok' : 'bad', 'Telefonszám', phoneOk ? `${tx.phone}. Ugyanaz legyen, mint a Google Cégprofilon.` : 'Még a minta-szám szerepel. Ugyanaz legyen, mint a Google Cégprofilon.', '#texts');
     add(tx.area ? 'ok' : 'warn', 'Munkaterület', tx.area || 'Nincs megadva.', '#texts');
     add(tx.legal_name && tx.legal_seat ? 'ok' : 'warn', 'Cégadatok (impresszum)', tx.legal_name && tx.legal_seat ? tx.legal_name : 'Hiányos: a Google a valódi, ellenőrizhető vállalkozásokat részesíti előnyben.', '#texts');
     add(tx.facebook_url || tx.instagram_url ? 'ok' : 'warn', 'Közösségi profilok', tx.facebook_url || tx.instagram_url ? 'Megadva, a keresők összekapcsolják az oldallal.' : 'Add meg a Facebook- vagy Instagram-oldalad linkjét.', '#texts');
@@ -1211,7 +1237,7 @@
       const { data: st, error: se } = await sb.from('settings').select('key,value');
       if (se) return msg('A beállítások nem olvashatók: ' + se.message);
       (st || []).forEach(r => { out.settings[r.key] = r.value; });
-      downloadFile(`planervo-mentes-${todayStr()}.json`, JSON.stringify(out, null, 1), 'application/json');
+      downloadFile(`planervo-mentes-${dayStr(new Date())}.json`, JSON.stringify(out, null, 1), 'application/json');
       msg(`Kész: ${Object.values(out.tables).reduce((s, a) => s + a.length, 0)} elem mentve.`);
     };
     $('#bkFile').onchange = async e => {
@@ -1278,7 +1304,6 @@
   }
 
   /* ---------- Árajánlat-kérések: keresés és CSV ---------- */
-  let qSearch = '';
   function filteredQuotes() {
     const s = qSearch.trim().toLowerCase();
     return QUOTES.filter(q => (qFilter === 'all' || q.status === qFilter) &&
@@ -1291,7 +1316,7 @@
     const head = ['Beérkezett', 'Állapot', 'Név', 'E-mail', 'Telefon', 'Település', 'Megjegyzés', 'Helyiségek', 'Becsült munkadíj (Ft)', 'Ár-sáv tól (Ft)', 'Ár-sáv ig (Ft)', 'Akció', 'Kívánt időpontok', 'Felmérés időpontja', 'Kért munkák', 'Saját jegyzet'];
     const lines = rows.map(q => [new Date(q.created_at).toLocaleString('hu-HU'), STATUS[q.status] || q.status, q.name, q.email, q.phone, q.city, q.message,
       (q.rooms || []).length, Math.round(+q.estimate || 0), q.estimate_min ? Math.round(+q.estimate_min) : '', q.estimate_max ? Math.round(+q.estimate_max) : '', q.discount ? `${q.discount.label || 'Akció'} −${q.discount.pct}%` : '', (q.preferred_slots || []).map(slotLabel).join(' | '), q.appointment_at ? new Date(q.appointment_at).toLocaleString('hu-HU') : '', (q.rooms || []).map(r => `${r.name}: ${(r.items || []).map(i => i.name).join(', ')}`).join(' | '), q.admin_note]);
-    downloadFile(`arajanlat-kerések-${todayStr()}.csv`, '﻿' + [head, ...lines].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
+    downloadFile(`arajanlat-keresek-${dayStr(new Date())}.csv`, '﻿' + [head, ...lines].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
     toast(`${rows.length} kérés letöltve (Excelben megnyitható).`);
   }
 

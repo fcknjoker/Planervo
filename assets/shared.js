@@ -1,24 +1,23 @@
-/* =====================================================================
-   PLANERVO – közös beállítások és segédfüggvények
-   (a főoldal, a blog és az admin felület is ezt használja)
-   ===================================================================== */
+/* PLANERVO – közös beállítások és segédfüggvények (nyilvános oldalak és admin) */
 const PLANERVO_CFG = {
   url: 'https://jodzzaqawursaidefdea.supabase.co',
-  key: 'sb_publishable_MRB1lXcabd7ptYkUIGqjRw_PaJ6KMh5', // nyilvános kulcs, ide tartozik
+  key: 'sb_publishable_MRB1lXcabd7ptYkUIGqjRw_PaJ6KMh5',
   mediaBucket: 'media',
   quoteBucket: 'quote-uploads',
   notifyFunction: 'notify-quote',
   youtubeFunction: 'youtube-feed'
 };
 
-const sb = (window.supabase && window.supabase.createClient)
+const sb = window.supabase && window.supabase.createClient
   ? window.supabase.createClient(PLANERVO_CFG.url, PLANERVO_CFG.key)
   : null;
 
-/* Az oldal szerkeszthető szövegei. g = csoport az adminban, k = kulcs,
-   l = megnevezés, d = alapértelmezés, t = mezőtípus */
+const SITE_URL = 'https://planervo.hu';
+const OLD_SAMPLE_PHONE = '+36301234567';
+
+/* Az oldal szerkeszthető szövegei. g = csoport az adminban, k = kulcs, l = megnevezés, d = alapérték, t = mezőtípus */
 const TEXT_FIELDS = [
-  { g: 'Arculat', k: 'logo_url', l: 'Logó (a főoldal tetején)', d: 'logo.png', t: 'image' },
+  { g: 'Arculat', k: 'logo_url', l: 'Saját logókép a főoldal tetején (üresen a felépülő PLANERVO-logó látszik)', d: '', t: 'image' },
   { g: 'Főoldal teteje', k: 'hero_title', l: 'Főcím (a festés után jelenik meg)', d: 'Festő Üllőn és környékén' },
   { g: 'Főoldal teteje', k: 'hero_text', l: 'Alcím', d: 'Szobafestő vagyok Üllőn. Festést, glettelést és gépi nemesvakolat szórást vállalok Üllőn és a környező településeken, fix áron. Egyedül dolgozom, minden munkát én végzek.', t: 'textarea' },
   { g: 'Főoldal teteje', k: 'hero_line', l: 'Szolgáltatás-sor a logó alatt (pontokkal elválasztva)', d: 'Szobafestés • Glettelés • Nemesvakolat • Felújítás' },
@@ -46,7 +45,7 @@ const TEXT_FIELDS = [
   { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videók' },
   { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Így dolgozom, közelről.', t: 'textarea' },
   { g: 'Videók', k: 'video_source', l: 'Mit mutasson a videós ablak', t: 'select', d: 'channel',
-    o: [['channel', 'A YouTube-csatornám legújabb videói (automatikus, legújabb elöl)'], ['playlist', 'Egy lejátszási lista videói (a lista sorrendjében)'], ['manual', 'Csak a „YouTube-videók” menüben kézzel felvett videók']] },
+    o: [['channel', 'A YouTube-csatornám legújabb videói (automatikus, legújabb elöl)'], ['playlist', 'Egy lejátszási lista videói (a lista sorrendjében)'], ['manual', 'Csak a „Videók” menüben kézzel felvett videók']] },
   { g: 'Videók', k: 'youtube_playlist', l: 'Lejátszási lista linkje', d: '', ph: 'https://www.youtube.com/playlist?list=…' },
   { g: 'Videók', k: 'video_count', l: 'Hány videó jelenjen meg (3–15)', t: 'number', d: 12 },
   { g: 'Hogyan dolgozom', k: 'process_title', l: 'Cím', d: 'Hogyan dolgozom' },
@@ -74,7 +73,7 @@ const TEXT_FIELDS = [
   { g: 'Árajánlatkérés', k: 'quote_success', l: 'Köszönő üzenet beküldés után', d: 'Megkaptam az árajánlat-kérésedet. 24 órán belül jelentkezem telefonon vagy e-mailben.', t: 'textarea' },
   { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Kapcsolat' },
   { g: 'Kapcsolat', k: 'contact_text', l: 'Bevezető', d: 'Hívj, írj, vagy kérj árajánlatot az űrlapon. Ha épp festek és nem tudom felvenni, visszahívlak.', t: 'textarea' },
-  { g: 'Kapcsolat', k: 'phone', l: 'Telefonszám', d: '+36 30 123 4567' },
+  { g: 'Kapcsolat', k: 'phone', l: 'Telefonszám', d: '+36 20 419 4746' },
   { g: 'Kapcsolat', k: 'email', l: 'E-mail-cím', d: 'planervo@gmail.com' },
   { g: 'Kapcsolat', k: 'area', l: 'Munkaterület', d: 'Üllő és környéke: Vecsés, Gyömrő, Monor, Monorierdő, Maglód, Gyál, Kistarcsa, Budapest' },
   { g: 'Kapcsolat', k: 'hours', l: 'Elérhetőség ideje', d: 'Hétfőtől szombatig, 8:00–18:00' },
@@ -91,20 +90,21 @@ const TEXT_FIELDS = [
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_email', l: 'E-mail-cím adatkezelési kérdésekre', d: '', hint: 'Üresen a fenti kapcsolati e-mail-cím jelenik meg.' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_hosting', l: 'Tárhelyszolgáltató neve és címe', d: '', ph: 'ahová az oldal fel van töltve' },
   { g: 'Jogi adatok (adatkezelés, impresszum)', k: 'legal_updated', l: 'Az adatkezelési tájékoztató hatálya', d: '', ph: 'pl. 2026. december 1.' },
-  { g: 'Keresők (SEO)', k: 'site_url', l: 'Az oldal webcíme', d: '', ph: 'https://www.planervo.hu', hint: 'A sitemap.xml és a keresőknek szánt adatok használják. Üresen a keresőmotor-adatok egy része nem jelenik meg.' },
+  { g: 'Keresők (SEO)', k: 'site_url', l: 'Az oldal webcíme', d: SITE_URL, ph: SITE_URL, hint: 'A sitemap.xml és a keresőknek szánt adatok használják. Pontosan így add meg, www nélkül, mert az oldalak canonical címe is ez.' },
   { g: 'Süti-tájékoztató', k: 'cookie_text', l: 'A tájékoztató sáv szövege', d: 'Az oldal nem használ követő vagy hirdetési sütiket, csak a működéshez szükséges tárolást.', t: 'textarea' },
   { g: 'Süti-tájékoztató', k: 'cookie_btn', l: 'A gomb szövege', d: 'Rendben' }
 ];
 const TEXT_DEFAULTS = Object.fromEntries(TEXT_FIELDS.map(f => [f.k, f.d]));
+const siteBase = TX => String((TX && TX.site_url) || SITE_URL).trim().replace(/\/+$/, '');
+const hasCustomLogo = TX => !!TX.logo_url && TX.logo_url !== 'logo.png';
+const isOn = v => v === true || v === 'true';
 
 const DEFAULT_SERVICES = [
   { title: 'Szobafestés', body: 'Lakások és családi házak festése két rétegben, glettelés és alapozás után. A padlót és a bent maradt bútort letakarom, a végén kitakarítok.' },
   { title: 'Glettelés, falfelújítás', body: 'Mállott, repedezett, sokszor átfestett falak kaparása, javítása és glettelése, hogy a festés évekig szép maradjon.' },
-  { title: 'Gépi nemesvakolat szórás', body: 'Homlokzatok vékonyvakolata géppel szórva, egyenletes szemcsével. Régi és új házakon is, homlokzatfestéssel együtt is.' }
+  { title: 'Gépi nemesvakolat szórás', body: 'Homlokzatok vékonyvakolata géppel szórva, egyenletes szemcsével. Régi és új házakon is, homlokzatfestéssel együtt is.', link: 'homlokzat-nemesvakolat.html' }
 ];
 
-/* Mértékegységek. A „surface” tételnél az ügyfél választ: fal, mennyezet vagy mindkettő.
-   Az „sqm”, „meter” és „piece” tételnél az ügyfél adja meg a mennyiséget. */
 const DEFAULT_STEPS = [
   { title: 'Felmérés', body: 'Kimegyek, megnézem a helyiségeket, és megbeszéljük a színeket, az anyagot és a kezdés napját.' },
   { title: 'Ajánlat', body: 'Helyiségenként és munkánként bontott, fix árú ajánlatot küldök. Ami benne van, azt fizeted.' },
@@ -113,7 +113,6 @@ const DEFAULT_STEPS = [
   { title: 'Átadás', body: 'Kitakarítok, együtt átnézzük a falakat, és ha valami nem tetszik, kijavítom.' }
 ];
 
-/* Gyakori kérdések alapértelmezése (amíg az adminban nincs saját kérdés felvéve) */
 const DEFAULT_FAQ = [
   { question: 'Hol vállalsz munkát?', answer: 'Üllőn lakom, és a környéken dolgozom: Vecsés, Gyömrő, Monor, Monorierdő, Maglód, Gyál, Kistarcsa, valamint Budapest keleti és déli kerületei. Ha a településed nincs a listában, hívj fel, és megmondom, ki tudok-e menni.' },
   { question: 'Mennyibe kerül a felmérés?', answer: 'A felmérés ingyenes. Kimegyek, megnézem a falakat, és utána írásban küldöm el a fix árat.' },
@@ -126,25 +125,16 @@ const DEFAULT_FAQ = [
   { question: 'Hogyan kérhetek árajánlatot?', answer: 'Az oldal árajánlatkérőjében helyiségenként megadod, mit szeretnél, vagy egyszerűen felhívsz. 24 órán belül jelentkezem.' }
 ];
 
-/* Aloldalak, amelyek szövege az admin „Aloldalak szövegei” menüjében szerkeszthető.
-   Az oldalon data-edit="…" jelöli a szerkeszthető részeket; a mentett szöveg a settings.texts.pages.<kulcs> alatt van. */
-const SUBPAGES = [
+/* Aloldalak: a helyi keresőoldalakat az eszkozok/oldalak.mjs készíti; mindegyik szövege az admin „Aloldalak szövegei” menüjében írható át */
+const LOCAL_PAGES = [
   ['festo-ullo', 'Festő Üllőn'], ['homlokzat-nemesvakolat', 'Nemesvakolat és homlokzatfestés'], ['festo-vecses', 'Festő Vecsésen'],
   ['festo-gyomro', 'Festő Gyömrőn'], ['festo-monor', 'Festő Monoron'], ['festo-monorierdo', 'Festő Monorierdőn'], ['festo-maglod', 'Festő Maglódon'],
-  ['festo-gyal', 'Festő Gyálon'], ['festo-kistarcsa', 'Festő Kistarcsán'], ['festo-budapest', 'Festő Budapesten'],
-  ['blog', 'Blog oldal'], ['velemeny', 'Vélemény írása'], ['adatkezeles', 'Adatkezelési tájékoztató'], ['impresszum', 'Impresszum'], ['sutik', 'Sütik']
+  ['festo-gyal', 'Festő Gyálon'], ['festo-kistarcsa', 'Festő Kistarcsán'], ['festo-budapest', 'Festő Budapesten']
 ];
-/* a mentett aloldal-szövegek alkalmazása (a statikus HTML a keresőknek mentett változat nélkül is olvasható) */
-function applyPageTexts(key, TX) {
-  const pg = ((TX && TX.pages) || {})[key]; if (!pg) return;
-  if (pg.title) document.title = pg.title;
-  const md = document.querySelector('meta[name="description"]'); if (md && pg.desc) md.content = pg.desc;
-  document.querySelectorAll('[data-edit]').forEach(el => {
-    const v = pg[el.dataset.edit]; if (v == null || v === '') return;
-    if (el.hasAttribute('data-rich')) el.innerHTML = sanitize(v); else el.textContent = v;
-  });
-}
+const SUBPAGES = [...LOCAL_PAGES, ['blog', 'Blog oldal'], ['velemeny', 'Vélemény írása'], ['adatkezeles', 'Adatkezelési tájékoztató'], ['impresszum', 'Impresszum'], ['sutik', 'Sütik']];
+const SEO_PAGES = LOCAL_PAGES.map(([k]) => k + '.html');
 
+/* Mértékegységek. „surface”: az ügyfél választ falat, mennyezetet vagy mindkettőt; „sqm”, „meter”, „piece”: az ügyfél adja meg a mennyiséget */
 const UNITS = {
   surface: 'm² fal és/vagy mennyezet (az ügyfél választja)',
   wall: 'm² falfelület (csak fal)',
@@ -157,7 +147,7 @@ const UNITS = {
   room: 'helyiségenként (átalány)'
 };
 const UNIT_SHORT = { surface: 'm²', wall: 'm² fal', ceiling: 'm² menny.', wallceil: 'm²', floor: 'm²', sqm: 'm²', meter: 'fm', piece: 'db', room: 'helyiség' };
-const QTY_UNITS = ['sqm', 'meter', 'piece'];            // ezeknél az ügyfél írja be a mennyiséget
+const QTY_UNITS = ['sqm', 'meter', 'piece'];
 const SURFACES = [['wall', 'Fal'], ['ceiling', 'Mennyezet'], ['both', 'Mindkettő']];
 
 const PLACEMENTS = [
@@ -172,16 +162,12 @@ const PLACEMENTS = [
 
 const SOCIAL_LABEL = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' };
 
-/* =====================================================================
-   Elrendezés (admin → Megjelenés). Az itt felsoroltakat az admin kínálja fel,
-   a főoldal (site.js) pedig alkalmazza. A beállítások a settings tábla
-   „texts” sorában, a „layout” kulcs alatt vannak.
-   ===================================================================== */
+/* ---------- Elrendezés (admin → Megjelenés; a settings.texts.layout alatt) ---------- */
 const LAYOUT_GROUPS = [
   ['szolgaltatasok', 'Szolgáltatások'],
   ['szamok', 'Számok sáv'],
   ['folyamat', 'Hogyan dolgozom'],
-  ['munkaink', 'Munkáink (előtte–utána)'],
+  ['munkaink', 'Munkáim (előtte–utána)'],
   ['galeria', 'Galéria'],
   ['velemenyek', 'Vélemények'],
   ['kozossegi', 'Közösségi média'],
@@ -191,29 +177,30 @@ const LAYOUT_GROUPS = [
   ['arajanlat', 'Árajánlatkérő'],
   ['kapcsolat', 'Kapcsolat']
 ];
-/* mentett sorrend kiegészítése az újonnan bevezetett szakaszokkal: a hiányzó szakasz az alapsorrend szerinti elődje után kerül */
+/* a mentett sorrend kiegészítése a később bevezetett szakaszokkal (az alapsorrend szerinti elődjük után) */
 function fullOrder(saved) {
   const base = LAYOUT_GROUPS.map(x => x[0]), out = (saved || []).filter(x => base.includes(x));
-  base.forEach((g, i) => { if (out.includes(g)) return; const prev = base.slice(0, i).reverse().find(x => out.includes(x)); out.splice(prev ? out.indexOf(prev) + 1 : 0, 0, g); });
+  base.forEach((g, i) => {
+    if (out.includes(g)) return;
+    const prev = base.slice(0, i).reverse().find(x => out.includes(x));
+    out.splice(prev ? out.indexOf(prev) + 1 : 0, 0, g);
+  });
   return out;
 }
 const LAYOUT_BGS = [['', 'Alapértelmezett'], ['light', 'Fehér'], ['soft', 'Halvány homok'], ['peach', 'Barack'], ['dark', 'Sötét'], ['gold', 'Arany']];
-const LAYOUT_BG_ALLOWED = { arajanlat: ['', 'light', 'soft', 'peach'] };   // az árajánlatkérő űrlapja világos háttéren olvasható
+const LAYOUT_BG_ALLOWED = { arajanlat: ['', 'light', 'soft', 'peach'] };
 const CARD_COLS = [['', 'Automatikus'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5']];
-/* A seo/oldalak.mjs által generált helyi keresőoldalak (az admin sitemap-letöltése is ezeket listázza). Új oldalnál ide is vedd fel. */
-const SEO_PAGES = ['festo-ullo.html', 'homlokzat-nemesvakolat.html', 'festo-vecses.html', 'festo-gyomro.html', 'festo-monor.html', 'festo-monorierdo.html', 'festo-maglod.html', 'festo-gyal.html', 'festo-kistarcsa.html', 'festo-budapest.html'];
 const CARD_ROWS = [['', 'Mind látszik'], ['1', '1 sor'], ['2', '2 sor'], ['3', '3 sor'], ['4', '4 sor'], ['5', '5 sor'], ['6', '6 sor']];
 const CARD_GAPS = [['', 'Alap'], ['s', 'Kicsi'], ['m', 'Közepes'], ['l', 'Nagy']];
 const CARD_GAP_PX = { s: 10, m: 18, l: 30 };
 const CARD_RADII = [['', 'Alap'], ['0', 'Éles sarok'], ['12', 'Enyhén kerek'], ['22', 'Kerek'], ['34', 'Nagyon kerek']];
 const MODE_GRID = ['grid', 'Rács: a kártyák lefelé is folytatódnak'];
 const MODE_CAR = ['carousel', 'Oldalra lapozható sáv'];
-/* mode = alapértelmezett mód, cols = alapértelmezett oszlopszám lapozható sávban,
-   phone = hány kártya fér egy sorba telefonon rácsban; ratios = választható képarány */
+/* mode = alapértelmezett mód, cols = alapértelmezett oszlopszám, phone = kártyák egy sorban telefonon (rácsnál), ratios = választható képarány */
 const CARD_SECTIONS = {
   szolgaltatasok: { label: 'Szolgáltatások', section: 'szolgaltatasok', track: 'svcList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 4, phone: 1 },
   'elotte-utana': { label: 'Előtte–utána', section: 'elotte-utana', track: 'baList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 2, phone: 1,
-    ratios: [['', '4:3 (alap)'], ['16/9', '16:9 széles'], ['1/1', 'Négyzet'], ['3/4', 'Álló 3:4']] },
+    ratios: [['', 'Alap (16:9, telefonon álló 4:5)'], ['16/9', '16:9 mindenhol'], ['4/3', '4:3'], ['1/1', 'Négyzet'], ['3/4', 'Álló 3:4']] },
   galeria: { label: 'Galéria', section: 'galeria', track: 'galList', mode: 'masonry', cols: 3, phone: 2,
     modes: [['masonry', 'Falazott: a képek eredeti arányban'], ['grid', 'Egyenletes rács'], MODE_CAR],
     ratios: [['', '4:3 (alap, rácsnál)'], ['1/1', 'Négyzet'], ['3/4', 'Álló 3:4'], ['16/9', '16:9 széles']] },
@@ -227,16 +214,21 @@ const CARD_SECTIONS = {
 const LAYOUT_WIDTHS = [['', 'Normál'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
 const LAYOUT_SPACINGS = [['', 'Normál'], ['compact', 'Kompakt'], ['airy', 'Levegős']];
 const LAYOUT_BANNER_TONES = [['gold', 'Arany'], ['dark', 'Sötét'], ['peach', 'Barack']];
-/* szakaszonkénti beállítások (layout.fx.<szakasz>.*) */
 const FX_SPACES = [['', 'Alap térköz'], ['compact', 'Szűk'], ['airy', 'Tágas']];
 const FX_WIDTHS = [['', 'Alap szélesség'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
 const FX_ANIMS = [['', 'Nincs animáció'], ['fade', 'Áttűnés'], ['up', 'Alulról felfelé'], ['zoom', 'Nagyítva előjön'], ['slide', 'Oldalról érkezik']];
+const WIDTH_PX = { narrow: '1080px', wide: '1560px' };
+const SPACING_K = { compact: '.6', airy: '1.4' };
 const getLayout = tx => (tx && tx.layout && typeof tx.layout === 'object') ? tx.layout : {};
 
+/* ---------- Formázás ---------- */
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const fmtFt = n => Math.round(+n || 0).toLocaleString('hu-HU') + ' Ft';
-const fmtDate = d => d ? new Date(d).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+const fmtInt = n => Math.round(+n || 0).toLocaleString('hu-HU');
+const fmtFt = n => fmtInt(n) + ' Ft';
 const fmtNum = n => (Math.round((+n || 0) * 10) / 10).toLocaleString('hu-HU');
+const fmtDate = d => d ? new Date(d).toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+const telHref = p => 'tel:' + String(p || '').replace(/[^\d+]/g, '');
+const dayStr = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
 function ytId(u) {
   if (!u) return '';
@@ -244,7 +236,20 @@ function ytId(u) {
   return m ? m[1] : (/^[\w-]{11}$/.test(u) ? u : '');
 }
 
-/* Helyiség geometriája: négyzet alaprajzzal becsülve */
+function slugify(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+}
+
+function uid() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+  });
+}
+
+/* ---------- Árszámítás: a helyiség falfelülete négyzetes alaprajzzal becsülve ---------- */
 function roomGeometry(area, height) {
   const a = +area || 0, h = +height || 0;
   const wall = a > 0 && h > 0 ? Math.round(4 * Math.sqrt(a) * h * 10) / 10 : 0;
@@ -262,12 +267,10 @@ function unitQty(unit, g, qty) {
     default: return 0;
   }
 }
-
-/* Egy kiválasztott munka sorai az árajánlatban. sel = { qty, surf }.
-   A „fal + mennyezet” választás két sort ad, mert a mennyezetnek külön díja lehet. */
+const ceilingPrice = w => w.price_ceiling != null && w.price_ceiling !== '' ? +w.price_ceiling : null;
+/* egy kiválasztott munka sorai; a „fal és/vagy mennyezet” két sort ad, mert a mennyezetnek külön díja lehet */
 function workLines(w, g, sel) {
-  const price = +w.price || 0;
-  const pc = w.price_ceiling != null && w.price_ceiling !== '' ? +w.price_ceiling : price;
+  const price = +w.price || 0, pc = ceilingPrice(w) ?? price;
   const line = (name, unit, p, qty) => ({ id: w.id, name, unit, price: p, qty, amount: Math.round(qty * p) });
   if (w.unit === 'surface') {
     const s = (sel && sel.surf) || 'both', out = [];
@@ -278,11 +281,9 @@ function workLines(w, g, sel) {
   return [line(w.name, w.unit, w.unit === 'ceiling' ? pc : price, unitQty(w.unit, g, sel && sel.qty))];
 }
 
-/* Beágyazható források (YouTube, Facebook, Instagram, TikTok). Csak ezek az iframe-címek engedettek. */
+/* ---------- Beágyazás és biztonságos HTML (blog, saját ablakok) ---------- */
 const EMBED_RE = /^https:\/\/(www\.|m\.)?(youtube\.com|youtube-nocookie\.com)\/embed\/|^https:\/\/www\.facebook\.com\/plugins\/(video|post)\.php\?|^https:\/\/www\.instagram\.com\/(p|reel)\/[\w-]+\/embed\/?$|^https:\/\/www\.tiktok\.com\/embed\/(v2\/)?\d+/;
 
-/* Bármilyen megosztott link (pl. böngésző címsora) beágyazható alakra alakítása.
-   Ismeretlen linknél változatlanul adja vissza; az EMBED_RE dönt, mi engedett. */
 function toEmbedUrl(u) {
   u = String(u || '').trim();
   if (!u || EMBED_RE.test(u)) return u;
@@ -294,13 +295,9 @@ function toEmbedUrl(u) {
   return u;
 }
 
-/* Biztonságos HTML (blog, saját ablakok). A EMBED_RE-nek megfelelő iframe-eket engedi. */
 if (window.DOMPurify) {
   DOMPurify.addHook('uponSanitizeElement', (node, data) => {
-    if (data.tagName === 'iframe') {
-      const src = node.getAttribute('src') || '';
-      if (!EMBED_RE.test(src)) node.remove();
-    }
+    if (data.tagName === 'iframe' && !EMBED_RE.test(node.getAttribute('src') || '')) node.remove();
   });
 }
 function sanitize(html) {
@@ -310,25 +307,47 @@ function sanitize(html) {
     : esc(html);
 }
 
+/* ---------- Szövegek betöltése és alkalmazása ---------- */
 async function loadTexts() {
   if (!sb) return { ...TEXT_DEFAULTS };
   const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
   if (error) throw error;
-  const v = (data && data.value) || {};
-  const out = { ...TEXT_DEFAULTS };
+  const v = (data && data.value) || {}, out = { ...TEXT_DEFAULTS };
   Object.keys(v).forEach(k => { if (v[k] !== null && v[k] !== undefined) out[k] = v[k]; });
   return out;
 }
-
-function uid() {
-  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+async function loadTextsSafe() {
+  try { return await loadTexts(); } catch (e) { return { ...TEXT_DEFAULTS }; }
+}
+/* a [data-t] elemek kitöltése; üres szövegnél a bekezdés eltűnik */
+function applyDataTexts(TX, root = document) {
+  root.querySelectorAll('[data-t]').forEach(el => {
+    const v = TX[el.dataset.t] == null ? '' : String(TX[el.dataset.t]);
+    el.textContent = v;
+    if (el.tagName === 'P') el.hidden = !v;
   });
 }
+function setMeta(attr, key, val) {
+  if (!val) return;
+  let m = document.querySelector(`meta[${attr}="${key}"]`);
+  if (!m) { m = document.createElement('meta'); m.setAttribute(attr, key); document.head.appendChild(m); }
+  m.content = val;
+}
+/* az admin „Aloldalak szövegei” menüjében mentett szöveg alkalmazása ([data-edit] elemek, cím, leírás) */
+function applyPageTexts(key, TX) {
+  const pg = ((TX && TX.pages) || {})[key];
+  if (!pg) return {};
+  if (pg.title) { document.title = pg.title; setMeta('property', 'og:title', pg.title); }
+  if (pg.desc) { setMeta('name', 'description', pg.desc); setMeta('property', 'og:description', pg.desc); }
+  document.querySelectorAll('[data-edit]').forEach(el => {
+    const v = pg[el.dataset.edit];
+    if (v == null || v === '') return;
+    if (el.hasAttribute('data-rich')) el.innerHTML = sanitize(v); else el.textContent = v;
+  });
+  return pg;
+}
 
-/* Kép kicsinyítése feltöltés előtt (max. 2000 px, JPEG). Ha a böngésző
-   nem tudja megnyitni (pl. HEIC), az eredeti fájl megy fel. */
+/* Kép kicsinyítése feltöltés előtt (JPEG); amit a böngésző nem tud megnyitni (pl. HEIC), az eredetiben megy fel */
 async function shrinkImage(file, max = 2000) {
   const ext = ((file.name || '').split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
   const original = { blob: file, ext, type: file.type || 'image/jpeg' };
@@ -347,19 +366,49 @@ async function shrinkImage(file, max = 2000) {
   } catch (e) { return original; }
 }
 
-/* Telefonos lenyíló menü (főoldal, blog) */
+/* Telefonos lenyíló menü */
 (function initMenu() {
-  const btn = document.getElementById('menuBtn'), nav = document.getElementById('topnav'), links = document.getElementById('navLinks');
-  if (!btn || !nav || !links) return;
-  const set = open => { nav.classList.toggle('menu-open', open); btn.setAttribute('aria-expanded', String(open)); btn.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása'); };
+  const btn = document.getElementById('menuBtn'), nav = document.getElementById('topnav');
+  if (!btn || !nav) return;
+  const set = open => {
+    nav.classList.toggle('menu-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+    btn.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
+  };
   btn.addEventListener('click', () => set(!nav.classList.contains('menu-open')));
-  nav.addEventListener('click', e => { if (e.target.closest('a')) set(false); });   // menüpont vagy az Árajánlat gomb
+  nav.addEventListener('click', e => { if (e.target.closest('a')) set(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && nav.classList.contains('menu-open')) { set(false); btn.focus(); } });
   document.addEventListener('click', e => { if (nav.classList.contains('menu-open') && !nav.contains(e.target)) set(false); });
   addEventListener('resize', () => { if (innerWidth > 1000) set(false); });
 })();
 
-function slugify(s) {
-  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+/* ---------- Lebegő kapcsolat-kártya (főoldal, jobb oldal) ---------- */
+const FLOAT_TYPES = {
+  facebook: { l: 'Facebook', d: '<path d="M14.5 3.5h-2A3.5 3.5 0 0 0 9 7v2.5H6.5V13H9v7.5h3.5V13h2.3l.5-3.5h-2.8V7.2c0-.5.3-.7.8-.7h1.7z"/>' },
+  instagram: { l: 'Instagram', d: '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r=".6"/>' },
+  youtube: { l: 'YouTube', d: '<rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="M10 9.5v5l4.5-2.5z"/>' },
+  tiktok: { l: 'TikTok', d: '<path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5M14 4c.4 2.4 1.9 3.9 4.5 4.2"/>' },
+  whatsapp: { l: 'WhatsApp', d: '<path d="M4 20l1.2-4.1A8 8 0 1 1 8.2 19z"/><path d="M9 9.5c.3 2.2 2.3 4.4 5.5 5l1-1.3-1.8-1-.8.7c-.8-.3-1.6-1-2-1.8l.7-.8-1-1.8z"/>' },
+  messenger: { l: 'Messenger', d: '<path d="M12 3a9 9 0 0 0-9 8.8c0 2.4 1 4.6 2.7 6.1V21l2.6-1.4c.9.3 1.8.4 2.7.4a9 9 0 0 0 0-18z"/><path d="M7.5 13.5l3-3.2 2 2 3-2"/>' },
+  email: { l: 'E-mail', d: '<rect x="3" y="5.5" width="18" height="13" rx="3"/><path d="M4 8l8 5.5L20 8"/>' },
+  link: { l: 'Weboldal', d: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/>' }
+};
+const floatIcon = t => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${(FLOAT_TYPES[t] || FLOAT_TYPES.link).d}</svg>`;
+const PHONE_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h3.5l1.7 4.3-2.1 1.4a11 11 0 0 0 5.2 5.2l1.4-2.1L19 14.5V18a2 2 0 0 1-2 2A13 13 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>';
+
+/* Böngészőbe kerülő cím: csak https/http, e-mail és (WhatsApp) telefonszám engedett; minden más üres */
+function floatHref(l) {
+  const u = String((l && l.u) || '').trim();
+  if (!u) return '';
+  if (l.t === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u)) return 'mailto:' + u;
+  if (l.t === 'whatsapp' && /^\+?[\d\s()-]{7,}$/.test(u)) return 'https://wa.me/' + u.replace(/\D/g, '');
+  return /^(https?:\/\/|mailto:)/i.test(u) ? u : '';
+}
+
+/* Alapértelmezés: ha még nem állítottad be, a „Kapcsolat” szövegek közösségi linkjei kerülnek rá */
+function getFloat(tx) {
+  const f = (tx && tx.float && typeof tx.float === 'object') ? tx.float : {};
+  const links = Array.isArray(f.links) ? f.links : [['facebook', 'facebook_url'], ['instagram', 'instagram_url'], ['youtube', 'youtube_url']]
+    .filter(([, k]) => tx && tx[k]).map(([t, k]) => ({ t, u: tx[k] }));
+  return { on: f.on !== false, phone: f.phone !== false, links: links.filter(l => l && FLOAT_TYPES[l.t]) };
 }
