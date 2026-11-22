@@ -133,6 +133,27 @@ const LOCAL_PAGES = [
 ];
 const SUBPAGES = [...LOCAL_PAGES, ['blog', 'Blog oldal'], ['velemeny', 'Vélemény írása'], ['adatkezeles', 'Adatkezelési tájékoztató'], ['impresszum', 'Impresszum'], ['sutik', 'Sütik']];
 const SEO_PAGES = LOCAL_PAGES.map(([k]) => k + '.html');
+/* Aloldalak ki-/bekapcsolása (admin → Aloldalak ki/be; a settings.texts.subpages_off listában a kikapcsolt kulcsok) */
+const subpagesOff = TX => Array.isArray(TX && TX.subpages_off) ? TX.subpages_off : [];
+function applySubpageToggles(TX) {
+  const off = subpagesOff(TX).filter(k => SUBPAGES.some(p => p[0] === k));
+  if (!off.length || document.getElementById('app')) return;
+  const keyOf = h => { const m = String(h || '').split(/[?#]/)[0].match(/(?:^|\/)([\w-]+)\.html$/); return m ? m[1] : ''; };
+  const hide = root => (root.querySelectorAll ? root : document).querySelectorAll('a[href]').forEach(a => {
+    if (!off.includes(keyOf(a.getAttribute('href')))) return;
+    const li = a.closest('li');
+    (li && li.children.length === 1 ? li : a).style.display = 'none';
+  });
+  hide(document);
+  new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) hide(n); }))).observe(document.body, { childList: true, subtree: true });
+  const cur = keyOf(location.pathname);
+  if (off.includes(cur)) {
+    setMeta('name', 'robots', 'noindex, nofollow');
+    document.title = 'Az oldal nem érhető el | PLANERVO';
+    const main = document.getElementById('main') || document.querySelector('main');
+    if (main) main.innerHTML = '<div class="wrap page-top page-body"><h1>Ez az oldal jelenleg nem érhető el.</h1><p class="empty">Nézz vissza később, vagy kérj árajánlatot a főoldalon.</p><div class="btns"><a class="btn gold" href="./">Vissza a főoldalra</a></div></div>';
+  }
+}
 
 /* Mértékegységek. „surface”: az ügyfél választ falat, mennyezetet vagy mindkettőt; „sqm”, „meter”, „piece”: az ügyfél adja meg a mennyiséget */
 const UNITS = {
@@ -319,6 +340,7 @@ async function loadTexts() {
   if (error) throw error;
   const v = (data && data.value) || {}, out = { ...TEXT_DEFAULTS };
   Object.keys(v).forEach(k => { if (v[k] !== null && v[k] !== undefined) out[k] = v[k]; });
+  applySubpageToggles(out);
   return out;
 }
 async function loadTextsSafe() {

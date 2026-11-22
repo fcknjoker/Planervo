@@ -174,7 +174,7 @@
   /* ---------- Menü ---------- */
   const NAV_GROUPS = [
     { t: 'Napi munka', items: [['overview', 'Áttekintés'], ['quotes', 'Árajánlat-kérések']] },
-    { t: 'Oldalak', items: [['layout', 'Megjelenés'], ['float', 'Lebegő kártya'], ['texts', 'Főoldal szövegei'], ['pages', 'Aloldalak szövegei'], ['sections', 'Saját ablakok']] },
+    { t: 'Oldalak', items: [['layout', 'Megjelenés'], ['float', 'Lebegő kártya'], ['texts', 'Főoldal szövegei'], ['subpages', 'Aloldalak ki/be'], ['pages', 'Aloldalak szövegei'], ['sections', 'Saját ablakok']] },
     { t: 'Tartalom', items: [['services', 'Szolgáltatások'], ['process_steps', 'Hogyan dolgozom'], ['faqs', 'Gyakori kérdések'], ['testimonials', 'Vélemények'], ['work_items', 'Árak és munkafolyamatok']] },
     { t: 'Munkáim', items: [['before_after', 'Előtte–utána'], ['gallery', 'Galéria és albumok']] },
     { t: 'Média', items: [['videos', 'Videók'], ['social_posts', 'Közösségi média'], ['posts', 'Blog']] },
@@ -231,7 +231,7 @@
     $$('#nav button').forEach(b => { if (b.dataset.v === navKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'float') showFloat(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'float') showFloat(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else if (v === 'subpages') showSubpages(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -693,6 +693,32 @@
       d.body = box.innerHTML.trim();
     }
     return d;
+  }
+  /* ---------- Aloldalak ki-/bekapcsolása ---------- */
+  async function showSubpages() {
+    CUR = 'subpages';
+    view.innerHTML = `<header class="vh"><div><h1>Aloldalak ki/be</h1><p class="help">Itt kapcsolhatod ki vagy be az aloldalakat. A kikapcsolt oldal a látogatóknak nem érhető el (üzenetet látnak, és a keresők sem indexelik), a rá mutató hivatkozások pedig eltűnnek az oldalakról. Az oldal szövege nem törlődik, bekapcsolás után minden visszatér.</p></div></header>
+      <div id="spList" class="list"><p class="muted">Betöltés…</p></div>`;
+    const { data, error } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+    if (CUR !== 'subpages') return;
+    if (error) { $('#spList').innerHTML = errBox(error); return; }
+    let off = subpagesOff((data && data.value) || {});
+    const draw = () => {
+      $('#spList').innerHTML = SUBPAGES.map(([k, l]) => `<div class="row nothumb${off.includes(k) ? ' off' : ''}">
+        <div class="rt"><b>${esc(l)}</b><small>${esc(k)}.html</small></div>
+        <label class="sw"><input type="checkbox" data-k="${esc(k)}"${off.includes(k) ? '' : ' checked'}>Bekapcsolva</label>
+        <a class="btn sm o" href="${esc(k)}.html" target="_blank" rel="noopener">Megnyitás</a></div>`).join('');
+    };
+    draw();
+    $('#spList').onchange = async e => {
+      const k = e.target.dataset.k; if (!k) return;
+      const prev = off, on = e.target.checked;
+      const next = on ? off.filter(x => x !== k) : [...off.filter(x => x !== k), k];
+      const { error: er } = await mergeTexts({ subpages_off: next });
+      if (er) { e.target.checked = !on; return toast('A mentés nem sikerült: ' + er.message, true); }
+      off = next; e.target.closest('.row').classList.toggle('off', !on);
+      toast(on ? 'Az oldal bekapcsolva.' : 'Az oldal kikapcsolva.');
+    };
   }
   let TX0 = {};
   async function showPages() {
