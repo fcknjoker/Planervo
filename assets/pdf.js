@@ -53,7 +53,7 @@ const PlanervoPdf = (function () {
     if (cl.length) content.push({ text: cl.join('  ·  '), color: MUTE, margin: [0, 0, 0, 10] });
 
     (data.rooms || []).forEach((r, i) => {
-      const geo = [r.area ? num(r.area) + ' m² alapterület' : '', r.height ? num(r.height) + ' m belmagasság' : '', r.wall ? '≈ ' + num(r.wall) + ' m² fal' : '', r.ceiling ? num(r.ceiling) + ' m² mennyezet' : ''].filter(Boolean).join(', ');
+      const geo = [r.width && r.length ? `${num(r.width)} × ${num(r.length)} m` : '', r.area ? num(r.area) + ' m² alapterület' : '', r.height ? num(r.height) + ' m belmagasság' : '', r.wall ? '≈ ' + num(r.wall) + ' m² fal' : '', r.ceiling ? num(r.ceiling) + ' m² mennyezet' : ''].filter(Boolean).join(', ');
       content.push({ text: `${i + 1}. ${r.name || 'Helyiség'}`, style: 'h2', margin: [0, 8, 0, 2], unbreakable: true });
       if (geo) content.push({ text: geo, color: MUTE, fontSize: 9, margin: [0, 0, 0, 4] });
       const body = [[{ text: 'Munka', style: 'th' }, { text: 'Mennyiség', style: 'th', alignment: 'right' }, { text: 'Egységár', style: 'th', alignment: 'right' }, { text: 'Összeg', style: 'th', alignment: 'right' }]];

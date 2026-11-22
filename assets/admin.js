@@ -816,7 +816,7 @@
         ${q.message ? `<p class="qd-msg">${esc(q.message)}</p>` : ''}
         ${(q.preferred_slots || []).length ? `<div class="qd-slots"><b>Kívánt felmérési időpontok</b><ul>${q.preferred_slots.map(sl => `<li>${esc(slotLabel(sl))}</li>`).join('')}</ul></div>` : ''}
         ${rooms.map((r, i) => `<div class="qd-room"><h3>${i + 1}. ${esc(r.name)}</h3>
-          <p class="meta">${fmtNum(r.area)} m² alapterület, ${fmtNum(r.height)} m belmagasság, ≈ ${fmtNum(r.wall)} m² fal, ${fmtNum(r.ceiling)} m² mennyezet</p>
+          <p class="meta">${r.width && r.length ? `${fmtNum(r.width)} × ${fmtNum(r.length)} m, ` : ''}${fmtNum(r.area)} m² alapterület, ${fmtNum(r.height)} m belmagasság, ≈ ${fmtNum(r.wall)} m² fal, ${fmtNum(r.ceiling)} m² mennyezet</p>
           <div class="tbl"><table>${(r.items || []).map(it => `<tr><td>${esc(it.name)}</td><td>${fmtNum(it.qty)} ${UNIT_SHORT[it.unit] || ''}</td><td>${fmtFt(it.price)}</td><td>${fmtFt(it.amount)}</td></tr>`).join('')}
             <tr class="sub"><td colspan="3">Részösszeg</td><td>${fmtFt(r.subtotal)}</td></tr></table></div>
           ${(r.images || []).length ? `<div class="qd-imgs">${r.images.map((p, j) => urls[p] ? `<a href="${urls[p]}" target="_blank" rel="noopener"><img src="${urls[p]}" alt="${j + 1}. fotó"></a>` : '').join('')}</div>` : ''}

@@ -7,6 +7,7 @@
   const inFrame = window.parent !== window;
   const clamp01 = v => Math.min(1, Math.max(0, v));
   let TX = { ...TEXT_DEFAULTS };
+  let fcMini = false; /* lebegő kártya összecsukva (az árajánlat összesítőjénél) */
 
   /* =====================================================================
      Szövegek, kapcsolat, süti-tájékoztató, strukturált adat
@@ -33,6 +34,15 @@
   }
 
   /* Lebegő kapcsolat-kártya a jobb oldalon: telefonszám és közösségi ikonok (admin: „Lebegő kártya”) */
+  /* Az árajánlat összesítőjénél a kártya összecsukódik a jobb szélre, hogy ne takarja az összesítőt. Rákattintva, ráhúzva vagy fókuszba kerülve kinyílik. */
+  function syncFloatMini() {
+    const box = $('#fcard'); if (!box) return;
+    box.classList.toggle('mini', fcMini);
+    if (!fcMini) box.classList.remove('peek');
+  }
+  if (hasIO && $('#qSum')) {
+    new IntersectionObserver(es => { fcMini = es[es.length - 1].isIntersecting; syncFloatMini(); }, { threshold: 0 }).observe($('#qSum'));
+  }
   function renderFloat() {
     const f = getFloat(TX), tel = f.phone && String(TX.phone || '').trim();
     const soc = f.links.map(l => ({ l, h: floatHref(l) })).filter(x => x.h);
@@ -42,7 +52,13 @@
       box = document.createElement('aside');
       box.id = 'fcard'; box.className = 'fcard'; box.setAttribute('aria-label', 'Kapcsolat');
       document.body.appendChild(box);
+      /* összecsukott állapotban az első érintés csak kinyitja a kártyát */
+      box.addEventListener('click', e => {
+        if (box.classList.contains('mini') && !box.classList.contains('peek')) { e.preventDefault(); box.classList.add('peek'); }
+      });
+      box.addEventListener('mouseleave', () => box.classList.remove('peek'));
     }
+    syncFloatMini();
     box.innerHTML = (tel ? `<a class="fc-phone" href="${esc(telHref(TX.phone))}" aria-label="Hívás: ${esc(TX.phone)}"><span class="fc-ic">${PHONE_ICON}</span><span class="fc-num">${esc(TX.phone)}</span></a>` : '') +
       (soc.length ? `<div class="fc-soc">${soc.map(({ l, h }) => `<a href="${esc(h)}" target="_blank" rel="noopener" aria-label="${esc(FLOAT_TYPES[l.t].l)}" title="${esc(FLOAT_TYPES[l.t].l)}"><span class="fc-ic">${floatIcon(l.t)}</span></a>`).join('')}</div>` : '');
   }
@@ -688,16 +704,18 @@
   }
 
   function addRoom(src) {
-    const r = { id: uid(), name: '', area: '', height: '2.7', sel: {}, files: [] };
-    if (src) Object.assign(r, { name: src.name, area: src.area, height: src.height, sel: JSON.parse(JSON.stringify(src.sel)) });
+    const r = { id: uid(), name: '', w: '', l: '', area: '', height: '2.7', wallIn: '', sel: {}, files: [] };
+    if (src) Object.assign(r, { name: src.name, w: src.w, l: src.l, area: src.area, height: src.height, wallIn: src.wallIn, sel: JSON.parse(JSON.stringify(src.sel)) });
     const el = document.createElement('fieldset');
     el.className = 'room' + (reduced ? '' : ' fresh');
     el.innerHTML = `<legend></legend>
       <div class="room-acts"><button type="button" class="room-copy">Másolás</button><button type="button" class="room-del">Törlés</button></div>
       <div class="r-top">
         <label>Megnevezés<input class="r-name" list="roomNames" placeholder="pl. Nappali" maxlength="60"></label>
-        <label>Alapterület (m²)<input class="r-area" type="number" min="1" max="5000" step="0.1" inputmode="decimal" placeholder="pl. 18"></label>
+        <label>Szélesség (m)<input class="r-w" type="number" min="0.5" max="100" step="0.01" inputmode="decimal" placeholder="pl. 4"></label>
+        <label>Hosszúság (m)<input class="r-l" type="number" min="0.5" max="100" step="0.01" inputmode="decimal" placeholder="pl. 4,5"></label>
         <label>Belmagasság (m)<input class="r-h" type="number" min="1.8" max="15" step="0.05" inputmode="decimal" value="2.7"></label>
+        <label>Falkerület (m²)<input class="r-wall" type="number" min="1" max="5000" step="0.1" inputmode="decimal" placeholder="automatikus"></label>
       </div>
       <p class="geo"></p>
       <div class="r-items"></div>
@@ -709,13 +727,17 @@
     r.el = el;
     if (src && rooms.includes(src)) { src.el.after(el); rooms.splice(rooms.indexOf(src) + 1, 0, r); }
     else { rooms.push(r); $('#rooms').appendChild(el); }
-    if (src) { el.querySelector('.r-name').value = r.name; el.querySelector('.r-area').value = r.area; el.querySelector('.r-h').value = r.height; }
+    if (src) { el.querySelector('.r-name').value = r.name; el.querySelector('.r-w').value = r.w; el.querySelector('.r-l').value = r.l; el.querySelector('.r-h').value = r.height; el.querySelector('.r-wall').value = r.wallIn; }
     el.addEventListener('animationend', () => el.classList.remove('fresh'), { once: true });
     el.querySelector('.room-copy').addEventListener('click', () => { addRoom(r).el.querySelector('.r-name').focus(); flash('Helyiség lemásolva. Írd át a nevét, ha kell.'); });
     el.querySelector('.room-del').addEventListener('click', () => removeRoom(r));
     el.querySelector('.r-name').addEventListener('input', e => { r.name = e.target.value; updateSum(); });
-    el.querySelector('.r-area').addEventListener('input', e => { r.area = e.target.value; e.target.classList.remove('field-err'); updateGeo(r); updateSum(); });
+    el.querySelector('.r-w').addEventListener('input', e => { r.w = e.target.value; e.target.classList.remove('field-err'); updateGeo(r); updateSum(); });
+    el.querySelector('.r-l').addEventListener('input', e => { r.l = e.target.value; e.target.classList.remove('field-err'); updateGeo(r); updateSum(); });
     el.querySelector('.r-h').addEventListener('input', e => { r.height = e.target.value; e.target.classList.remove('field-err'); updateGeo(r); updateSum(); });
+    /* a falkerület a méretekből kitöltődik; ha átírod, az marad, ha kiürítöd, újra automatikus */
+    el.querySelector('.r-wall').addEventListener('input', e => { r.wallIn = e.target.value; e.target.classList.remove('field-err'); updateGeo(r, true); updateSum(); });
+    el.querySelector('.r-wall').addEventListener('change', () => updateGeo(r));
     el.querySelector('input[type=file]').addEventListener('change', e => { addFiles(r, [...e.target.files]); e.target.value = ''; });
     renderItems(r); updateGeo(r); renumber(); updateSum();
     motion.watch(el);
@@ -733,11 +755,18 @@
       r.el.querySelector('.room-del').hidden = rooms.length === 1;
     });
   }
-  function updateGeo(r) {
-    const g = roomGeometry(r.area, r.height);
+  const roomOpts = r => ({ w: r.w, l: r.l, wall: r.wallIn });
+  function updateGeo(r, fromWall) {
+    r.area = +r.w > 0 && +r.l > 0 ? String(Math.round(r.w * r.l * 100) / 100) : '';
+    const wf = r.el.querySelector('.r-wall');
+    if (!fromWall && !(+r.wallIn > 0)) {
+      const auto = roomGeometry(r.area, r.height, { w: r.w, l: r.l }).wall;
+      wf.value = +r.w > 0 && +r.l > 0 && auto ? auto : '';
+    }
+    const g = roomGeometry(r.area, r.height, roomOpts(r));
     r.el.querySelector('.geo').textContent = g.wall
-      ? `≈ ${fmtNum(g.wall)} m² falfelület és ${fmtNum(g.ceiling)} m² mennyezet (négyzetes alaprajzzal becsülve)`
-      : 'Add meg az alapterületet és a belmagasságot, ebből számolom ki a fal- és mennyezetfelületet.';
+      ? `≈ ${fmtNum(g.wall)} m² falfelület${g.ceiling ? ` és ${fmtNum(g.ceiling)} m² mennyezet (alapterület)` : ''}. A falkerületet átírhatod, ha az ajtók és ablakok miatt kevesebb festendő fal van.`
+      : 'Add meg a szélességet, a hosszúságot és a belmagasságot, ebből számolom ki a falkerületet és a mennyezetet.';
   }
 
   function priceTxt(w) {
@@ -746,69 +775,133 @@
     if (w.unit === 'surface' && pc != null && pc !== +w.price) return `fal ${fmtFt(w.price)} / m²<br>menny. ${fmtFt(pc)} / m²`;
     return `${fmtFt(w.unit === 'ceiling' && pc != null ? pc : w.price)} / ${UNIT_SHORT[w.unit] || ''}`;
   }
-  function itemControl(r, w, s) {
+  /* Egy munka többször is kiválasztható egy helyiségben: az első példány kulcsa a munka azonosítója, a továbbiaké „azonosító#2”, „#3”… */
+  const nz = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const keyId = k => String(k).split('#')[0];
+  const keyN = k => +(String(k).split('#')[1] || 1);
+  const MAX_DUP = 6;
+
+  /* Szabály: ha falkaparás van kiválasztva, két mély alapozás is kell (egy nem elég). */
+  const ruleIds = () => ({
+    scrape: WORK.filter(w => /^falkapar/.test(nz(w.name))).map(w => w.id),
+    primer: (WORK.find(w => /melyalapoz/.test(nz(w.name))) || {}).id
+  });
+  const lockedKeys = r => {
+    const { scrape, primer } = ruleIds();
+    return primer && Object.values(r.sel).some(s => scrape.includes(s.wid)) ? [primer, primer + '#2'] : [];
+  };
+  function enforceRules(r) {
+    const { primer } = ruleIds();
+    let added = false;
+    lockedKeys(r).forEach(k => {
+      if (r.sel[k]) return;
+      const base = r.sel[primer];
+      r.sel[k] = { wid: primer, surf: base ? base.surf : 'both', qty: base ? base.qty : 0 };
+      added = true;
+    });
+    return added;
+  }
+
+  function itemControl(r, w, key, s, canDup) {
     const dis = s ? '' : ' disabled';
+    let c = '';
     if (w.unit === 'surface') {
       const cur = (s && s.surf) || 'both';
-      return `<span class="seg" role="radiogroup" aria-label="${esc(w.name)}: hol">${SURFACES.map(([k, l]) =>
-        `<label><input type="radio" name="s-${r.id}-${w.id}" value="${k}"${cur === k ? ' checked' : ''}${dis}><span>${l}</span></label>`).join('')}</span>`;
-    }
-    if (QTY_UNITS.includes(w.unit)) {
+      c = `<span class="seg" role="radiogroup" aria-label="${esc(w.name)}: hol">${SURFACES.map(([k, l]) =>
+        `<label><input type="radio" name="s-${r.id}-${key}" value="${k}"${cur === k ? ' checked' : ''}${dis}><span>${l}</span></label>`).join('')}</span>`;
+    } else if (QTY_UNITS.includes(w.unit)) {
       const piece = w.unit === 'piece';
-      return `<span class="qtyw"><input type="number" class="qty" min="0" max="9999" step="${piece ? 1 : 0.1}" inputmode="decimal" value="${s ? s.qty : piece ? 1 : ''}" placeholder="0" aria-label="${esc(w.name)}: mennyiség (${UNIT_SHORT[w.unit]})"${dis}><span>${UNIT_SHORT[w.unit]}</span></span>`;
+      c = `<span class="qtyw"><input type="number" class="qty" min="0" max="9999" step="${piece ? 1 : 0.1}" inputmode="decimal" value="${s ? (s.qty || '') : piece ? 1 : ''}" placeholder="0" aria-label="${esc(w.name)}: mennyiség (${UNIT_SHORT[w.unit]})"${dis}><span>${UNIT_SHORT[w.unit]}</span></span>`;
     }
-    return '<span></span>';
+    if (canDup) c += `<button type="button" class="it-dup" title="Ugyanez a munka még egyszer (pl. két réteg)">+ még egyszer</button>`;
+    return `<span class="it-c">${c}</span>`;
   }
-  function renderItems(r) {
+  function renderItems(r, openState) {
     const box = r.el.querySelector('.r-items');
     if (!WORK.length) {
       box.innerHTML = `<p class="geo">${workLoaded ? 'Írd le a megjegyzésben, milyen munkát szeretnél ebben a helyiségben.' : 'A munkafolyamatok betöltése…'}</p>`;
       return;
     }
+    enforceRules(r);
+    const locked = lockedKeys(r);
     const groups = {};
     WORK.forEach(w => { (groups[w.category || 'Munkák'] = groups[w.category || 'Munkák'] || []).push(w); });
     const cnt = n => (n ? n + ' kiválasztva' : '');
-    box.innerHTML = Object.entries(groups).map(([cat, items]) => {
-      const n = items.filter(w => r.sel[w.id]).length;
-      return `<details class="grp"${n ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${cnt(n)}</em></summary>${items.map(w => {
-        const s = r.sel[w.id];
-        return `<div class="it${s ? ' on' : ''}" data-id="${w.id}"><label class="it-l"><input type="checkbox" value="${w.id}"${s ? ' checked' : ''}>
-          <span class="it-t">${esc(w.name)}${w.description ? `<small>${esc(w.description)}</small>` : ''}</span></label>
-          ${itemControl(r, w, s)}<span class="it-p">${priceTxt(w)}</span></div>`;
+    const row = (w, key, s, extra) => {
+      const lock = locked.includes(key), n = keyN(key);
+      return `<div class="it${s ? ' on' : ''}${extra ? ' extra' : ''}" data-id="${w.id}" data-key="${key}"><label class="it-l"><input type="checkbox" value="${key}"${s ? ' checked' : ''}${lock ? ' disabled' : ''}>
+          <span class="it-t">${esc(w.name)}${extra ? ` <b class="it-n">(${n}. alkalom)</b>` : ''}${!extra && w.description ? `<small>${esc(w.description)}</small>` : ''}${lock ? '<small>A falkaparás mellé két mély alapozás kell, ezért ez nem vehető ki.</small>' : ''}</span></label>
+          ${itemControl(r, w, key, s, !extra && !!s)}<span class="it-p">${extra ? '' : priceTxt(w)}</span></div>`;
+    };
+    box.innerHTML = Object.entries(groups).map(([cat, items], gi) => {
+      const ids = items.map(w => w.id), n = Object.values(r.sel).filter(s => ids.includes(s.wid)).length;
+      const open = n || (openState && openState[gi]);
+      return `<details class="grp"${open ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${cnt(n)}</em></summary>${items.map(w => {
+        const extras = Object.keys(r.sel).filter(k => r.sel[k].wid === w.id && k !== w.id).sort((a, b) => keyN(a) - keyN(b));
+        return row(w, w.id, r.sel[w.id], false) + extras.map(k => row(w, k, r.sel[k], true)).join('');
       }).join('')}</details>`;
     }).join('');
+
+    /* a lista újrarajzolása a nyitott csoportok megtartásával; fókusz a megadott sorra */
+    const redraw = (key, focusQty) => {
+      renderItems(r, [...box.querySelectorAll('details.grp')].map(d => d.open));
+      const it = box.querySelector(`.it[data-key="${key}"]`);
+      if (!it) return;
+      const q = it.querySelector('.qty');
+      (q && (focusQty || !q.value) && !q.disabled ? q : it.querySelector('input[type=checkbox]')).focus();
+    };
     box.onchange = e => {
       const it = e.target.closest('.it'); if (!it) return;
-      const id = it.dataset.id, cb = it.querySelector('input[type=checkbox]'), w = WORK.find(x => x.id === id);
-      if (e.target === cb) {
-        const q = it.querySelector('.qty');
-        if (cb.checked) {
-          const rad = it.querySelector('input[type=radio]:checked');
-          if (q && !q.value) q.value = w && w.unit === 'piece' ? 1 : '';
-          r.sel[id] = { surf: rad ? rad.value : 'both', qty: q ? (+q.value || 0) : 1 };
-        } else delete r.sel[id];
-        it.classList.toggle('on', cb.checked);
-        it.querySelectorAll('input:not([type=checkbox])').forEach(x => { x.disabled = !cb.checked; });
-        if (cb.checked && q && !q.value) q.focus();
-        const det = it.closest('details');
-        det.querySelector('[data-cnt]').textContent = cnt(det.querySelectorAll('.it.on').length);
-      } else if (e.target.type === 'radio' && r.sel[id]) r.sel[id].surf = e.target.value;
-      box.classList.remove('field-err');
+      const key = it.dataset.key, id = it.dataset.id, w = WORK.find(x => x.id === id);
+      if (e.target.type === 'checkbox') {
+        if (e.target.checked) {
+          r.sel[key] = { wid: id, surf: 'both', qty: w && QTY_UNITS.includes(w.unit) ? (w.unit === 'piece' ? 1 : 0) : 1 };
+        } else {
+          /* az első példány kivétele az összes példányt kiveszi, egy további példány csak önmagát */
+          Object.keys(r.sel).forEach(k => { if (r.sel[k].wid === id && (k === key || key === id)) delete r.sel[k]; });
+        }
+        const added = enforceRules(r);
+        box.classList.remove('field-err');
+        redraw(key);
+        if (added) flash('A falkaparás mellé két mély alapozás kell, ezért mindkettőt kijelöltem.');
+        updateSum();
+      } else if (e.target.type === 'radio' && r.sel[key]) {
+        r.sel[key].surf = e.target.value;
+        box.classList.remove('field-err');
+        updateSum();
+      }
+    };
+    box.onclick = e => {
+      const b = e.target.closest('.it-dup'); if (!b) return;
+      const id = b.closest('.it').dataset.id, base = r.sel[id]; if (!base) return;
+      let n = 2;
+      while (r.sel[id + '#' + n]) n++;
+      if (n > MAX_DUP) { flash(`Egy munkát legfeljebb ${MAX_DUP}-szor lehet felvenni egy helyiségben.`); return; }
+      r.sel[id + '#' + n] = { ...base };
+      redraw(id + '#' + n, true);
       updateSum();
     };
     box.oninput = e => {
       if (!e.target.classList.contains('qty')) return;
       e.target.classList.remove('field-err');
-      const id = e.target.closest('.it').dataset.id;
-      if (r.sel[id]) { r.sel[id].qty = +e.target.value || 0; updateSum(); }
+      const key = e.target.closest('.it').dataset.key;
+      if (r.sel[key]) { r.sel[key].qty = +e.target.value || 0; updateSum(); }
     };
   }
 
   function calcRoom(r) {
-    const g = roomGeometry(r.area, r.height);
-    const items = Object.entries(r.sel).flatMap(([id, s]) => { const w = WORK.find(x => x.id === id); return w ? workLines(w, g, s) : []; });
+    const g = roomGeometry(r.area, r.height, roomOpts(r));
+    const pos = id => WORK.findIndex(x => x.id === id);
+    const items = Object.entries(r.sel)
+      .map(([k, s]) => ({ k, s, w: WORK.find(x => x.id === (s.wid || keyId(k))) })).filter(x => x.w)
+      .sort((a, b) => pos(a.w.id) - pos(b.w.id) || keyN(a.k) - keyN(b.k))
+      .flatMap(({ k, s, w }) => {
+        const lines = workLines(w, g, s), n = keyN(k);
+        return n > 1 ? lines.map(l => ({ ...l, name: `${l.name} (${n}. alkalom)` })) : lines;
+      });
     return { g, items, subtotal: items.reduce((t, x) => t + x.amount, 0) };
   }
+
   function promo() {
     if (!isOn(TX.promo_on)) return null;
     const pct = parseFloat(TX.promo_pct);
@@ -848,7 +941,7 @@
   function updateSum() {
     const showP = TX.show_estimate !== false, T = totals();
     const li = rooms.map((r, i) => {
-      const meta = [r.area ? `${fmtNum(r.area)} m²` : 'alapterület hiányzik', `${Object.keys(r.sel).length} munka`, r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
+      const meta = [r.area ? `${fmtNum(r.w)} × ${fmtNum(r.l)} m` : 'méretek hiányoznak', `${Object.keys(r.sel).length} munka`, r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
       return `<li><b>${esc(r.name || `${i + 1}. helyiség`)}</b><em>${showP ? fmtFt(T.per[i].subtotal) : ''}</em><small>${meta}</small></li>`;
     }).join('');
     const promoLine = T.pr && T.total ? `<div class="promo-line"><span>${esc(T.pr.label)} (−${fmtNum(T.pr.pct)}%)</span><em>−${fmtFt(T.disc)}</em></div>` : '';
@@ -921,12 +1014,15 @@
     let first = null;
     const mark = el => { el.classList.add('field-err'); first = first || el; };
     rooms.forEach(r => {
-      if (!(+r.area > 0)) mark(r.el.querySelector('.r-area'));
+      if (!(+r.w > 0)) mark(r.el.querySelector('.r-w'));
+      if (!(+r.l > 0)) mark(r.el.querySelector('.r-l'));
       if (!(+r.height >= 1.5)) mark(r.el.querySelector('.r-h'));
+      if (!(calcRoom(r).g.wall > 0)) mark(r.el.querySelector('.r-wall'));
       if (WORK.length && !Object.keys(r.sel).length) mark(r.el.querySelector('.r-items'));
-      Object.keys(r.sel).forEach(id => {
-        const w = WORK.find(x => x.id === id);
-        if (w && QTY_UNITS.includes(w.unit) && !(r.sel[id].qty > 0)) mark(r.el.querySelector(`.it[data-id="${id}"] .qty`));
+      if (lockedKeys(r).some(k => !r.sel[k])) mark(r.el.querySelector('.r-items'));
+      Object.keys(r.sel).forEach(key => {
+        const w = WORK.find(x => x.id === r.sel[key].wid);
+        if (w && QTY_UNITS.includes(w.unit) && !(r.sel[key].qty > 0)) mark(r.el.querySelector(`.it[data-key="${key}"] .qty`));
       });
     });
     [['#qName', v => v.trim().length > 1], ['#qEmail', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())],
@@ -940,7 +1036,7 @@
     if (!first) return true;
     first.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
     if (first.tagName !== 'DIV') { const d = first.closest('details'); if (d) d.open = true; }
-    status('Néhány mező hiányos. A pirossal jelölteket töltsd ki: alapterület, belmagasság, legalább egy munka helyiségenként, a kiválasztott munkák mennyisége, a kívánt időpont (holnaptól kérhető), elérhetőségek és a hozzájárulás.', true);
+    status('Néhány mező hiányos. A pirossal jelölteket töltsd ki: szélesség, hosszúság, belmagasság, falkerület, legalább egy munka helyiségenként, a kiválasztott munkák mennyisége, a kívánt időpont (holnaptól kérhető), elérhetőségek és a hozzájárulás.', true);
     return false;
   }
   ['#qName', '#qEmail', '#qPhone', '#qCity', '#qOk'].forEach(s => $(s).addEventListener('input', e => e.target.classList.remove('field-err')));
@@ -965,7 +1061,7 @@
           if (error) throw new Error('A fotók feltöltése nem sikerült (' + error.message + ').');
           paths.push(path); uploaded++;
         }
-        roomsOut.push({ name: r.name.trim() || `${i + 1}. helyiség`, area: +r.area, height: +r.height, wall: c.g.wall, ceiling: c.g.ceiling, items: c.items, subtotal: c.subtotal, images: paths });
+        roomsOut.push({ name: r.name.trim() || `${i + 1}. helyiség`, width: +r.w, length: +r.l, area: +r.area, height: +r.height, wall: c.g.wall, ceiling: c.g.ceiling, items: c.items, subtotal: c.subtotal, images: paths });
       }
       status('Árajánlat-kérés küldése…');
       const T = totals(), slots = readSlots();
@@ -1014,7 +1110,7 @@
       await PlanervoPdf.download({
         title: 'Becsült árajánlat', date: fmtDate(new Date()),
         customer: { name: $('#qName').value.trim(), city: $('#qCity').value.trim(), phone: $('#qPhone').value.trim(), email: $('#qEmail').value.trim() },
-        rooms: rooms.map((r, i) => { const c = T.per[i]; return { name: r.name.trim() || `${i + 1}. helyiség`, area: +r.area, height: +r.height, wall: c.g.wall, ceiling: c.g.ceiling, items: c.items, subtotal: c.subtotal }; }),
+        rooms: rooms.map((r, i) => { const c = T.per[i]; return { name: r.name.trim() || `${i + 1}. helyiség`, width: +r.w, length: +r.l, area: +r.area, height: +r.height, wall: c.g.wall, ceiling: c.g.ceiling, items: c.items, subtotal: c.subtotal }; }),
         discount: T.pr && T.disc ? { label: T.pr.label, pct: T.pr.pct, amount: T.disc } : null,
         net: T.net, lo: T.lo, hi: T.hi, range: T.range,
         note: TX.quote_disclaimer || '', contact: { phone: TX.phone, email: TX.email, site: siteBase(TX).replace(/^https?:\/\//, '') }
@@ -1174,7 +1270,7 @@
     applyTexts(); applyLayout(getLayout(TX));
     renderServices(DEFAULT_SERVICES); renderSteps(DEFAULT_STEPS);
     addRoom(); resetSlots(); hero();
-    if (!sb) { workLoaded = true; rooms.forEach(renderItems); syncWorksLinks(); motion.refresh(); motion.counters(); return; }
+    if (!sb) { workLoaded = true; rooms.forEach(r => renderItems(r)); syncWorksLinks(); motion.refresh(); motion.counters(); return; }
     const list = t => sb.from(t).select('*').eq('visible', true).order('position').order('created_at');
     const safe = p => Promise.resolve(p).catch(error => ({ error }));
     const now = new Date().toISOString();
@@ -1200,7 +1296,7 @@
     if (!faq.error) renderFaq(faq.data || []);
     workLoaded = true;
     if (!work.error) WORK = work.data || [];
-    rooms.forEach(renderItems); updateSum(); hero();
+    rooms.forEach(r => renderItems(r)); updateSum(); hero();
     motion.refresh(); motion.counters();
     loadVideos(vid.error ? [] : (vid.data || []));
     if (location.hash) { const t = document.getElementById(decodeURIComponent(location.hash.slice(1))); if (t) scrollToSection(t, false); }

@@ -473,8 +473,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:none;bo
 .room-acts{position:absolute;top:16px;right:16px;display:flex;gap:16px}
 .room-acts button{min-height:32px;padding:6px 2px;border:0;background:none;color:var(--mute);font:inherit;font-size:.92rem;text-decoration:underline;cursor:pointer}
 .room-acts button:hover{color:var(--ink)}
-.r-top{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px}
-@media(max-width:620px){.r-top{grid-template-columns:1fr 1fr}.r-top label:first-child{grid-column:1/-1}}
+.r-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.r-top label:first-child{grid-column:1/-1}
+@media(max-width:620px){.r-top{grid-template-columns:1fr 1fr}}
 .r-items{display:grid;gap:10px;margin-top:18px}
 .r-items.field-err{outline:2px solid #b3261e;outline-offset:6px;border-radius:12px}
 .grp{padding:0 14px;border:1px solid var(--line);border-radius:14px;background:#fff}
@@ -499,15 +500,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:none;bo
 .seg input:checked+span{background:var(--ink);color:#fff}
 .seg input:focus-visible+span{outline:3px solid var(--gold);outline-offset:-3px}
 .seg input:disabled+span{opacity:.4;cursor:default}
-.it:not(.on) .seg,.it:not(.on) .qtyw{display:none}
+.it:not(.on) .it-c{display:none}
+.it-c{display:inline-flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 12px}
+.it-c:empty{display:none}
+.it-dup{min-height:34px;padding:6px 12px;border:1.5px dashed var(--gold);border-radius:99px;background:none;color:var(--gold-d);font:inherit;font-size:.84rem;font-weight:500;cursor:pointer;transition:background .2s,color .2s}
+.it-dup:hover,.it-dup:focus-visible{background:var(--gold);color:var(--on-gold,var(--ink))}
+.it.extra{margin-left:18px;padding-left:12px;border-left:3px solid var(--peach)}
+.it-n{color:var(--gold-d);font-weight:600}
+.it input[type=checkbox]:disabled{opacity:.55;cursor:not-allowed}
 .qtyw{display:inline-flex;align-items:center;gap:6px;color:var(--mute);font-size:.88rem}
 .it .qty{width:84px;padding:7px 10px}
 @media(max-width:640px){
   .it{grid-template-columns:minmax(0,1fr) auto;align-items:start}
   .it-l{grid-column:1;grid-row:1}
   .it-p{grid-column:2;grid-row:1;padding-top:2px}
-  .it .seg,.it .qtyw{grid-column:1/-1;grid-row:2;justify-self:start;margin-left:32px}
-  .it>span:empty{display:none}
+  .it .it-c{grid-column:1/-1;grid-row:2;justify-self:start;justify-content:flex-start;margin-left:32px}
+  .it.extra{margin-left:8px}
   .it .seg span{padding:7px 10px}
 }
 .r-files{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:18px}
@@ -660,6 +668,9 @@ footer.site nav a:hover{color:var(--ink)}
 .fc-phone:hover .fc-ic,.fc-phone:focus-visible .fc-ic{background:var(--ink);color:#fff}
 .fc-soc a:hover .fc-ic,.fc-soc a:focus-visible .fc-ic{background:var(--ink);border-color:var(--ink);color:#fff;transform:translateY(-2px)}
 .fcard a:focus-visible{outline:2px solid var(--gold-d);outline-offset:2px}
+/* összecsukva (az árajánlat összesítőjénél): csak egy keskeny fül marad a jobb szélen, kinyitva újra a teljes kártya */
+.fcard{transition:translate .35s var(--ease),opacity .35s var(--ease)}
+.fcard.mini:not(.peek):not(:hover):not(:focus-within){translate:calc(100% - 14px) -50%;opacity:.85}
 @media(max-width:1100px){
   .fc-num{display:none}
   .fcard{padding:6px;border-radius:99px;gap:6px}
@@ -668,6 +679,7 @@ footer.site nav a:hover{color:var(--ink)}
 }
 @media(max-width:700px){
   .fcard{top:auto;bottom:calc(88px + env(safe-area-inset-bottom,0px));translate:none}
+  .fcard.mini:not(.peek):not(:hover):not(:focus-within){translate:calc(100% - 14px) 0}
   .fc-ic{width:40px;height:40px}
 }
 @media(prefers-reduced-motion:no-preference){

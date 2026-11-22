@@ -250,9 +250,14 @@ function uid() {
 }
 
 /* ---------- Árszámítás: a helyiség falfelülete négyzetes alaprajzzal becsülve ---------- */
-function roomGeometry(area, height) {
-  const a = +area || 0, h = +height || 0;
-  const wall = a > 0 && h > 0 ? Math.round(4 * Math.sqrt(a) * h * 10) / 10 : 0;
+/* o (nem kötelező): { w: szélesség, l: hosszúság, wall: kézzel megadott falkerület }.
+   Falkerület: kézi érték, ha van; különben 2·(szélesség+hosszúság)·belmagasság; régi, csak alapterületes kérésnél négyzetes becslés. */
+function roomGeometry(area, height, o) {
+  const a = +area || 0, h = +height || 0, w = +(o && o.w) || 0, l = +(o && o.l) || 0, ov = +(o && o.wall) || 0;
+  let wall = 0;
+  if (ov > 0) wall = Math.round(ov * 10) / 10;
+  else if (w > 0 && l > 0 && h > 0) wall = Math.round(2 * (w + l) * h * 10) / 10;
+  else if (a > 0 && h > 0) wall = Math.round(4 * Math.sqrt(a) * h * 10) / 10;
   return { floor: a, wall, ceiling: a };
 }
 function unitQty(unit, g, qty) {
