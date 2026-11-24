@@ -689,3 +689,15 @@ footer.site nav a:hover{color:var(--ink)}
 @media(prefers-reduced-motion:no-preference) and (max-width:700px){
   @keyframes fcin{from{opacity:0;translate:28px 0}}
 }
+
+/* árajánlat-összesítő: felületek és munkafolyamatok helyiségenként */
+.q-sum{max-height:calc(100vh - 104px);overflow-y:auto}
+.q-sum li.q-room{grid-template-columns:1fr auto}
+.q-sum .q-sub{grid-column:1/-1;margin-top:8px;color:var(--gold-l);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+.q-sum .q-surf,.q-sum .q-steps{grid-column:1/-1}
+.q-sum .q-surf li,.q-sum .q-steps li{padding:4px 0;border-top:0;font-size:.9rem}
+.q-sum .q-surf li{display:block}
+.q-sum .q-steps{counter-reset:qs}
+.q-sum .q-steps li{grid-template-columns:1fr auto;counter-increment:qs}
+.q-sum .q-steps li>span::before{content:counter(qs) ". ";color:var(--gold-l);font-variant-numeric:tabular-nums}
+.q-sum .q-steps li small{grid-column:1;color:#aaa29a;font-size:.8rem}

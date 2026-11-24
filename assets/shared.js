@@ -63,7 +63,6 @@ const TEXT_FIELDS = [
   { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Add meg a helyiségeket és a munkákat, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'show_estimate', l: 'Becsült ár mutatása az ügyfélnek', d: true, t: 'bool' },
   { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés csak a munkadíjat mutatja, az anyag ára nincs benne. Az anyagot kérésre beszerzem, de csak előre fizetéssel. A végleges árat a helyszíni felmérés után mondom meg.', t: 'textarea' },
-  { g: 'Árajánlatkérés', k: 'quote_range_pct', l: 'Ár-sáv szélessége (± százalék)', t: 'number', d: 12, hint: 'A becslés „kb. 118 000 – 142 000 Ft” formában jelenik meg. 0 esetén pontos összeg látszik.' },
   { g: 'Árajánlatkérés', k: 'slots_on', l: 'Kívánt felmérési időpont kérése az űrlapon', t: 'bool', d: true },
   { g: 'Árajánlatkérés', k: 'promo_on', l: 'Akció / kedvezmény bekapcsolva', t: 'bool', d: false },
   { g: 'Árajánlatkérés', k: 'promo_label', l: 'Az akció neve', d: 'Téli akció', ph: 'pl. Téli akció' },
@@ -292,6 +291,21 @@ function unitQty(unit, g, qty) {
     case 'room': return 1;
     default: return 0;
   }
+}
+/* Munkafolyamat-sorrend (felújításnál): takarás → kaparás/bontás → gipszkarton → mélyalapozás → javítások → glettelés → csiszolás → második mélyalapozás → egyéb (stukko, tapéta stb.) → festés.
+   n: hányadik alkalom (a falkaparás mellé kötelező két mélyalapozásból a második a csiszolás után jön). */
+function workPhase(w, n) {
+  const t = String(w.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''), c = String(w.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/melyalapoz/.test(t)) return n > 1 ? 60 : 30;
+  if (/takaras|maszkol/.test(t)) return 5;
+  if (/rozetta/.test(t)) return 70;
+  if (/csiszol/.test(t)) return 50;
+  if (/glett/.test(t)) return 45;
+  if (/festes|festese|szinhatar/.test(t) || /^festesi/.test(c)) return 90;
+  if (/kapar|bontasa|eltavolit|egetese|penesz/.test(t)) return 10;
+  if (/uvegfatyol|elvedo|vezetekhorony|repedes|dilatacio|tomites|kotodoboz|vakolofedel/.test(t)) return 40;
+  if (/^gipszkarton|gipszkartonoz/.test(c) || /gipszkarton|valaszfal|almennyezet|elotetfal|hotukor|ablakkava|dobozolas|ives fal|ajto kialakitasa/.test(t)) return 20;
+  return 70; /* egyéb: stukko, tapéta, makulatúra, díszléc, mázolás, szerelések… */
 }
 const ceilingPrice = w => w.price_ceiling != null && w.price_ceiling !== '' ? +w.price_ceiling : null;
 /* egy kiválasztott munka sorai; a „fal és/vagy mennyezet” két sort ad, mert a mennyezetnek külön díja lehet */

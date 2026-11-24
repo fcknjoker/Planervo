@@ -42,7 +42,7 @@ const PlanervoPdf = (function () {
   const num = n => plain((Math.round((+n || 0) * 10) / 10).toLocaleString('hu-HU'));
   const unit = u => ({ wall: 'm²', ceiling: 'm²', wallceil: 'm²', floor: 'm²', sqm: 'm²', surface: 'm²', meter: 'fm', piece: 'db', room: 'db' }[u] || '');
 
-  /* data: { title, date, customer, rooms[{ name, area, height, wall, ceiling, items[], subtotal }], discount, net, lo, hi, range, note, contact } */
+  /* data: { title, date, customer, rooms[{ name, area, height, wall, ceiling, items[] (munkasorrendben), subtotal }], discount, net, note, contact } */
   function definition(data, logo) {
     const content = [];
     const head = [{ width: '*', stack: [{ text: data.title || 'Becsült árajánlat', style: 'h1' }, { text: data.date || '', color: MUTE, margin: [0, 2, 0, 0] }] }];
@@ -53,20 +53,29 @@ const PlanervoPdf = (function () {
     if (cl.length) content.push({ text: cl.join('  ·  '), color: MUTE, margin: [0, 0, 0, 10] });
 
     (data.rooms || []).forEach((r, i) => {
-      const geo = [r.width && r.length ? `${num(r.width)} × ${num(r.length)} m` : '', r.area ? num(r.area) + ' m² alapterület' : '', r.height ? num(r.height) + ' m belmagasság' : '', r.wall ? '≈ ' + num(r.wall) + ' m² fal' : '', r.ceiling ? num(r.ceiling) + ' m² mennyezet' : ''].filter(Boolean).join(', ');
-      content.push({ text: `${i + 1}. ${r.name || 'Helyiség'}`, style: 'h2', margin: [0, 8, 0, 2], unbreakable: true });
-      if (geo) content.push({ text: geo, color: MUTE, fontSize: 9, margin: [0, 0, 0, 4] });
-      const body = [[{ text: 'Munka', style: 'th' }, { text: 'Mennyiség', style: 'th', alignment: 'right' }, { text: 'Egységár', style: 'th', alignment: 'right' }, { text: 'Összeg', style: 'th', alignment: 'right' }]];
-      (r.items || []).forEach(it => body.push([{ text: it.name }, { text: `${num(it.qty)} ${unit(it.unit)}`.trim(), alignment: 'right' }, { text: ft(it.price), alignment: 'right' }, { text: ft(it.amount), alignment: 'right' }]));
-      body.push([{ text: 'Részösszeg', bold: true, colSpan: 3 }, {}, {}, { text: ft(r.subtotal), bold: true, alignment: 'right' }]);
-      content.push({ table: { headerRows: 1, widths: ['*', 70, 70, 80], body }, layout: { hLineColor: () => LINE, vLineWidth: () => 0, hLineWidth: () => .6, paddingTop: () => 4, paddingBottom: () => 4 } });
+      content.push({ text: `${i + 1}. ${r.name || 'Helyiség'}`, style: 'h2', margin: [0, 10, 0, 2], unbreakable: true });
+      const dims = [r.width && r.length ? `${num(r.width)} × ${num(r.length)} m` : '', r.height ? num(r.height) + ' m belmagasság' : ''].filter(Boolean).join(', ');
+      if (dims) content.push({ text: dims, color: MUTE, fontSize: 9, margin: [0, 0, 0, 4] });
+      /* 1) felületek külön */
+      const surf = [];
+      if (r.wall) surf.push(['Fal', num(r.wall) + ' m²']);
+      if (r.ceiling) surf.push(['Mennyezet', num(r.ceiling) + ' m²']);
+      if (surf.length) {
+        content.push({ text: 'Felületek', style: 'h3', margin: [0, 2, 0, 2], unbreakable: true });
+        content.push({ table: { widths: ['*', 90], body: surf.map(x => [{ text: x[0] }, { text: x[1], alignment: 'right' }]) }, layout: { hLineColor: () => LINE, vLineWidth: () => 0, hLineWidth: () => .6, paddingTop: () => 3, paddingBottom: () => 3 }, margin: [0, 0, 0, 6] });
+      }
+      /* 2) munkafolyamatok a munkavégzés sorrendjében */
+      content.push({ text: 'Munkafolyamatok sorrendben', style: 'h3', margin: [0, 2, 0, 2], unbreakable: true });
+      const body = [[{ text: '#', style: 'th' }, { text: 'Munkafolyamat', style: 'th' }, { text: 'Mennyiség', style: 'th', alignment: 'right' }, { text: 'Egységár', style: 'th', alignment: 'right' }, { text: 'Összeg', style: 'th', alignment: 'right' }]];
+      (r.items || []).forEach((it, k) => body.push([{ text: String(k + 1), color: MUTE }, { text: it.name }, { text: `${num(it.qty)} ${unit(it.unit)}`.trim(), alignment: 'right' }, { text: ft(it.price), alignment: 'right' }, { text: ft(it.amount), alignment: 'right' }]));
+      body.push([{ text: 'Részösszeg', bold: true, colSpan: 4 }, {}, {}, {}, { text: ft(r.subtotal), bold: true, alignment: 'right' }]);
+      content.push({ table: { headerRows: 1, widths: [16, '*', 62, 62, 76], body }, layout: { hLineColor: () => LINE, vLineWidth: () => 0, hLineWidth: () => .6, paddingTop: () => 4, paddingBottom: () => 4 } });
     });
 
     const tot = [];
     if (data.discount && data.discount.amount) tot.push([{ text: `${data.discount.label || 'Akció'} (−${data.discount.pct}%)`, color: GOLD }, { text: '−' + ft(data.discount.amount), alignment: 'right', color: GOLD }]);
-    tot.push([{ text: 'Becsült munkadíj', bold: true, fontSize: 12 }, { text: data.range ? `kb. ${ft(data.lo).replace(' Ft', '')} – ${ft(data.hi)}` : ft(data.net), bold: true, fontSize: 14, alignment: 'right' }]);
+    tot.push([{ text: 'Becsült munkadíj', bold: true, fontSize: 12 }, { text: ft(data.net), bold: true, fontSize: 14, alignment: 'right' }]);
     content.push({ table: { widths: ['*', 'auto'], body: tot }, layout: { hLineWidth: i => (i === 0 ? 1.2 : 0), hLineColor: () => INK, vLineWidth: () => 0, paddingTop: () => 6, paddingBottom: () => 2 }, margin: [0, 14, 0, 4], unbreakable: true });
-    if (data.range) content.push({ text: `Középérték: ${ft(data.net)}`, color: MUTE, fontSize: 9, alignment: 'right' });
     if (data.note) content.push({ text: data.note, color: MUTE, fontSize: 9, margin: [0, 14, 0, 0] });
     const ct = data.contact || {}, cf = [ct.phone, ct.email, ct.site].filter(Boolean);
     if (cf.length) content.push({ text: cf.join('   ·   '), margin: [0, 16, 0, 0], color: INK, fontSize: 10 });
@@ -75,7 +84,7 @@ const PlanervoPdf = (function () {
       pageSize: 'A4', pageMargins: [44, 44, 44, 52],
       info: { title: data.title || 'Becsült árajánlat', author: 'PLANERVO' },
       defaultStyle: { font: 'Roboto', fontSize: 10, color: INK, lineHeight: 1.2 },
-      styles: { h1: { fontSize: 20, bold: true }, h2: { fontSize: 13, bold: true }, th: { bold: true, color: MUTE, fontSize: 9 } },
+      styles: { h1: { fontSize: 20, bold: true }, h2: { fontSize: 13, bold: true }, h3: { fontSize: 10, bold: true, color: GOLD }, th: { bold: true, color: MUTE, fontSize: 9 } },
       footer: (p, n) => ({ columns: [{ text: 'PLANERVO – Minőség minden rétegben', color: MUTE, fontSize: 8 }, { text: `${p}. oldal / ${n}`, alignment: 'right', color: MUTE, fontSize: 8 }], margin: [44, 0, 44, 0] }),
       content
     };

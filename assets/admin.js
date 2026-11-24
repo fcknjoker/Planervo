@@ -818,7 +818,7 @@
     $('#qList').innerHTML = list.length ? list.map(q => `<button type="button" class="qrow" data-id="${q.id}">
         <span class="st st-${q.status}">${STATUS[q.status] || q.status}</span>
         <b>${esc(q.name)}</b><span>${esc(q.city)}</span><span>${(q.rooms || []).length} helyiség</span>
-        <span class="num">${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? fmtInt(q.estimate_min) + '–' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</span><time>${q.appointment_at ? '📅 ' + new Date(q.appointment_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
+        <span class="num">${fmtFt(q.estimate)}</span><time>${q.appointment_at ? '📅 ' + new Date(q.appointment_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' }) : new Date(q.created_at).toLocaleString('hu-HU', { dateStyle: 'medium', timeStyle: 'short' })}</time></button>`).join('')
       : `<div class="emptybox"><p>${QUOTES.length ? 'Nincs a szűrésnek megfelelő árajánlat-kérés.' : 'Még nem érkezett árajánlat-kérés. Amint valaki kitölti az űrlapot a weboldalon, itt jelenik meg.'}</p></div>`;
     $('#qList').onclick = e => { const b = e.target.closest('.qrow'); if (b) openQuote(b.dataset.id); };
   }
@@ -848,7 +848,7 @@
           ${(r.images || []).length ? `<div class="qd-imgs">${r.images.map((p, j) => urls[p] ? `<a href="${urls[p]}" target="_blank" rel="noopener"><img src="${urls[p]}" alt="${j + 1}. fotó"></a>` : '').join('')}</div>` : ''}
         </div>`).join('')}
         ${q.discount && q.discount.amount ? `<div class="qd-promo">${esc(q.discount.label || 'Akció')} (−${esc(q.discount.pct)}%): −${fmtFt(q.discount.amount)}</div>` : ''}
-        <div class="qd-total">Becsült munkadíj összesen:<strong>${q.estimate_min && q.estimate_max && +q.estimate_min !== +q.estimate_max ? 'kb. ' + fmtInt(q.estimate_min) + ' – ' + fmtFt(q.estimate_max) : fmtFt(q.estimate)}</strong>${q.estimate_min && +q.estimate_min !== +q.estimate_max ? `<small class="muted"> középérték: ${fmtFt(q.estimate)}</small>` : ''}</div>
+        <div class="qd-total">Becsült munkadíj összesen:<strong>${fmtFt(q.estimate)}</strong></div>
         <div class="qd-appt"><b>Felmérés időpontja</b>
           <div class="qd-appt-row"><label>Időpont<input type="datetime-local" id="qApptAt" value="${q.appointment_at ? toLocal(q.appointment_at) : ''}"></label>
             <label>Megjegyzés (cím, kapucsengő, parkolás)<input type="text" id="qApptNote" maxlength="200" value="${esc(q.appointment_note)}"></label></div>
@@ -1339,9 +1339,9 @@
     const rows = filteredQuotes();
     if (!rows.length) return toast('Nincs exportálható árajánlat-kérés.', true);
     const cell = v => { v = String(v ?? '').replace(/\r?\n/g, ' ').trim(); return /[;"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
-    const head = ['Beérkezett', 'Állapot', 'Név', 'E-mail', 'Telefon', 'Település', 'Megjegyzés', 'Helyiségek', 'Becsült munkadíj (Ft)', 'Ár-sáv tól (Ft)', 'Ár-sáv ig (Ft)', 'Akció', 'Kívánt időpontok', 'Felmérés időpontja', 'Kért munkák', 'Saját jegyzet'];
+    const head = ['Beérkezett', 'Állapot', 'Név', 'E-mail', 'Telefon', 'Település', 'Megjegyzés', 'Helyiségek', 'Becsült munkadíj (Ft)', 'Akció', 'Kívánt időpontok', 'Felmérés időpontja', 'Kért munkák', 'Saját jegyzet'];
     const lines = rows.map(q => [new Date(q.created_at).toLocaleString('hu-HU'), STATUS[q.status] || q.status, q.name, q.email, q.phone, q.city, q.message,
-      (q.rooms || []).length, Math.round(+q.estimate || 0), q.estimate_min ? Math.round(+q.estimate_min) : '', q.estimate_max ? Math.round(+q.estimate_max) : '', q.discount ? `${q.discount.label || 'Akció'} −${q.discount.pct}%` : '', (q.preferred_slots || []).map(slotLabel).join(' | '), q.appointment_at ? new Date(q.appointment_at).toLocaleString('hu-HU') : '', (q.rooms || []).map(r => `${r.name}: ${(r.items || []).map(i => i.name).join(', ')}`).join(' | '), q.admin_note]);
+      (q.rooms || []).length, Math.round(+q.estimate || 0), q.discount ? `${q.discount.label || 'Akció'} −${q.discount.pct}%` : '', (q.preferred_slots || []).map(slotLabel).join(' | '), q.appointment_at ? new Date(q.appointment_at).toLocaleString('hu-HU') : '', (q.rooms || []).map(r => `${r.name}: ${(r.items || []).map(i => i.name).join(', ')}`).join(' | '), q.admin_note]);
     downloadFile(`arajanlat-keresek-${dayStr(new Date())}.csv`, '﻿' + [head, ...lines].map(r => r.map(cell).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
     toast(`${rows.length} kérés letöltve (Excelben megnyitható).`);
   }

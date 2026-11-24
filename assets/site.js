@@ -894,7 +894,7 @@
     const pos = id => WORK.findIndex(x => x.id === id);
     const items = Object.entries(r.sel)
       .map(([k, s]) => ({ k, s, w: WORK.find(x => x.id === (s.wid || keyId(k))) })).filter(x => x.w)
-      .sort((a, b) => pos(a.w.id) - pos(b.w.id) || keyN(a.k) - keyN(b.k))
+      .sort((a, b) => workPhase(a.w, keyN(a.k)) - workPhase(b.w, keyN(b.k)) || pos(a.w.id) - pos(b.w.id) || keyN(a.k) - keyN(b.k))
       .flatMap(({ k, s, w }) => {
         const lines = workLines(w, g, s), n = keyN(k);
         return n > 1 ? lines.map(l => ({ ...l, name: `${l.name} (${n}. alkalom)` })) : lines;
@@ -910,18 +910,14 @@
     if (/^\d{4}-\d{2}-\d{2}$/.test(until) && dayStr(new Date()) > until) return null;
     return { label: String(TX.promo_label || '').trim() || 'Akció', pct, until };
   }
-  /* részösszegek, akció, majd ár-sáv (tól–ig) a középérték körül */
+  /* részösszegek, akció, majd a fix végösszeg */
   function totals() {
     let total = 0;
     const per = rooms.map(r => { const c = calcRoom(r); total += c.subtotal; return c; });
     const pr = promo(), disc = pr ? Math.round(total * pr.pct / 100) : 0, net = total - disc;
-    const v = parseFloat(TX.quote_range_pct), rp = Math.max(0, Math.min(40, Number.isFinite(v) ? v : 12));
-    const step = net < 20000 ? 100 : 1000;
-    const lo = rp ? Math.max(0, Math.round(net * (1 - rp / 100) / step) * step) : net;
-    const hi = rp ? Math.round(net * (1 + rp / 100) / step) * step : net;
-    return { per, total, pr, disc, net, lo, hi, range: !!(rp && total) };
+    return { per, total, pr, disc, net };
   }
-  const fmtRange = v => v.length > 1 ? `kb. ${fmtInt(v[0])} – ${fmtInt(v[1])} Ft` : `${fmtInt(v[0])} Ft`;
+  const fmtRange = v => `${fmtInt(v[0])} Ft`;
   let shownTotal = [0], tweenRaf = 0;
   function showTotal(el, vals) {
     cancelAnimationFrame(tweenRaf);
@@ -941,16 +937,21 @@
   function updateSum() {
     const showP = TX.show_estimate !== false, T = totals();
     const li = rooms.map((r, i) => {
-      const meta = [r.area ? `${fmtNum(r.w)} × ${fmtNum(r.l)} m` : 'méretek hiányoznak', `${Object.keys(r.sel).length} munka`, r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
-      return `<li><b>${esc(r.name || `${i + 1}. helyiség`)}</b><em>${showP ? fmtFt(T.per[i].subtotal) : ''}</em><small>${meta}</small></li>`;
+      const c = T.per[i], g = c.g;
+      const meta = [r.area ? `${fmtNum(r.w)} × ${fmtNum(r.l)} m` : 'méretek hiányoznak', r.files.length ? `${r.files.length} fotó` : ''].filter(Boolean).join(', ');
+      const surf = [g.wall ? `<li>Fal: <b>${fmtNum(g.wall)} m²</b></li>` : '', g.ceiling ? `<li>Mennyezet: <b>${fmtNum(g.ceiling)} m²</b></li>` : ''].join('');
+      const steps = c.items.map(it => `<li><span>${esc(it.name)}</span><small>${fmtNum(it.qty)} ${UNIT_SHORT[it.unit] || ''}</small>${showP ? `<em>${fmtFt(it.amount)}</em>` : ''}</li>`).join('');
+      return `<li class="q-room"><b>${esc(r.name || `${i + 1}. helyiség`)}</b><em>${showP ? fmtFt(c.subtotal) : ''}</em><small>${meta}</small>
+        ${surf ? `<div class="q-sub">Felületek</div><ul class="q-surf">${surf}</ul>` : ''}
+        ${steps ? `<div class="q-sub">Munkafolyamatok sorrendben</div><ol class="q-steps">${steps}</ol>` : ''}</li>`;
     }).join('');
     const promoLine = T.pr && T.total ? `<div class="promo-line"><span>${esc(T.pr.label)} (−${fmtNum(T.pr.pct)}%)</span><em>−${fmtFt(T.disc)}</em></div>` : '';
     $('#qSum').innerHTML = `<h3>Összesítő</h3><ul>${li}</ul>
-      ${showP ? `<div class="tot">${promoLine}Becsült munkadíj<strong id="qTotal"></strong>${T.range ? `<small class="mid">Középérték: ${fmtFt(T.net)}</small>` : ''}</div>
+      ${showP ? `<div class="tot">${promoLine}Becsült munkadíj<strong id="qTotal"></strong></div>
         <button type="button" class="btn sm pdf" id="qPdf"${T.total ? '' : ' disabled'}>Becslés letöltése PDF-ben</button>` : ''}
       <small class="note">${esc(TX.quote_disclaimer || '')}</small>`;
     const strong = $('#qTotal');
-    if (strong) showTotal(strong, T.range ? [T.lo, T.hi] : [T.net]);
+    if (strong) showTotal(strong, [T.net]);
     const pn = $('#promoNote');
     pn.hidden = !T.pr;
     if (T.pr) {
@@ -1071,7 +1072,7 @@
       };
       let { error } = await sb.from('quotes').insert({
         ...base,
-        estimate_min: T.range ? T.lo : T.net, estimate_max: T.range ? T.hi : T.net,
+        estimate_min: T.net, estimate_max: T.net,
         discount: T.pr && T.disc ? { label: T.pr.label, pct: T.pr.pct, amount: T.disc } : null,
         preferred_slots: slots.length ? slots : null
       });
@@ -1112,7 +1113,7 @@
         customer: { name: $('#qName').value.trim(), city: $('#qCity').value.trim(), phone: $('#qPhone').value.trim(), email: $('#qEmail').value.trim() },
         rooms: rooms.map((r, i) => { const c = T.per[i]; return { name: r.name.trim() || `${i + 1}. helyiség`, width: +r.w, length: +r.l, area: +r.area, height: +r.height, wall: c.g.wall, ceiling: c.g.ceiling, items: c.items, subtotal: c.subtotal }; }),
         discount: T.pr && T.disc ? { label: T.pr.label, pct: T.pr.pct, amount: T.disc } : null,
-        net: T.net, lo: T.lo, hi: T.hi, range: T.range,
+        net: T.net,
         note: TX.quote_disclaimer || '', contact: { phone: TX.phone, email: TX.email, site: siteBase(TX).replace(/^https?:\/\//, '') }
       }, `planervo-becsles-${dayStr(new Date())}.pdf`);
       flash('A PDF letöltődött.');
