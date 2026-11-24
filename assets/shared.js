@@ -41,6 +41,7 @@ const TEXT_FIELDS = [
   { g: 'Előtte–utána', k: 'ba_text', l: 'Bevezető', d: 'Húzd el a csúszkát: ilyen volt a fal, mielőtt hozzányúltam, és ilyen lett az átadáskor.', t: 'textarea' },
   { g: 'Galéria', k: 'gallery_title', l: 'Cím', d: 'Galéria' },
   { g: 'Galéria', k: 'gallery_text', l: 'Bevezető', d: 'Válogatás az elkészült munkáimból.', t: 'textarea' },
+  { g: 'Galéria', k: 'gallery_services', l: 'A szolgáltatások képei is látszanak a galériában', t: 'select', d: 'yes', o: [['yes', 'Igen'], ['no', 'Nem']], hint: 'A szolgáltatásoknál feltöltött képek (a képpárok is) a galéria végén jelennek meg, ha még nincsenek benne.' },
   { g: 'Galéria', k: 'gallery_mode', l: 'Mit mutasson a főoldal galériája', t: 'select', d: 'images', o: [['images', 'Külön képek'], ['albums', 'Albumok (albumborítókkal)']], hint: 'Albumok módban csak az albumba sorolt képek jelennek meg, albumonként egy borítóval.' },
   { g: 'Videók', k: 'videos_title', l: 'Cím', d: 'Videók' },
   { g: 'Videók', k: 'videos_text', l: 'Bevezető', d: 'Így dolgozom, közelről.', t: 'textarea' },

@@ -38,7 +38,7 @@
       help: 'A főoldal szolgáltatás-sorai. Ha képet is adsz meg, a sor mellett nagy képként jelenik meg; kép nélkül a logó színsávjai látszanak.',
       empty: 'Még nincs szolgáltatás. Ha üres, a szakasz nem jelenik meg a főoldalon.',
       fields: [{ k: 'title', l: 'Cím', req: 1 }, { k: 'body', l: 'Leírás', t: 'textarea' }, { k: 'image_url', l: 'Kép (nem kötelező)', t: 'image', folder: 'szolgaltatasok' },
-        { k: 'pairs', l: 'Előtte–utána képpárok', t: 'pairs', folder: 'szolgaltatasok', hint: 'Annyi párt adhatsz hozzá, amennyit szeretnél; minél több van, annál kisebb bélyegképként jelennek meg a kártyán. A látogató rákattintva nagyban, csúszkával nézheti meg őket. Képet feltölthetsz, vagy kiválaszthatsz a galériából.' }],
+        { k: 'pairs', l: 'Képek és előtte–utána képpárok', t: 'pairs', folder: 'szolgaltatasok', hint: 'Képpárt (előtte–utána) és önálló képet is hozzáadhatsz, amennyit szeretnél, vegyesen; minél több van, annál kisebb bélyegképként jelennek meg a kártyán. A látogató rákattintva nagyban, csúszkával nézheti meg őket. Képet feltölthetsz, vagy kiválaszthatsz a galériából.' }],
       beforeSave: (o, cur) => { if (!(o.pairs || []).length && !('pairs' in cur)) delete o.pairs; return null; },
       thumb: 'image_url', title: r => r.title, sub: r => r.body
     },
@@ -79,7 +79,7 @@
         { k: 'title', l: 'Cím' },
         { k: 'description', l: 'Rövid leírás', t: 'textarea' }
       ],
-      thumb: r => ytId(r.url) ? `https://i.ytimg.com/vi/${ytId(r.url)}/mqdefault.jpg` : '',
+      thumb: r => ytId(r.url) ? `https://i.ytimg.com/vi/${ytId(r.url)}/hqdefault.jpg` : '',
       title: r => r.title || r.url, sub: r => r.title ? r.url : '',
       beforeSave: o => ytId(o.url) ? null : 'Ez nem YouTube-videó linkje. Másold ki a videó címét a böngésző címsorából.'
     },
@@ -231,7 +231,7 @@
     $$('#nav button').forEach(b => { if (b.dataset.v === navKey) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     if (dlg.open) dlg.close();
     window.scrollTo(0, 0);
-    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'float') showFloat(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else if (v === 'subpages') showSubpages(); else showTable(v);
+    if (v === 'overview') showOverview(); else if (v === 'quotes') showQuotes(); else if (v === 'texts') showTexts(); else if (v === 'layout') showLayout(); else if (v === 'float') showFloat(); else if (v === 'backup') showBackup(); else if (v === 'seo') showSeo(); else if (v === 'pages') showPages(); else if (v === 'subpages') showSubpages(); else if (v === 'gallery' || v === 'gallery_albums') showGallery(); else showTable(v);
   }
   addEventListener('hashchange', route);
 
@@ -264,7 +264,7 @@
       case 'rich': return `<div class="fl"><span class="lbl">${lab}</span><div class="rich" id="${id}"></div>${hint}</div>`;
       case 'pairs': return `<div class="fl pairs-ed" id="${id}" data-folder="${esc(f.folder || 'egyeb')}"><span class="lbl">${lab}</span>
           <div class="pairs-list">${(Array.isArray(v) ? v : []).map(pairRow).join('')}</div>
-          <button type="button" class="btn o sm" data-addpair>+ Új képpár</button>${hint}</div>`;
+          <button type="button" class="btn o sm" data-addpair>+ Új képpár</button> <button type="button" class="btn o sm" data-addone>+ Új kép</button>${hint}</div>`;
       default: return `<label class="fl">${lab}<input id="${id}" type="text" value="${esc(v)}" maxlength="${f.max || 500}"${req}${ph}>${hint}</label>`;
     }
   }
@@ -278,14 +278,18 @@
   }
   function pairRow(p) {
     p = p || {};
-    return `<div class="pair-row"><div class="pair-imgs">${pairImg('before', 'Előtte', p.before)}${pairImg('after', 'Utána', p.after)}</div>
+    const one = p.single || p.img != null;
+    return `<div class="pair-row${one ? ' single' : ''}"><div class="pair-imgs">${one ? pairImg('img', 'Kép', p.img) : pairImg('before', 'Előtte', p.before) + pairImg('after', 'Utána', p.after)}</div>
       <div class="pair-meta"><input type="text" class="pair-title" maxlength="120" placeholder="Felirat (nem kötelező)" value="${esc(p.title)}">
       <span class="pair-ord"><button type="button" class="btn o sm" data-pu aria-label="Fel">↑</button><button type="button" class="btn o sm" data-pd aria-label="Le">↓</button><button type="button" class="btn o sm" data-prm>Törlés</button></span></div></div>`;
   }
   function collectPairs(id) {
-    return $$('#' + id + ' .pair-row').map(r => ({
-      before: $('[data-side=before] input[type=text]', r).value.trim(), after: $('[data-side=after] input[type=text]', r).value.trim(), title: $('.pair-title', r).value.trim()
-    })).filter(p => p.before && p.after).map(p => (p.title ? p : { before: p.before, after: p.after }));
+    const val = (r, s) => { const i = $(`[data-side=${s}] input[type=text]`, r); return i ? i.value.trim() : ''; };
+    return $$('#' + id + ' .pair-row').map(r => {
+      const title = $('.pair-title', r).value.trim();
+      const o = r.classList.contains('single') ? { img: val(r, 'img') } : { before: val(r, 'before'), after: val(r, 'after') };
+      return title ? { ...o, title } : o;
+    }).filter(p => p.img || (p.before && p.after));
   }
   async function pickFromGallery() {
     const { data, error } = await sb.from('gallery').select('image_url,caption').order('position');
@@ -307,6 +311,7 @@
       const fix = () => $$('.img-field', list).forEach(b => { b.dataset.folder = folder; });
       fix();
       $('[data-addpair]', box).onclick = () => { list.insertAdjacentHTML('beforeend', pairRow()); fix(); wireImages(list); };
+      $('[data-addone]', box).onclick = () => { list.insertAdjacentHTML('beforeend', pairRow({ single: true })); fix(); wireImages(list); };
       list.addEventListener('click', async e => {
         const row = e.target.closest('.pair-row'); if (!row) return;
         if (e.target.closest('[data-prm]')) row.remove();
@@ -581,6 +586,356 @@
     loadList(key);
   }
   const nextPos = () => ROWS.reduce((m, r) => Math.max(m, r.position || 0), 0) + 10;
+
+  /* =====================================================================
+     Galéria kezelő: albumok, kijelölés, húzással rendezés és feltöltés
+     ===================================================================== */
+  const G = { imgs: [], albums: [], svc: [], album: 'all', sel: new Set(), q: '', sort: 'pos', flt: '', last: null, drag: null, inc: true };
+  const G_REAL = a => a !== 'all' && a !== 'none' && a !== 'svc';
+  const galAlbumId = a => (G_REAL(a) ? a : null);
+  const galAlbumName = id => (G.albums.find(a => a.id === id) || {}).title || '';
+  const galIn = (r, a) => a === 'all' || (a === 'none' ? !r.album_id : r.album_id === a);
+  const galScope = () => (G.album === 'svc' ? [] : G.imgs.filter(r => galIn(r, G.album)));
+  const galFiltered = () => G.q.trim() !== '' || G.flt !== '';
+  function svcImages(rows) {
+    const out = [], seen = new Set();
+    (rows || []).forEach(s => {
+      const add = (u, note) => { if (u && !seen.has(u)) { seen.add(u); out.push({ id: 's' + out.length, url: u, title: s.title || 'Szolgáltatás', note }); } };
+      add(s.image_url, 'Főkép');
+      (Array.isArray(s.pairs) ? s.pairs : []).forEach(p => { if (!p) return; add(p.img, p.title || 'Kép'); add(p.before, 'Előtte' + (p.title ? ': ' + p.title : '')); add(p.after, 'Utána' + (p.title ? ': ' + p.title : '')); });
+    });
+    return out;
+  }
+  function galVisible() {
+    if (G.album === 'svc') {
+      const q = G.q.trim().toLowerCase();
+      return G.svc.filter(r => !q || (r.title + ' ' + r.note).toLowerCase().includes(q));
+    }
+    let a = galScope();
+    const q = G.q.trim().toLowerCase();
+    if (q) a = a.filter(r => (r.caption || '').toLowerCase().includes(q));
+    if (G.flt === 'hidden') a = a.filter(r => !r.visible);
+    if (G.flt === 'nocap') a = a.filter(r => !(r.caption || '').trim());
+    if (G.sort === 'new') a = [...a].sort((x, y) => String(y.created_at || '').localeCompare(String(x.created_at || '')));
+    else if (G.sort === 'old') a = [...a].sort((x, y) => String(x.created_at || '').localeCompare(String(y.created_at || '')));
+    else if (G.sort === 'cap') a = [...a].sort((x, y) => (x.caption || '￿').localeCompare(y.caption || '￿', 'hu'));
+    return a;
+  }
+  async function galLoad() {
+    const [g, a, s, t] = await Promise.all([
+      sb.from('gallery').select('*').order('position').order('created_at'),
+      sb.from('gallery_albums').select('*').order('position').order('created_at'),
+      sb.from('services').select('id,title,image_url,pairs').order('position'),
+      sb.from('settings').select('value').eq('key', 'texts').maybeSingle()
+    ]);
+    if (CUR !== 'gallery') return false;
+    if (g.error) { $('#galGrid').innerHTML = errBox(g.error); return false; }
+    if (a.error) toast('Az albumok nem tölthetők be: ' + a.error.message + ' Futtasd le a supabase/2026-12-albumok.sql fájlt.', true);
+    G.imgs = g.data || []; G.albums = a.error ? [] : (a.data || []);
+    G.svc = s.error ? [] : svcImages(s.data);
+    G.inc = !(t.data && t.data.value && t.data.value.gallery_services === 'no');
+    const ids = new Set(G.imgs.map(r => r.id));
+    G.sel = new Set([...G.sel].filter(x => ids.has(x)));
+    if (G_REAL(G.album) && !G.albums.some(x => x.id === G.album)) G.album = 'all';
+    return true;
+  }
+  async function showGallery() {
+    CUR = 'gallery'; G.sel = new Set(); G.q = ''; G.flt = ''; G.sort = 'pos'; G.last = null; G.drag = null;
+    view.innerHTML = `<div class="gal" id="galRoot">
+      <header class="vh"><div><h1>Galéria</h1><p class="help">Húzz képeket az ablakra a feltöltéshez (az éppen megnyitott albumba kerülnek, vagy egy album nevére húzva abba). Kattints a képre a szerkesztéshez, a jelölőnégyzettel (Shift: tartomány) több képet is kijelölhetsz, és a kijelöltek húzhatók albumba vagy új helyre. A „Főoldal szövegei” menü Galéria csoportjában dől el, hogy a főoldalon albumok vagy külön képek látszanak.</p></div>
+        <div class="vh-act"><label class="btn o">Képek feltöltése<input type="file" accept="image/*" multiple hidden id="galFile"></label><button type="button" class="btn" id="galNewAlbum">Új album</button></div></header>
+      <div class="gal-wrap"><aside id="galSide" aria-label="Albumok"></aside>
+        <section class="gal-main"><div id="galHead"></div>
+          <div class="gal-tools"><button type="button" class="btn o sm" id="galAll" aria-pressed="false">Összes kijelölése</button>
+            <input type="search" id="galQ" placeholder="Keresés aláírásban…" aria-label="Keresés"><select id="galSort" aria-label="Rendezés"><option value="pos">Egyéni sorrend</option><option value="new">Legújabb elöl</option><option value="old">Legrégebbi elöl</option><option value="cap">Aláírás szerint (A–Z)</option></select>
+            <select id="galFlt" aria-label="Szűrés"><option value="">Minden kép</option><option value="hidden">Csak rejtett</option><option value="nocap">Aláírás nélküli</option></select>
+            <label class="gal-zoom">Méret<input type="range" id="galZ" min="110" max="300" step="10" aria-label="Bélyegkép mérete"></label></div>
+          <div id="galBusy" class="gal-busy" role="status" hidden></div><div id="galBar"></div>
+          <div id="galGrid" class="gal-grid"><p class="muted">Betöltés…</p></div></section></div>
+      <div class="gal-drop" id="galDrop" hidden><div><b>Engedd el a képeket a feltöltéshez</b><small id="galDropT"></small></div></div></div>`;
+    const root = $('#galRoot'), z = +localStorage.getItem('pv_gal_size') || 170;
+    root.style.setProperty('--gs', z + 'px'); $('#galZ').value = z;
+    $('#galZ').oninput = e => { root.style.setProperty('--gs', e.target.value + 'px'); localStorage.setItem('pv_gal_size', e.target.value); };
+    $('#galFile').onchange = e => { galUpload(e.target.files, galAlbumId(G.album)); e.target.value = ''; };
+    $('#galNewAlbum').onclick = galNewAlbum;
+    $('#galQ').oninput = e => { G.q = e.target.value; galDraw(); };
+    $('#galSort').onchange = e => { G.sort = e.target.value; galDraw(); };
+    $('#galFlt').onchange = e => { G.flt = e.target.value; galDraw(); };
+    $('#galAll').onclick = () => {
+      const v = galVisible(), all = v.length && v.every(r => G.sel.has(r.id));
+      v.forEach(r => (all ? G.sel.delete(r.id) : G.sel.add(r.id))); galDraw();
+    };
+    galWire(root);
+    if (!(await galLoad())) return;
+    galDraw();
+  }
+  function galWire(root) {
+    $('#galSide').onclick = e => { const b = e.target.closest('[data-al]'); if (!b) return; G.album = b.dataset.al; G.sel = new Set(); G.last = null; galDraw(); };
+    $('#galGrid').onclick = e => {
+      const c = e.target.closest('.gc'); if (!c) return;
+      const id = c.dataset.id;
+      if (e.target.closest('.gc-ck')) return galToggle(id, e.shiftKey);
+      if (e.target.closest('.gc-img')) {
+        if (G.sel.size || e.ctrlKey || e.metaKey || e.shiftKey || G.album === 'svc') return galToggle(id, e.shiftKey);
+        const r = G.imgs.find(x => x.id === id); if (r) galEdit(r);
+      }
+    };
+    /* húzás: sorrend és albumba mozgatás */
+    root.addEventListener('dragstart', e => {
+      const c = e.target.closest && e.target.closest('.gc[data-id]'); if (!c || G.album === 'svc') return;
+      const id = c.dataset.id;
+      G.drag = G.sel.has(id) ? [...G.sel] : [id];
+      e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', 'planervo-kep');
+      requestAnimationFrame(() => G.drag && G.drag.forEach(x => { const el = $(`.gc[data-id="${x}"]`); if (el) el.classList.add('dragging'); }));
+    });
+    root.addEventListener('dragend', () => { G.drag = null; $$('.dragging,.gc-over,.gal-al.over').forEach(el => el.classList.remove('dragging', 'gc-over', 'over')); });
+    const hasFiles = e => e.dataTransfer && [...e.dataTransfer.types].includes('Files');
+    const target = e => { const b = e.target.closest && e.target.closest('.gal-al[data-drop]'); return b ? b.dataset.al : G.album; };
+    let depth = 0;
+    const dropLabel = e => { const a = target(e); $('#galDropT').textContent = a === 'svc' ? 'A „Szolgáltatásokból” nézetbe nem tölthetsz fel; Album nélkül kerülnek be.' : G_REAL(a) ? 'Album: ' + galAlbumName(a) : 'Album nélkül'; };
+    root.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; $('#galDrop').hidden = false; dropLabel(e); });
+    root.addEventListener('dragover', e => {
+      if (hasFiles(e)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; dropLabel(e); $$('.gal-al.over').forEach(x => x.classList.remove('over')); const b = e.target.closest('.gal-al[data-drop]'); if (b) b.classList.add('over'); return; }
+      if (!G.drag) return;
+      const al = e.target.closest('.gal-al[data-drop]'), card = e.target.closest('.gc');
+      $$('.gc-over,.gal-al.over').forEach(x => x.classList.remove('gc-over', 'over'));
+      if (al) { e.preventDefault(); al.classList.add('over'); }
+      else if (e.target.closest('#galGrid')) { e.preventDefault(); if (card && !G.drag.includes(card.dataset.id)) card.classList.add('gc-over'); }
+    });
+    root.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; $('#galDrop').hidden = true; } });
+    root.addEventListener('drop', e => {
+      if (hasFiles(e)) { e.preventDefault(); depth = 0; $('#galDrop').hidden = true; const a = target(e); galUpload(e.dataTransfer.files, a === 'svc' ? null : galAlbumId(a)); return; }
+      if (!G.drag) return;
+      const ids = G.drag, al = e.target.closest('.gal-al[data-drop]'), card = e.target.closest('.gc');
+      G.drag = null; $$('.dragging,.gc-over,.gal-al.over').forEach(x => x.classList.remove('dragging', 'gc-over', 'over'));
+      if (al) { e.preventDefault(); galMove(ids, galAlbumId(al.dataset.al)); }
+      else if (e.target.closest('#galGrid')) {
+        e.preventDefault();
+        if (G.sort !== 'pos' || galFiltered()) return toast('Átrendezéshez az „Egyéni sorrend” legyen kiválasztva, és ne legyen szűrő bekapcsolva.', true);
+        galReorder(ids, card ? card.dataset.id : null);
+      }
+    });
+    if (!G.keys) {
+      G.keys = true;
+      document.addEventListener('keydown', e => {
+        if (CUR !== 'gallery' || dlg.open || /input|textarea|select/i.test((e.target || {}).tagName || '')) return;
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); galVisible().forEach(r => G.sel.add(r.id)); galDraw(); }
+        else if (e.key === 'Escape' && G.sel.size) { G.sel.clear(); galDraw(); }
+        else if (e.key === 'Delete' && G.sel.size && G.album !== 'svc') galDelete([...G.sel]);
+      });
+    }
+  }
+  function galToggle(id, range) {
+    const v = galVisible().map(r => r.id);
+    if (range && G.last && v.includes(G.last) && v.includes(id)) {
+      const a = v.indexOf(G.last), b = v.indexOf(id), on = !G.sel.has(id);
+      v.slice(Math.min(a, b), Math.max(a, b) + 1).forEach(x => (on ? G.sel.add(x) : G.sel.delete(x)));
+    } else if (G.sel.has(id)) G.sel.delete(id); else G.sel.add(id);
+    G.last = id; galDraw();
+  }
+  function galDraw() {
+    if (CUR !== 'gallery' || !$('#galGrid')) return;
+    const cnt = a => G.imgs.filter(r => galIn(r, a)).length;
+    const side = [['all', 'Minden kép', cnt('all')], ['none', 'Album nélkül', cnt('none')]];
+    $('#galSide').innerHTML = `<h2>Albumok</h2>` + side.map(([k, l, n]) => `<button type="button" class="gal-al" data-al="${k}"${k === 'none' ? ' data-drop' : ''}${G.album === k ? ' aria-current="true"' : ''}><span>${l}</span><small>${n}</small></button>`).join('')
+      + G.albums.map(a => `<button type="button" class="gal-al${a.visible ? '' : ' off'}" data-al="${esc(a.id)}" data-drop${G.album === a.id ? ' aria-current="true"' : ''}><span>${esc(a.title)}${a.visible ? '' : ' (rejtett)'}</span><small>${cnt(a.id)}</small></button>`).join('')
+      + `<div class="gal-sep"></div><button type="button" class="gal-al" data-al="svc"${G.album === 'svc' ? ' aria-current="true"' : ''}><span>Szolgáltatásokból</span><small>${G.svc.length}</small></button>`;
+    const al = G_REAL(G.album) ? G.albums.find(a => a.id === G.album) : null, i = al ? G.albums.indexOf(al) : -1;
+    let head = '';
+    if (al) {
+      head = `<div class="gal-head"><div class="gh-t"><h2>${esc(al.title)}</h2><small>${cnt(al.id)} kép${al.cover_url ? ' · van beállított borító' : ' · borító: az első kép'}</small></div><div class="gh-a">
+        <button type="button" class="btn o sm" data-ga="ren">Átnevezés</button>
+        <label class="sw"><input type="checkbox" data-ga="vis"${al.visible ? ' checked' : ''}>Látható</label>
+        ${al.cover_url ? '<button type="button" class="btn o sm" data-ga="uncover">Borító törlése</button>' : ''}
+        <button type="button" class="btn o sm" data-ga="up" aria-label="Album feljebb"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn o sm" data-ga="down" aria-label="Album lejjebb"${i < G.albums.length - 1 ? '' : ' disabled'}>↓</button>
+        <button type="button" class="btn sm danger" data-ga="del">Album törlése</button></div></div>`;
+    } else if (G.album === 'svc') {
+      const inG = new Set(G.imgs.map(r => r.image_url));
+      head = `<div class="gal-head"><div class="gh-t"><h2>Szolgáltatásokból</h2><small>A szolgáltatásoknál feltöltött képek (${G.svc.length}). Itt csak megtekinthetők; a „Hozzáadás a galériához” gombbal saját példány készül belőlük, amit aztán albumba rakhatsz és aláírhatsz. Már a galériában lévő: ${G.svc.filter(r => inG.has(r.url)).length}.</small></div><div class="gh-a">
+        <label class="sw"><input type="checkbox" data-ga="inc"${G.inc ? ' checked' : ''}>A főoldali galériában is látszanak</label></div></div>`;
+    }
+    $('#galHead').innerHTML = head;
+    const vis = galVisible(), svc = G.album === 'svc', sel = G.sel;
+    const inGal = new Set(G.imgs.map(r => r.image_url));
+    $('#galGrid').innerHTML = vis.length ? vis.map(r => svc
+      ? `<figure class="gc${sel.has(r.id) ? ' sel' : ''}" data-id="${r.id}"><button type="button" class="gc-ck" aria-pressed="${sel.has(r.id)}" aria-label="Kijelölés">✓</button><button type="button" class="gc-img"><img src="${esc(r.url)}" alt="" loading="lazy"></button><figcaption><span>${esc(r.title)}</span><small>${esc(r.note)}${inGal.has(r.url) ? ' · már a galériában' : ''}</small></figcaption></figure>`
+      : `<figure class="gc${sel.has(r.id) ? ' sel' : ''}${r.visible ? '' : ' off'}" data-id="${r.id}" draggable="true"><button type="button" class="gc-ck" aria-pressed="${sel.has(r.id)}" aria-label="Kijelölés">✓</button><button type="button" class="gc-img"><img src="${esc(r.image_url)}" alt="" loading="lazy" draggable="false"></button>${r.visible ? '' : '<span class="gc-off">Rejtett</span>'}<figcaption><span>${esc(r.caption || 'Aláírás nélkül')}</span><small>${r.album_id ? esc(galAlbumName(r.album_id)) : 'Album nélkül'}</small></figcaption></figure>`).join('')
+      : `<div class="emptybox"><p>${svc ? 'A szolgáltatásokhoz még nincs kép feltöltve.' : galFiltered() ? 'Nincs a szűrésnek megfelelő kép.' : 'Ebben a nézetben még nincs kép. Húzd ide a fájlokat, vagy használd a „Képek feltöltése” gombot.'}</p></div>`;
+    const allSel = vis.length > 0 && vis.every(r => sel.has(r.id));
+    const ab = $('#galAll'); ab.textContent = allSel ? 'Kijelölés megszüntetése' : `Összes kijelölése (${vis.length})`; ab.setAttribute('aria-pressed', allSel);
+    const saveOrder = !svc && G.sort !== 'pos' && !galFiltered() && vis.length > 1 ? '<button type="button" class="btn o sm" data-gb="saveorder">Ezt a sorrendet mentem</button>' : '';
+    const n = sel.size;
+    let bar = '';
+    if (n && svc) bar = `<div class="gal-bar"><b>${n} kijelölve</b><button type="button" class="btn sm" data-gb="addsvc">Hozzáadás a galériához</button><button type="button" class="btn o sm" data-gb="clear">Kijelölés törlése</button></div>`;
+    else if (n) bar = `<div class="gal-bar"><b>${n} kijelölve</b>
+      <select data-gb="move" aria-label="Áthelyezés albumba"><option value="">Áthelyezés albumba…</option><option value="__none">Album nélkül</option>${G.albums.map(a => `<option value="${esc(a.id)}">${esc(a.title)}</option>`).join('')}</select>
+      <button type="button" class="btn o sm" data-gb="show">Megjelenítés</button><button type="button" class="btn o sm" data-gb="hide">Elrejtés</button>
+      <button type="button" class="btn o sm" data-gb="cap">Aláírás…</button>
+      <button type="button" class="btn o sm" data-gb="front">Az elejére</button><button type="button" class="btn o sm" data-gb="back">A végére</button>
+      ${n === 1 ? '<button type="button" class="btn o sm" data-gb="cover">Album borítója</button>' : ''}
+      <button type="button" class="btn sm danger" data-gb="del">Törlés</button><button type="button" class="btn o sm" data-gb="clear">Kijelölés törlése</button></div>`;
+    else if (saveOrder) bar = `<div class="gal-bar">${saveOrder}</div>`;
+    $('#galBar').innerHTML = bar;
+  }
+  document.addEventListener('click', e => {
+    if (CUR !== 'gallery') return;
+    const h = e.target.closest('#galHead [data-ga]'), b = e.target.closest('#galBar [data-gb]');
+    if (h) galAlbumAction(h.dataset.ga, h);
+    else if (b && b.tagName === 'BUTTON') galBulk(b.dataset.gb);
+  });
+  document.addEventListener('change', e => {
+    if (CUR !== 'gallery') return;
+    if (e.target.matches('#galBar select[data-gb=move]') && e.target.value) galMove([...G.sel], e.target.value === '__none' ? null : e.target.value);
+    else if (e.target.matches('#galHead [data-ga=vis],#galHead [data-ga=inc]')) galAlbumAction(e.target.dataset.ga, e.target);
+  });
+  const galBusy = t => { const b = $('#galBusy'); if (!b) return; b.hidden = !t; b.textContent = t || ''; };
+  async function galUpload(files, albumId) {
+    files = [...files].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|gif|avif|heic)$/i.test(f.name));
+    if (!files.length) return toast('Ez nem képfájl. Képet (JPG, PNG, WebP…) húzz ide.', true);
+    const urls = new Array(files.length); let next = 0, ok = 0, bad = 0;
+    galBusy(`Feltöltés: 0 / ${files.length}`);
+    const worker = async () => {
+      while (next < files.length) {
+        const n = next++;
+        try { urls[n] = await uploadMedia(files[n], 'galeria'); ok++; } catch (e) { bad++; toast(`${files[n].name}: ${e.message}`, true); }
+        galBusy(`Feltöltés: ${ok + bad} / ${files.length}`);
+      }
+    };
+    await Promise.all([worker(), worker(), worker()]);
+    const got = urls.filter(Boolean);
+    if (got.length) {
+      let pos = G.imgs.reduce((m, r) => Math.max(m, r.position || 0), 0) + 10;
+      const { error } = await sb.from('gallery').insert(got.map(u => ({ image_url: u, position: (pos += 10), album_id: albumId })));
+      if (error) { galBusy(''); return toast('A képek mentése nem sikerült: ' + error.message, true); }
+    }
+    galBusy(''); toast(`${ok} kép feltöltve${bad ? `, ${bad} nem sikerült` : ''}.`, !!bad && !ok);
+    if (await galLoad()) galDraw();
+  }
+  async function galMove(ids, albumId) {
+    if (!ids.length) return;
+    const { error } = await sb.from('gallery').update({ album_id: albumId }).in('id', ids);
+    if (error) return toast('Az áthelyezés nem sikerült: ' + error.message, true);
+    G.imgs.forEach(r => { if (ids.includes(r.id)) r.album_id = albumId; });
+    G.sel.clear(); toast(`${ids.length} kép áthelyezve: ${albumId ? galAlbumName(albumId) : 'Album nélkül'}.`); galDraw();
+  }
+  async function galCommitOrder(order, scope) {
+    const inScope = new Set(scope.map(r => r.id)); let k = 0;
+    const global = G.imgs.map(r => (inScope.has(r.id) ? order[k++] : r)), ups = [];
+    global.forEach((r, i) => { const p = (i + 1) * 10; if (r.position !== p) { r.position = p; ups.push(r); } });
+    G.imgs = global; galDraw();
+    for (let i = 0; i < ups.length; i += 10) {
+      const res = await Promise.all(ups.slice(i, i + 10).map(r => sb.from('gallery').update({ position: r.position }).eq('id', r.id)));
+      const bad = res.find(x => x.error);
+      if (bad) { toast('A sorrend mentése nem sikerült: ' + bad.error.message, true); if (await galLoad()) galDraw(); return; }
+    }
+  }
+  function galReorder(ids, beforeId, toEnd) {
+    const scope = galScope(), moving = scope.filter(r => ids.includes(r.id)), rest = scope.filter(r => !ids.includes(r.id));
+    let at = beforeId ? rest.findIndex(r => r.id === beforeId) : rest.length; if (at < 0) at = rest.length;
+    if (toEnd === 'front') at = 0;
+    return galCommitOrder([...rest.slice(0, at), ...moving, ...rest.slice(at)], scope);
+  }
+  async function galDelete(ids) {
+    if (!confirm(`Biztosan törölsz ${ids.length} képet a galériából?\nEz nem vonható vissza. (A szolgáltatásoknál használt példányok nem érintettek.)`)) return;
+    const { error } = await sb.from('gallery').delete().in('id', ids);
+    if (error) return toast('A törlés nem sikerült: ' + error.message, true);
+    G.sel.clear(); toast(`${ids.length} kép törölve.`);
+    if (await galLoad()) galDraw();
+  }
+  async function galBulk(act) {
+    const ids = [...G.sel]; if (!ids.length && act !== 'saveorder') return;
+    if (act === 'clear') { G.sel.clear(); return galDraw(); }
+    if (act === 'del') return galDelete(ids);
+    if (act === 'front') return galReorder(ids, null, 'front');
+    if (act === 'back') return galReorder(ids, null);
+    if (act === 'saveorder') { const v = galVisible(); return galCommitOrder(v, galScope()).then(() => { G.sort = 'pos'; $('#galSort').value = 'pos'; galDraw(); toast('Sorrend elmentve.'); }); }
+    if (act === 'addsvc') {
+      const have = new Set(G.imgs.map(r => r.image_url)), add = G.svc.filter(r => G.sel.has(r.id) && !have.has(r.url));
+      if (!add.length) { G.sel.clear(); galDraw(); return toast('A kijelölt képek már mind a galériában vannak.'); }
+      let pos = G.imgs.reduce((m, r) => Math.max(m, r.position || 0), 0);
+      const { error } = await sb.from('gallery').insert(add.map(r => ({ image_url: r.url, caption: r.title, position: (pos += 10), album_id: null })));
+      if (error) return toast('A hozzáadás nem sikerült: ' + error.message, true);
+      G.sel.clear(); toast(`${add.length} kép a galériába került (Album nélkül).`);
+      if (await galLoad()) galDraw(); return;
+    }
+    if (act === 'show' || act === 'hide') {
+      const on = act === 'show', { error } = await sb.from('gallery').update({ visible: on }).in('id', ids);
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      G.imgs.forEach(r => { if (ids.includes(r.id)) r.visible = on; }); toast(on ? 'Láthatóvá téve.' : 'Elrejtve az oldalról.'); return galDraw();
+    }
+    if (act === 'cap') {
+      const first = G.imgs.find(r => r.id === ids[0]);
+      const t = prompt(`Aláírás a kijelölt ${ids.length} képhez (üresen hagyva törlődik):`, ids.length === 1 ? (first.caption || '') : ''); if (t === null) return;
+      const v = t.trim().slice(0, 200) || null, { error } = await sb.from('gallery').update({ caption: v }).in('id', ids);
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      G.imgs.forEach(r => { if (ids.includes(r.id)) r.caption = v; }); toast('Aláírás mentve.'); return galDraw();
+    }
+    if (act === 'cover') {
+      const r = G.imgs.find(x => x.id === ids[0]);
+      if (!r.album_id) return toast('Ez a kép nincs albumban. Előbb helyezd át egy albumba.', true);
+      const { error } = await sb.from('gallery_albums').update({ cover_url: r.image_url }).eq('id', r.album_id);
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      G.albums.find(a => a.id === r.album_id).cover_url = r.image_url; toast('Beállítva borítónak: ' + galAlbumName(r.album_id)); G.sel.clear(); galDraw();
+    }
+  }
+  async function galNewAlbum() {
+    const t = (prompt('Az új album neve:') || '').trim().slice(0, 120); if (!t) return;
+    const pos = G.albums.reduce((m, a) => Math.max(m, a.position || 0), 0) + 10;
+    const { data, error } = await sb.from('gallery_albums').insert({ title: t, position: pos, visible: true }).select().single();
+    if (error) return toast('Az album létrehozása nem sikerült: ' + error.message, true);
+    G.albums.push(data); G.album = data.id; G.sel.clear(); toast('Album létrehozva. Húzz bele képeket, vagy helyezd át őket.'); galDraw();
+  }
+  async function galAlbumAction(act, el) {
+    if (act === 'inc') {
+      const on = el.checked, { data: d, error: e1 } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
+      const { error } = e1 ? { error: e1 } : await sb.from('settings').upsert({ key: 'texts', value: { ...((d && d.value) || {}), gallery_services: on ? 'yes' : 'no' }, updated_at: new Date().toISOString() });
+      if (error) { el.checked = !on; return toast('A mentés nem sikerült: ' + error.message, true); }
+      G.inc = on; return toast(on ? 'A szolgáltatások képei látszanak a főoldali galériában.' : 'A szolgáltatások képei nem látszanak a főoldali galériában.');
+    }
+    const al = G.albums.find(a => a.id === G.album); if (!al) return;
+    const upd = async (patch, msg) => {
+      const { error } = await sb.from('gallery_albums').update(patch).eq('id', al.id);
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      Object.assign(al, patch); if (msg) toast(msg); galDraw();
+    };
+    if (act === 'ren') { const t = (prompt('Az album új neve:', al.title) || '').trim().slice(0, 120); if (t) upd({ title: t }, 'Átnevezve.'); }
+    else if (act === 'vis') upd({ visible: el.checked }, el.checked ? 'Az album látható.' : 'Az album el van rejtve.');
+    else if (act === 'uncover') upd({ cover_url: null }, 'A borító az album első képe lett.');
+    else if (act === 'up' || act === 'down') {
+      const arr = G.albums.slice(), i = arr.indexOf(al), j = i + (act === 'up' ? -1 : 1); if (j < 0 || j >= arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      const ups = []; arr.forEach((a, k) => { const p = (k + 1) * 10; if (a.position !== p) { a.position = p; ups.push(sb.from('gallery_albums').update({ position: p }).eq('id', a.id)); } });
+      G.albums = arr; galDraw();
+      const bad = (await Promise.all(ups)).find(r => r.error); if (bad) toast('A sorrend mentése nem sikerült: ' + bad.error.message, true);
+    } else if (act === 'del') {
+      const n = G.imgs.filter(r => r.album_id === al.id).length;
+      if (!confirm(`Biztosan törlöd az albumot: „${al.title}”?\nA benne lévő ${n} kép nem törlődik, Album nélkül marad.`)) return;
+      const r1 = await sb.from('gallery').update({ album_id: null }).eq('album_id', al.id);
+      if (r1.error) return toast('A törlés nem sikerült: ' + r1.error.message, true);
+      const r2 = await sb.from('gallery_albums').delete().eq('id', al.id);
+      if (r2.error) return toast('A törlés nem sikerült: ' + r2.error.message, true);
+      toast('Album törölve.'); G.album = 'all'; if (await galLoad()) galDraw();
+    }
+  }
+  function galEdit(r) {
+    dlgBody.innerHTML = `<form class="ed" id="edForm" novalidate>
+      <header><h2>Kép szerkesztése</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
+      <div class="ed-fields"><div class="gal-prev"><img src="${esc(r.image_url)}" alt=""></div>
+        <label class="fl">Képaláírás<input id="gc_cap" type="text" maxlength="200" value="${esc(r.caption || '')}" placeholder="pl. Nappali festése, Gyál"></label>
+        <label class="fl">Album<select id="gc_al"><option value="">— nincs album —</option>${G.albums.map(a => `<option value="${esc(a.id)}"${a.id === r.album_id ? ' selected' : ''}>${esc(a.title)}</option>`).join('')}</select></label>
+        <label class="fl chk"><input type="checkbox" id="gc_vis"${r.visible ? ' checked' : ''}>Látható az oldalon</label>
+        <a class="link" href="${esc(r.image_url)}" target="_blank" rel="noopener">Kép megnyitása új lapon</a></div>
+      <footer><button type="button" class="btn o" data-close>Mégse</button><button class="btn" type="submit">Mentés</button></footer></form>`;
+    $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
+    dlg.showModal();
+    $('#edForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const patch = { caption: $('#gc_cap').value.trim() || null, album_id: $('#gc_al').value || null, visible: $('#gc_vis').checked };
+      const { error } = await sb.from('gallery').update(patch).eq('id', r.id);
+      if (error) return toast('A mentés nem sikerült: ' + error.message, true);
+      Object.assign(r, patch); dlg.close(); toast('Elmentve.'); galDraw();
+    });
+  }
 
   async function multiUpload(key, files) {
     if (!files.length) return;

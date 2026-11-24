@@ -231,6 +231,8 @@ main.flex-col{display:flex;flex-direction:column}
 .pair-t b{position:absolute;bottom:4px;padding:3px 5px;border-radius:99px;background:rgba(20,20,20,.7);color:#fff;font-weight:600;font-size:.62rem;line-height:1;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
 .pair-t b:nth-of-type(1){left:4px}.pair-t b:nth-of-type(2){right:4px}
 .pair-t::after{content:"";position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:#fff}
+.pair-t.one{display:block}
+.pair-t.one::after{display:none}
 .pair-t:hover,.pair-t:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 @media(max-width:480px){.pair-t b{display:none}}
 
@@ -313,6 +315,8 @@ main.flex-col{display:flex;flex-direction:column}
 .lb .lb-p{left:max(14px,env(safe-area-inset-left,0px));top:50%}
 .lb .lb-n{right:max(14px,env(safe-area-inset-right,0px));top:50%}
 #pairLb .cmp{width:min(1000px,92vw);max-height:calc(100vh - 150px)}
+#pairLb .cmp[hidden],#pairLb #plbOne[hidden]{display:none}
+#pairLb #plbOne{display:block;margin:0 auto}
 #pairLb .cmp img{width:100%;height:100%;max-width:none;max-height:none;border-radius:0}
 
 /* ---------- Kártyás szakaszok: rács / lapozható sáv / falazott ---------- */

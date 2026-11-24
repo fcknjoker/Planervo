@@ -190,12 +190,14 @@
      Szolgáltatások: kép, logó-sávok vagy előtte–utána képpárok
      ===================================================================== */
   let SVC_PAIRS = [];
-  const pairList = r => (Array.isArray(r.pairs) ? r.pairs : []).filter(p => p && p.before && p.after);
+  /* elem: előtte–utána pár ({before, after}) vagy önálló kép ({img}) */
+  const pairList = r => (Array.isArray(r.pairs) ? r.pairs : []).filter(p => p && ((p.before && p.after) || p.img));
   function pairsHtml(r, si) {
     const ps = SVC_PAIRS[si];
     const cols = ps.length === 1 ? 1 : ps.length <= 4 ? 2 : ps.length <= 9 ? 3 : 4;
-    return `<div class="svc-pairs" style="--pc:${cols}" role="list" aria-label="Előtte–utána képek">${ps.map((p, j) => {
+    return `<div class="svc-pairs" style="--pc:${cols}" role="list" aria-label="Képek">${ps.map((p, j) => {
       const t = p.title ? ': ' + esc(p.title) : '';
+      if (p.img) return `<button type="button" role="listitem" class="pair-t one" data-s="${si}" data-p="${j}" aria-label="Kép megnyitása${t}"><img src="${esc(p.img)}" alt="${esc(r.title)}${t}" loading="lazy"></button>`;
       return `<button type="button" role="listitem" class="pair-t" data-s="${si}" data-p="${j}" aria-label="Előtte–utána kép megnyitása${t}"><img src="${esc(p.before)}" alt="${esc(r.title)} előtte${t}" loading="lazy"><img src="${esc(p.after)}" alt="${esc(r.title)} utána${t}" loading="lazy"><b>Előtte</b><b>Utána</b></button>`;
     }).join('')}</div>`;
   }
@@ -228,9 +230,14 @@
     const n = pairCur.length; if (!n) return;
     pairIdx = (i + n) % n;
     const p = pairCur[pairIdx];
-    plbCmp.querySelector('.b').src = p.before;
-    plbCmp.querySelector('.a').src = p.after;
-    setSlider(plbCmp, 50);
+    const one = $('#plbOne');
+    plbCmp.hidden = !!p.img; one.hidden = !p.img;
+    if (p.img) { one.src = p.img; one.alt = [pairCap, p.title].filter(Boolean).join(' – '); }
+    else {
+      plbCmp.querySelector('.b').src = p.before;
+      plbCmp.querySelector('.a').src = p.after;
+      setSlider(plbCmp, 50);
+    }
     $('#plbCap').textContent = [pairCap, p.title, n > 1 ? `${pairIdx + 1} / ${n}` : ''].filter(Boolean).join(' · ');
     if (!plb.open) plb.showModal();
   }
@@ -343,17 +350,30 @@
 
   const lb = $('#lightbox');
   let GAL = [], galIdx = 0, GAL_ALBUMS = [], lbTitle = '';
-  function renderGallery(rows, albums, mode) {
+  /* a szolgáltatásoknál feltöltött képek (főkép, önálló képek, képpárok) a galéria részei, ha még nincsenek benne */
+  function svcGalleryImgs(svcRows, rows) {
+    const have = new Set(rows.map(r => r.image_url)), out = [];
+    const add = (u, cap) => { if (u && !have.has(u)) { have.add(u); out.push({ image_url: u, caption: cap || '', album_id: null, svc: true }); } };
+    (svcRows || []).forEach(s => {
+      add(s.image_url, s.title);
+      (Array.isArray(s.pairs) ? s.pairs : []).forEach(p => { if (p) { add(p.img, p.title || s.title); add(p.before, (p.title || s.title) + ' – előtte'); add(p.after, (p.title || s.title) + ' – utána'); } });
+    });
+    return out;
+  }
+  function renderGallery(rows, albums, mode, svcRows) {
+    const extra = TX.gallery_services === 'no' ? [] : svcGalleryImgs(svcRows, rows);
     const list = $('#galList');
     if (mode === 'albums' && albums.length) {
       const byAlbum = {};
       rows.forEach(r => { if (r.album_id) (byAlbum[r.album_id] = byAlbum[r.album_id] || []).push(r); });
       GAL_ALBUMS = albums.map(a => ({ ...a, imgs: byAlbum[a.id] || [] })).filter(a => a.imgs.length);
+      if (extra.length) GAL_ALBUMS.push({ id: 'svc', title: 'Szolgáltatásaink', imgs: extra });
       GAL_COUNT = GAL_ALBUMS.length;
       list.innerHTML = GAL_ALBUMS.map((a, i) => `<figure class="gal-album"><button type="button" data-a="${i}" aria-label="Album megnyitása: ${esc(a.title)}">
         <img src="${esc(a.cover_url || a.imgs[0].image_url)}" alt="${esc(a.title)}" loading="lazy">
         <span class="gal-album-t">${esc(a.title)}<small>${a.imgs.length} kép</small></span></button></figure>`).join('');
     } else {
+      rows = rows.concat(extra);
       GAL_ALBUMS = []; GAL = rows; GAL_COUNT = rows.length;
       list.innerHTML = rows.map((r, i) => `<figure><button type="button" data-i="${i}" aria-label="Kép megnyitása${r.caption ? ': ' + esc(r.caption) : ''}">
         <img src="${esc(r.image_url)}" alt="${esc(r.caption || 'Elkészült festés, PLANERVO, Üllő és környéke')}" loading="lazy"></button>
@@ -396,9 +416,15 @@
     $('#vidList').innerHTML = items.map(v => {
       const title = esc(v.title || 'YouTube-videó');
       const time = v.date ? `<time datetime="${esc(v.date)}">${fmtDate(v.date)}</time>` : v.ago ? `<time>${esc(v.ago)}</time>` : '';
-      return `<article class="vc"><div class="vid" data-id="${esc(v.id)}"><button type="button" aria-label="Videó lejátszása: ${title}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/hqdefault.jpg" alt="${title}" width="480" height="360" loading="lazy"><span></span></button></div>
+      return `<article class="vc"><div class="vid" data-id="${esc(v.id)}"><button type="button" aria-label="Videó lejátszása: ${title}"><img src="https://i.ytimg.com/vi/${esc(v.id)}/maxresdefault.jpg" alt="${title}" width="1280" height="720" loading="lazy"><span></span></button></div>
         <div class="vc-t">${time}${v.title ? `<h3>${esc(v.title)}</h3>` : ''}</div></article>`;
     }).join('');
+    /* nem minden videóhoz van 1280×720-as előkép: ilyenkor sddefault, majd hqdefault */
+    $$('#vidList .vid img').forEach(img => {
+      const steps = ['sddefault', 'hqdefault'];
+      img.addEventListener('error', () => { const n = steps.shift(); if (n) img.src = img.src.replace(/\/[a-z]+default\.jpg/, '/' + n + '.jpg'); });
+      img.addEventListener('load', () => { if (img.naturalWidth <= 120 && steps.length) img.dispatchEvent(new Event('error')); });
+    });
     $('#videok').hidden = !items.length;
     $('#navVideo').hidden = !items.length;
     refreshCards('videok');
@@ -1288,7 +1314,7 @@
     if (!svc.error) renderServices(svc.data || []);
     if (!sec.error) renderSections(sec.data || []);
     if (!ba.error) renderBA(ba.data || []);
-    if (!gal.error) renderGallery(gal.data || [], alb.error ? [] : (alb.data || []), TX.gallery_mode || 'images');
+    if (!gal.error) renderGallery(gal.data || [], alb.error ? [] : (alb.data || []), TX.gallery_mode || 'images', svc.error ? [] : (svc.data || []));
     syncWorksLinks();
     if (!posts.error) renderPosts(posts.data || []);
     if (!soc.error) renderSocial(soc.data || []);
