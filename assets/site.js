@@ -43,6 +43,12 @@
   if (hasIO && $('#qSum')) {
     new IntersectionObserver(es => { fcMini = es[es.length - 1].isIntersecting; syncFloatMini(); }, { threshold: 0 }).observe($('#qSum'));
   }
+  /* telefonon (egyoszlopos elrendezésnél) a kártya elrejtőzik, amíg az árajánlat-űrlap a képernyőn van, hogy ne takarja a mezőket */
+  let fcInForm = false;
+  function syncFloatForm() { const box = $('#fcard'); if (box) box.classList.toggle('in-form', fcInForm); }
+  if (hasIO && $('#quoteForm')) {
+    new IntersectionObserver(es => { fcInForm = es[es.length - 1].isIntersecting; syncFloatForm(); }, { threshold: 0 }).observe($('#quoteForm'));
+  }
   function renderFloat() {
     const f = getFloat(TX), tel = f.phone && String(TX.phone || '').trim();
     const soc = f.links.map(l => ({ l, h: floatHref(l) })).filter(x => x.h);
@@ -58,7 +64,7 @@
       });
       box.addEventListener('mouseleave', () => box.classList.remove('peek'));
     }
-    syncFloatMini();
+    syncFloatMini(); syncFloatForm();
     box.innerHTML = (tel ? `<a class="fc-phone" href="${esc(telHref(TX.phone))}" aria-label="Hívás: ${esc(TX.phone)}"><span class="fc-ic">${PHONE_ICON}</span><span class="fc-num">${esc(TX.phone)}</span></a>` : '') +
       (soc.length ? `<div class="fc-soc">${soc.map(({ l, h }) => `<a href="${esc(h)}" target="_blank" rel="noopener" aria-label="${esc(FLOAT_TYPES[l.t].l)}" title="${esc(FLOAT_TYPES[l.t].l)}"><span class="fc-ic">${floatIcon(l.t)}</span></a>`).join('')}</div>` : '');
   }
@@ -898,8 +904,10 @@
     }
     enforceRules(r);
     const locked = lockedKeys(r);
-    const groups = {};
-    WORK.forEach(w => { (groups[w.category || 'Munkák'] = groups[w.category || 'Munkák'] || []).push(w); });
+    /* csoportok az admin „Kategóriák” sorrendjében; a kategória nélküli tételek a végén, „Munkák” néven */
+    const groups = {}, catOrder = workCategories(TX, WORK), catPos = c => { const i = catOrder.indexOf(c); return i < 0 ? catOrder.length : i; };
+    WORK.forEach(w => { const c = String(w.category || '').trim() || 'Munkák'; (groups[c] = groups[c] || []).push(w); });
+    const groupList = Object.entries(groups).sort((a, b) => catPos(a[0]) - catPos(b[0]));
     const cnt = n => (n ? n + ' kiválasztva' : '');
     const row = (w, key, s, extra) => {
       const lock = locked.includes(key), n = keyN(key);
@@ -907,7 +915,7 @@
           <span class="it-t">${esc(w.name)}${extra ? ` <b class="it-n">(${n}. alkalom)</b>` : ''}${!extra && w.description ? `<small>${esc(w.description)}</small>` : ''}${lock ? '<small>A falkaparás mellé két mély alapozás kell, ezért ez nem vehető ki.</small>' : ''}</span></label>
           ${itemControl(r, w, key, s, !extra && !!s)}<span class="it-p">${extra ? '' : priceTxt(w)}</span></div>`;
     };
-    box.innerHTML = Object.entries(groups).map(([cat, items], gi) => {
+    box.innerHTML = groupList.map(([cat, items], gi) => {
       const ids = items.map(w => w.id), n = Object.values(r.sel).filter(s => ids.includes(s.wid)).length;
       const open = n || (openState && openState[gi]);
       return `<details class="grp"${open ? ' open' : ''}><summary><span>${esc(cat)}</span><em data-cnt>${cnt(n)}</em></summary>${items.map(w => {
@@ -1265,9 +1273,14 @@
     $('#qSum').innerHTML = `<h3>Összesítő</h3>${pkHead}<ul>${li}</ul>${warn}
       ${showP ? `<div class="tot">${promoLine}Becsült munkadíj<strong id="qTotal"></strong></div>
         <button type="button" class="btn sm pdf" id="qPdf"${T.total ? '' : ' disabled'}>Becslés letöltése PDF-ben</button>` : ''}
+      ${TX.quote_survey ? `<p class="q-survey">${esc(TX.quote_survey)}</p>` : ''}
       <small class="note">${esc(TX.quote_disclaimer || '')}</small>`;
     const strong = $('#qTotal');
     if (strong) showTotal(strong, [T.net]);
+    qFloatNet = T.net;
+    $('#qFloat strong').textContent = fmtFt(T.net);
+    $('#qFloat small').textContent = T.pr && T.disc ? `${T.pr.label} (−${fmtNum(T.pr.pct)}%) levonva` : qMode === 'custom' ? 'Becsült munkadíj' : `Becsült munkadíj · ${pkTitle()}`;
+    qFloatUpdate();
     const pn = $('#promoNote');
     pn.hidden = !T.pr;
     if (T.pr) {
@@ -1453,12 +1466,28 @@
         rooms: T.per.map(roomOut),
         discount: T.pr && T.disc ? { label: T.pr.label, pct: T.pr.pct, amount: T.disc } : null,
         net: T.net,
-        note: TX.quote_disclaimer || '', contact: { phone: TX.phone, email: TX.email, site: siteBase(TX).replace(/^https?:\/\//, '') }
+        important: TX.quote_survey || '', note: TX.quote_disclaimer || '', contact: { phone: TX.phone, email: TX.email, site: siteBase(TX).replace(/^https?:\/\//, '') }
       }, `planervo-becsles-${dayStr(new Date())}.pdf`);
       flash('A PDF letöltődött.');
     } catch (err) { status(err.message || 'A PDF elkészítése nem sikerült.', true); }
     updateSum();
   });
+
+  /* Telefonon (egyoszlopos elrendezésnél) az összesítő az űrlap alján van: addig egy alsó sáv mutatja a becsült árat,
+     amíg az ügyfél az űrlapot tölti, és eltűnik, amikor az összesítő a képernyőre ér. */
+  const qNarrow = matchMedia('(max-width: 960px)');
+  let qFloatNet = 0;
+  function qFloatUpdate() {
+    const f = $('#qFloat');
+    if (!f) return;
+    let show = false;
+    if (qNarrow.matches && TX.show_estimate !== false && qFloatNet > 0 && !$('#quoteForm').hidden) {
+      const fr = $('#quoteForm').getBoundingClientRect(), sr = $('#qSum').getBoundingClientRect();
+      show = fr.top < innerHeight * .7 && sr.top > innerHeight - 40;
+    }
+    if (f.classList.contains('on') !== show) { f.classList.toggle('on', show); f.setAttribute('aria-hidden', String(!show)); f.querySelector('button').tabIndex = show ? 0 : -1; }
+  }
+  $('#qFloat button').addEventListener('click', () => scrollToSection($('#qSum')));
 
   /* lépésjelző: a görgetéssel együtt váltja az aktív lépést */
   function qStepsUpdate() {
@@ -1597,11 +1626,11 @@
   addEventListener('scroll', () => {
     if (ticking) return;
     ticking = true;
-    requestAnimationFrame(() => { hero(); stepsProgress(); qStepsUpdate(); ticking = false; });
+    requestAnimationFrame(() => { hero(); stepsProgress(); qStepsUpdate(); qFloatUpdate(); ticking = false; });
   }, { passive: true });
   let resizeTimer = 0;
   addEventListener('resize', () => {
-    hero(); stepsProgress(); qStepsUpdate(); bannerHeight();
+    hero(); stepsProgress(); qStepsUpdate(); qFloatUpdate(); bannerHeight();
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => Object.keys(CARD_SECTIONS).forEach(applyRows), 150);
   });

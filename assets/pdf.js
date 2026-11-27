@@ -76,6 +76,8 @@ const PlanervoPdf = (function () {
     if (data.discount && data.discount.amount) tot.push([{ text: `${data.discount.label || 'Akció'} (−${data.discount.pct}%)`, color: GOLD }, { text: '−' + ft(data.discount.amount), alignment: 'right', color: GOLD }]);
     tot.push([{ text: 'Becsült munkadíj', bold: true, fontSize: 12 }, { text: ft(data.net), bold: true, fontSize: 14, alignment: 'right' }]);
     content.push({ table: { widths: ['*', 'auto'], body: tot }, layout: { hLineWidth: i => (i === 0 ? 1.2 : 0), hLineColor: () => INK, vLineWidth: () => 0, paddingTop: () => 6, paddingBottom: () => 2 }, margin: [0, 14, 0, 4], unbreakable: true });
+    /* kiemelt, bekeretezett figyelmeztetés közvetlenül a végösszeg alatt */
+    if (data.important) content.push({ table: { widths: ['*'], body: [[{ text: data.important, bold: true, fontSize: 11, fillColor: '#fbefd6' }]] }, layout: { hLineWidth: () => 1.2, vLineWidth: () => 1.2, hLineColor: () => GOLD, vLineColor: () => GOLD, paddingLeft: () => 10, paddingRight: () => 10, paddingTop: () => 8, paddingBottom: () => 8 }, margin: [0, 10, 0, 0], unbreakable: true });
     if (data.note) content.push({ text: data.note, color: MUTE, fontSize: 9, margin: [0, 14, 0, 0] });
     const ct = data.contact || {}, cf = [ct.phone, ct.email, ct.site].filter(Boolean);
     if (cf.length) content.push({ text: cf.join('   ·   '), margin: [0, 16, 0, 0], color: INK, fontSize: 10 });

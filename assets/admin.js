@@ -20,7 +20,7 @@
       search: true, importList: true, bulkPrice: true,
       fields: [
         { k: 'name', l: 'Megnevezés', req: 1, ph: 'pl. Festés két rétegben, fehér színben' },
-        { k: 'category', l: 'Kategória', ph: 'pl. Alapmunkák, Festési munkák, Mázolási munkák', hint: 'Az azonos kategóriájú munkák egy lenyíló csoportban jelennek meg az árajánlatkérőben.' },
+        { k: 'category', l: 'Kategória', t: 'cat', hint: 'Az azonos kategóriájú munkák egy lenyíló csoportban jelennek meg az árajánlatkérőben. A listában új kategóriát is létrehozhatsz.' },
         { k: 'unit', l: 'Mértékegység (mire vonatkozik a díj)', t: 'select', o: Object.entries(UNITS), def: 'surface' },
         { k: 'price', l: 'Munkadíj (Ft / egység)', t: 'number', req: 1 },
         { k: 'price_ceiling', l: 'Mennyezet munkadíja (Ft / m²), ha eltér a faltól', t: 'number', hint: 'Csak a „fal és/vagy mennyezet” és a „csak mennyezet” tételeknél számít. Üresen hagyva a fenti munkadíj érvényes a mennyezetre is.' },
@@ -253,6 +253,11 @@
     switch (f.t) {
       case 'textarea': return `<label class="fl">${lab}<textarea id="${id}" rows="${f.rows || 3}"${req}${ph}>${esc(v)}</textarea>${hint}</label>`;
       case 'number': return `<label class="fl">${lab}<input id="${id}" type="number" step="any" min="0" value="${v ?? ''}"${req}${ph}>${hint}</label>`;
+      case 'cat': {
+        const cats = CATS.slice(); if (v && !cats.includes(v)) cats.push(v);
+        return `<div class="fl cat-f"><label for="${id}">${lab}</label><select id="${id}" data-cat><option value="">— Kategória nélkül —</option>${cats.map(c => `<option${c === v ? ' selected' : ''}>${esc(c)}</option>`).join('')}<option value="__new">+ Új kategória…</option></select>
+          <input id="${id}_new" type="text" maxlength="80" placeholder="Az új kategória neve" aria-label="Az új kategória neve" hidden>${hint}</div>`;
+      }
       case 'select': return `<label class="fl">${lab}<select id="${id}">${f.o.map(([k, l]) => `<option value="${esc(k)}"${String(v ?? f.def) === k ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>${hint}</label>`;
       case 'bool': return `<label class="fl chk"><input type="checkbox" id="${id}"${(v ?? f.d) === true ? ' checked' : ''}>${lab}</label>`;
       case 'datetime': return `<label class="fl">${lab}<input id="${id}" type="datetime-local" value="${toLocal(v || new Date())}">${hint}</label>`;
@@ -382,6 +387,10 @@
         const q = quills[f.k], empty = !q.getText().trim() && !q.root.querySelector('img,iframe');
         v = empty ? null : q.root.innerHTML;
       } else if (f.t === 'datetime') v = el.value ? new Date(el.value).toISOString() : new Date().toISOString();
+      else if (f.t === 'cat') {
+        v = el.value === '__new' ? document.getElementById(el.id + '_new').value.trim() || null : el.value || null;
+        if (el.value === '__new' && !v) { document.getElementById(el.id + '_new').focus(); return { error: 'Add meg az új kategória nevét, vagy válassz a listából.' }; }
+      }
       else v = el.value.trim() || null;
       if (f.req && (v === null || v === '')) { el.focus && el.focus(); return { error: `A(z) „${f.l}” mező kitöltése kötelező.` }; }
       out[f.k] = v;
@@ -391,6 +400,7 @@
 
   /* ---------- Általános listanézet ---------- */
   let ROWS = [], CUR = null, OPEN_NEW = null;
+  let CATS = [], CAT_LIST = [];
   let ALBUMS = [], ALBUM_COUNT = {};
   async function loadAlbums() {
     const [a, g] = await Promise.all([
@@ -411,6 +421,7 @@
       ${T.importList ? '<button type="button" class="btn o" id="importList">Árlista betöltése</button>' : ''}
       ${T.bulkPrice ? '<button type="button" class="btn o" id="bulkPrice">Árak módosítása</button>' : ''}
       <button type="button" class="btn" id="addNew">${esc(T.addLabel)}</button></div></header>
+      ${key === 'work_items' ? '<section class="cats" id="cats" aria-labelledby="catsH"><p class="muted">Kategóriák betöltése…</p></section><h2 class="sub-h">Tételek</h2>' : ''}
       ${T.search ? `<div class="filt"><input type="search" id="fltQ" placeholder="Keresés a megnevezésben…" aria-label="Keresés"><select id="fltC" aria-label="Kategória"><option value="">Minden kategória</option></select><span class="muted" id="fltN"></span></div>` : ''}
       ${key === 'gallery' || key === 'gallery_albums' ? `<nav class="tabs" aria-label="Galéria részei"><a href="#gallery"${key === 'gallery' ? ' aria-current="page"' : ''}>Képek</a><a href="#gallery_albums"${key === 'gallery_albums' ? ' aria-current="page"' : ''}>Albumok</a></nav>` : ''}
       ${key === 'videos' ? '<form class="vsrc" id="vsrc" novalidate><p class="muted">Betöltés…</p></form><h2 class="sub-h">Kézzel felvett videók</h2>' : ''}
@@ -526,11 +537,16 @@
     if (CUR !== key) return;
     let q = sb.from(key).select('*');
     q = T.noPos ? q.order('published_at', { ascending: false }) : q.order('position').order('created_at');
-    const { data, error } = await q;
+    const [{ data, error }, tx] = await Promise.all([q, key === 'work_items' ? sb.from('settings').select('value').eq('key', 'texts').maybeSingle() : null]);
     if (CUR !== key) return;
     const list = $('#list');
     if (error) { list.innerHTML = errBox(error); return; }
     ROWS = data || [];
+    if (key === 'work_items') {
+      CAT_LIST = tx && !tx.error ? workCatList((tx.data && tx.data.value) || {}) : CAT_LIST;
+      CATS = workCategories({ work_categories: CAT_LIST }, ROWS);
+      renderCats();
+    }
     if (!ROWS.length) {
       list.innerHTML = `<div class="emptybox"><p>${esc(T.empty)}</p><button type="button" class="btn" id="add2">${esc(T.addLabel)}</button></div>`;
       $('#add2').onclick = () => openEditor(key, null); return;
@@ -548,7 +564,7 @@
         <button type="button" class="btn sm danger" data-act="del">Törlés</button></div>`;
     }).join('');
     if (T.search) {
-      const sel = $('#fltC'), cur = sel.value, cats = [...new Set(ROWS.map(r => r.category || ''))].filter(Boolean);
+      const sel = $('#fltC'), cur = sel.value, cats = key === 'work_items' ? CATS : [...new Set(ROWS.map(r => r.category || ''))].filter(Boolean);
       sel.innerHTML = '<option value="">Minden kategória</option>' + cats.map(c => `<option${c === cur ? ' selected' : ''}>${esc(c)}</option>`).join('');
       applyFilter();
     }
@@ -583,6 +599,99 @@
       toast(on ? (key === 'posts' ? 'Közzétéve.' : 'Látható az oldalon.') : (key === 'posts' ? 'Visszavonva, most piszkozat.' : 'Elrejtve az oldalról.'));
     };
   }
+  /* ---------- Munkafolyamat-kategóriák: létrehozás, átnevezés, sorrend, törlés ---------- */
+  /* A kategória a tételek „category” mezője; a sorrend és a még üres kategóriák a settings.texts.work_categories listában vannak. */
+  async function saveCats(list) {
+    const { error } = await mergeTexts({ work_categories: list });
+    if (error) { toast('A kategóriák mentése nem sikerült: ' + error.message, true); return false; }
+    CAT_LIST = list.slice();
+    return true;
+  }
+  function renderCats() {
+    const box = $('#cats'); if (!box) return;
+    const count = c => ROWS.filter(r => String(r.category || '').trim() === c).length;
+    const none = ROWS.filter(r => !String(r.category || '').trim()).length;
+    box.innerHTML = `<div class="cats-h"><div><h2 id="catsH">Kategóriák</h2>
+        <p class="help">Ebben a sorrendben jelennek meg a csoportok az árajánlatkérő „Egyedi összeállítás” menüpontjában. A tétel nélküli kategória nem látszik az oldalon, amíg nem kerül bele tétel.</p></div>
+        <button type="button" class="btn" data-cat-act="add">+ Új kategória</button></div>
+      ${CATS.length ? `<ol class="cat-list">${CATS.map((c, i) => {
+        const n = count(c);
+        return `<li class="cat-row" data-i="${i}"><button type="button" class="cat-n" data-cat-act="flt" title="A lenti lista csak ennek a kategóriának a tételeit mutatja">${esc(c)}</button>
+          <span class="cat-c${n ? '' : ' empty'}">${n ? `${n} tétel` : 'üres'}</span>
+          <div class="mv"><button type="button" data-cat-act="up" aria-label="${esc(c)} feljebb"${i ? '' : ' disabled'}>↑</button><button type="button" data-cat-act="down" aria-label="${esc(c)} lejjebb"${i < CATS.length - 1 ? '' : ' disabled'}>↓</button></div>
+          <button type="button" class="btn sm" data-cat-act="item">+ Tétel</button>
+          <button type="button" class="btn sm o" data-cat-act="ren">Átnevezés</button>
+          <button type="button" class="btn sm danger" data-cat-act="del">Törlés</button></li>`;
+      }).join('')}</ol>` : '<p class="muted">Még nincs kategória. Hozz létre egyet, vagy töltsd be az alap árlistát.</p>'}
+      ${none ? `<p class="muted cat-none">${none} tétel kategória nélkül van, ezek „Munkák” néven, a lista végén jelennek meg.</p>` : ''}`;
+    box.onclick = async e => {
+      const b = e.target.closest('[data-cat-act]'); if (!b) return;
+      const act = b.dataset.catAct, li = b.closest('.cat-row'), i = li ? +li.dataset.i : -1, c = CATS[i];
+      if (act === 'add') return addCategory();
+      if (act === 'flt') { const s = $('#fltC'); if (s) { s.value = c; applyFilter(); $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
+      if (act === 'item') return openEditor('work_items', null, { category: c });
+      if (act === 'up' || act === 'down') {
+        const arr = CATS.slice(), j = i + (act === 'up' ? -1 : 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        if (await saveCats(arr)) { CATS = arr; renderCats(); toast('Sorrend mentve.'); }
+        return;
+      }
+      if (act === 'ren') return renameCategory(c);
+      if (act === 'del') return deleteCategory(c, count(c));
+    };
+  }
+  async function addCategory() {
+    const name = (prompt('Az új kategória neve:') || '').trim().slice(0, 80);
+    if (!name) return;
+    if (CATS.some(c => c.toLowerCase() === name.toLowerCase())) return toast('Ilyen nevű kategória már van.', true);
+    const arr = [...CATS, name];
+    if (!(await saveCats(arr))) return;
+    CATS = arr; renderCats();
+    toast(`„${name}” kategória létrehozva. A „+ Tétel” gombbal adhatsz hozzá munkafolyamatot.`);
+  }
+  async function renameCategory(old) {
+    const name = (prompt(`„${old}” új neve:`, old) || '').trim().slice(0, 80);
+    if (!name || name === old) return;
+    const other = CATS.find(c => c !== old && c.toLowerCase() === name.toLowerCase());
+    if (other && !confirm(`Már van „${other}” nevű kategória. Összevonjam a kettőt? A(z) „${old}” tételei átkerülnek oda.`)) return;
+    const target = other || name;
+    const { error } = await sb.from('work_items').update({ category: target }).eq('category', old);
+    if (error) return toast('Az átnevezés nem sikerült: ' + error.message, true);
+    await saveCats(CATS.map(c => (c === old ? target : c)).filter((c, i, a) => a.indexOf(c) === i));
+    toast(other ? 'Kategóriák összevonva.' : 'Kategória átnevezve.');
+    loadList('work_items');
+  }
+  function deleteCategory(c, n) {
+    if (!n) {
+      if (!confirm(`Törlöd a(z) „${c}” kategóriát? Nincs benne tétel.`)) return;
+      saveCats(CATS.filter(x => x !== c)).then(ok => { if (ok) { toast('Kategória törölve.'); loadList('work_items'); } });
+      return;
+    }
+    const others = CATS.filter(x => x !== c);
+    dlgBody.innerHTML = `<form class="ed" id="cdForm" novalidate><header><h2>„${esc(c)}” törlése</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
+      <div class="ed-fields"><p>Ebben a kategóriában ${n} tétel van. Mi legyen velük?</p>
+        <label class="fl">A tételek helye<select id="cdTo">${others.map(x => `<option value="m:${esc(x)}">Áthelyezés ide: ${esc(x)}</option>`).join('')}<option value="m:">Maradnak, kategória nélkül</option><option value="del">A tételeket is törlöm</option></select></label>
+        <p class="muted" id="cdWarn" hidden>A ${n} tétel véglegesen törlődik, ez nem vonható vissza. Ha csak elrejtenéd őket, használd a „Látható” kapcsolót.</p></div>
+      <footer><button type="button" class="btn o" data-close>Mégse</button><button class="btn danger" type="submit">Kategória törlése</button></footer></form>`;
+    $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
+    $('#cdTo').onchange = () => { $('#cdWarn').hidden = $('#cdTo').value !== 'del'; };
+    dlg.showModal();
+    $('#cdForm').onsubmit = async e => {
+      e.preventDefault();
+      const v = $('#cdTo').value;
+      if (v === 'del' && !confirm(`Biztosan törlöd a(z) „${c}” kategóriát és mind a ${n} tételét? Ez nem vonható vissza.`)) return;
+      const btn = $('#cdForm button[type=submit]'); btn.disabled = true;
+      const { error } = v === 'del'
+        ? await sb.from('work_items').delete().eq('category', c)
+        : await sb.from('work_items').update({ category: v.slice(2) || null }).eq('category', c);
+      btn.disabled = false;
+      if (error) return toast('A törlés nem sikerült: ' + error.message, true);
+      await saveCats(others);
+      dlg.close(); toast(v === 'del' ? 'Kategória és tételei törölve.' : 'Kategória törölve, a tételek áthelyezve.');
+      loadList('work_items');
+    };
+  }
+
   async function move(key, i, dir) {
     const arr = ROWS.slice(), j = i + dir; if (j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -961,8 +1070,8 @@
     toast(`${ok} kép feltöltve.`); $('#multi').value = ''; loadList(key);
   }
 
-  function openEditor(key, row) {
-    const T = TABLES[key], isNew = !row, cur = row || {};
+  function openEditor(key, row, preset) {
+    const T = TABLES[key], isNew = !row, cur = row || preset || {};
     if (key === 'gallery') T.fields.find(f => f.k === 'album_id').o = [['', '— nincs album —'], ...ALBUMS.map(a => [a.id, a.title])];
     dlgBody.innerHTML = `<form class="ed" id="edForm" novalidate>
       <header><h2>${isNew ? 'Új ' + esc(T.single) : 'Szerkesztés'}</h2><button type="button" class="x" data-close aria-label="Bezárás">×</button></header>
@@ -971,6 +1080,7 @@
     const quills = {};
     T.fields.filter(f => f.t === 'rich').forEach(f => { quills[f.k] = makeQuill(document.getElementById('f_' + f.k), cur[f.k]); });
     wireImages(dlgBody); wirePairs(dlgBody);
+    $$('[data-cat]', dlgBody).forEach(s => { s.onchange = () => { const n = document.getElementById(s.id + '_new'); n.hidden = s.value !== '__new'; if (!n.hidden) n.focus(); }; });
     $$('[data-close]', dlgBody).forEach(b => b.onclick = () => dlg.close());
     dlg.showModal();
     $('#edForm').addEventListener('submit', async e => {
@@ -983,6 +1093,8 @@
       const res = isNew ? await sb.from(key).insert(out) : await sb.from(key).update(out).eq('id', cur.id);
       btn.disabled = false;
       if (res.error) return toast(res.error.code === '23505' ? 'Ez a webcím már foglalt. Adj meg másikat.' : 'A mentés nem sikerült: ' + res.error.message, true);
+      /* a tételnél létrehozott új kategória a kategórialista végére kerül */
+      if (key === 'work_items' && out.category && !CATS.includes(out.category)) await saveCats([...CATS, out.category]);
       dlg.close(); toast('Mentve.'); loadList(key);
     });
   }

@@ -563,6 +563,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:none;bo
 .q-sum .pdf{width:100%;margin-top:16px;background:transparent;border-color:#6a604f;color:#fff}
 .q-sum .pdf:hover{background:#fff;border-color:#fff;color:var(--ink)}
 .q-sum .note{display:block;margin-top:12px;color:#aaa29a;font-size:.85rem}
+/* kiemelt figyelmeztetés: pontos ár csak felmérés után */
+.q-survey{display:flex;align-items:flex-start;gap:12px;margin:0 0 18px;padding:14px 18px;border:2px solid var(--gold);border-radius:16px;background:#fbefd6;color:var(--ink);font-weight:600;line-height:1.45}
+.q-survey::before{content:"!";flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;font-size:.95rem}
+.q-sum .q-survey{margin:14px 0 0;padding:12px 14px;font-size:.95rem}
 .q-sum .q-pk{margin:0 0 4px;color:var(--gold-l);font-weight:600}
 .q-sum .q-warn{margin:10px 0 0;padding:10px 12px;border-radius:12px;background:#4a1f1a;color:#ffd9d3;font-size:.9rem}
 
@@ -583,7 +587,22 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold);outline:none;bo
 .pk-box.field-err{outline:2px solid #b3261e;outline-offset:4px}
 .pk-q{display:grid;justify-items:start;gap:8px;margin-top:16px}
 .pk-l{font-weight:500;font-size:.95rem}
-.pk-q .seg{flex-wrap:wrap}
+@media(max-width:620px){
+  /* telefonon a kapcsoló két egyforma oszlop, a hosszú felirat a saját cellájában törik */
+  .pk-q .seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%;border-radius:16px}
+  .pk-q .seg label{display:flex;min-width:0}
+  .pk-q .seg span{justify-content:center;width:100%;min-height:46px;padding:8px 10px;text-align:center;line-height:1.25}
+}
+/* becsült ár alsó sávja telefonon, amíg az összesítő nem látszik */
+.q-float{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 10px 10px 18px;border-radius:18px;background:var(--ink);color:#fff;box-shadow:0 18px 40px -16px rgba(0,0,0,.55);opacity:0;visibility:hidden;transform:translateY(calc(100% + 24px));transition:transform .35s var(--ease),opacity .25s,visibility 0s .35s}
+.q-float.on{opacity:1;visibility:visible;transform:none;transition:transform .35s var(--ease),opacity .25s}
+.q-float>span{display:grid;min-width:0}
+.q-float small{overflow:hidden;color:#aaa29a;font-size:.78rem;white-space:nowrap;text-overflow:ellipsis}
+.q-float strong{color:var(--gold-l);font-size:1.3rem;font-weight:600;font-variant-numeric:tabular-nums}
+.q-float .btn{flex:none;background:var(--gold);border-color:var(--gold);color:var(--on-gold,var(--ink))}
+@media(min-width:961px){.q-float{display:none}}
+#qSum{scroll-margin-top:90px}
+@media(prefers-reduced-motion:reduce){.q-float,.q-float.on{transition:none}}
 .pk-room{display:grid;grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr)) 44px;align-items:end;gap:12px;margin-top:14px}
 .pk-room:has(.pk-del[hidden]){grid-template-columns:minmax(0,1.5fr) repeat(3,minmax(0,1fr))}
 .pk-del{height:48px;border:1px solid #d9d0c0;border-radius:12px;background:#fff;color:var(--mute);font-size:1.3rem;line-height:1;cursor:pointer}
@@ -740,6 +759,11 @@ footer.site nav a:hover{color:var(--ink)}
   .fcard.mini:not(.peek):not(:hover):not(:focus-within){translate:calc(100% - 14px) 0}
   .fc-ic{width:40px;height:40px}
 }
+/* telefonon és tableten elrejtőzik, amíg az árajánlat-űrlap a képernyőn van */
+@media(max-width:960px){
+  .fcard.in-form{translate:calc(100% + 24px) -50%!important;opacity:0;visibility:hidden;pointer-events:none;transition:translate .35s var(--ease),opacity .35s var(--ease),visibility 0s .35s}
+}
+@media(max-width:700px){.fcard.in-form{translate:calc(100% + 24px) 0!important}}
 @media(prefers-reduced-motion:no-preference){
   .fcard{animation:fcin .8s var(--ease) 2.6s backwards}
   @keyframes fcin{from{opacity:0;translate:28px -50%}}

@@ -63,6 +63,7 @@ const TEXT_FIELDS = [
   { g: 'Árajánlatkérés', k: 'quote_title', l: 'Cím', d: 'Árajánlatkérés' },
   { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Válaszd ki, milyen munkát szeretnél, add meg a méreteket, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'show_estimate', l: 'Becsült ár mutatása az ügyfélnek', d: true, t: 'bool' },
+  { g: 'Árajánlatkérés', k: 'quote_survey', l: 'Kiemelt figyelmeztetés: pontos ár csak felmérés után', d: 'Az itt látható ár csak becslés. Pontos árat csak helyszíni felmérés után tudok adni.', t: 'textarea', hint: 'Kiemelve jelenik meg az árajánlatkérőben, az összesítőben és a PDF-ben, a méretek megadásánál és a becslésnél is.' },
   { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés csak a munkadíjat mutatja, az anyag ára nincs benne. Az anyagot kérésre beszerzem, de csak előre fizetéssel. A végleges árat a helyszíni felmérés után mondom meg.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'slots_on', l: 'Kívánt felmérési időpont kérése az űrlapon', t: 'bool', d: true },
   { g: 'Árajánlatkérés', k: 'promo_on', l: 'Akció / kedvezmény bekapcsolva', t: 'bool', d: false },
@@ -181,6 +182,16 @@ const UNITS = {
 };
 const UNIT_SHORT = { surface: 'm²', wall: 'm² fal', ceiling: 'm² menny.', wallceil: 'm²', floor: 'm²', sqm: 'm²', meter: 'fm', piece: 'db', room: 'helyiség' };
 const QTY_UNITS = ['sqm', 'meter', 'piece'];
+/* Munkafolyamat-kategóriák: a sorrendjük (és az üres, még tétel nélküli kategóriák) a settings.texts.work_categories listában vannak;
+   ami csak a tételeknél szerepel, az a lista végére kerül. */
+const workCatList = TX => (Array.isArray(TX && TX.work_categories) ? TX.work_categories : []).map(s => String(s || '').trim()).filter(Boolean);
+function workCategories(TX, rows) {
+  const out = [];
+  const add = c => { c = String(c || '').trim(); if (c && !out.includes(c)) out.push(c); };
+  workCatList(TX).forEach(add);
+  (rows || []).forEach(r => add(r.category));
+  return out;
+}
 const SURFACES = [['wall', 'Fal'], ['ceiling', 'Mennyezet'], ['both', 'Mindkettő']];
 
 const PLACEMENTS = [
