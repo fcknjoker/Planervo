@@ -435,9 +435,13 @@
     if (CUR !== 'videos' || !box) return;
     if (error) { box.innerHTML = errBox(error); return; }
     const cur = { ...TEXT_DEFAULTS, ...((data && data.value) || {}) };
+    const VIEW = [['mode', 'Nézet', CARD_SECTIONS.videok.modes], ['cols', 'Kártyák egy sorban (több = kisebb)', CARD_COLS.map(c => (c[0] ? c : ['', 'Automatikus (4)']))],
+      ['rows', 'Látható sorok (a többi „Tovább” gombbal)', CARD_ROWS], ['play', 'Lejátszás', VIDEO_PLAY], ['text', 'Dátum és cím', [['', 'Látszik'], ['off', 'Nem látszik']]]];
     box.innerHTML = `<h2>Mit mutasson a főoldal videós ablaka?</h2>
       <p class="help">Csatornánál a legújabb videók jönnek automatikusan, a legújabb elöl. Lejátszási listánál a lista sorrendje számít, így te válogathatod össze, mi kerüljön ki. A YouTube így legfeljebb 15 videót ad ki.</p>
       <div class="vs-grid">${VS_KEYS.map(k => fieldHtml(TEXT_FIELDS.find(f => f.k === k), cur[k])).join('')}</div>
+      <h2>Hogyan jelenjenek meg a videók?</h2>
+      <div class="vs-grid">${VIEW.map(([k, l, o]) => { const val = ((getLayout(cur).cards || {}).videok || {})[k] || (k === 'mode' ? CARD_SECTIONS.videok.mode : ''); return `<label class="fl">${l}<select data-vv="${k}">${o.map(([a, b]) => `<option value="${esc(a)}"${String(val) === a ? ' selected' : ''}>${esc(b)}</option>`).join('')}</select></label>`; }).join('')}</div>
       <div class="vs-act"><button class="btn" type="submit">Beállítás mentése</button><button class="btn o" type="button" id="vsTest">Kipróbálom</button><span class="vs-msg" id="vsMsg" role="status"></span></div>`;
     const sync = () => { $('#f_youtube_playlist').closest('.fl').hidden = $('#f_video_source').value !== 'playlist'; };
     $('#f_video_source').onchange = sync; sync();
@@ -473,7 +477,10 @@
       const v = read(), bad = check(v); if (bad) return msg(bad, true);
       const btn = $('button[type=submit]', box); btn.disabled = true;
       const { data: d2, error: e1 } = await sb.from('settings').select('value').eq('key', 'texts').maybeSingle();
-      const { error: e2 } = e1 ? { error: e1 } : await sb.from('settings').upsert({ key: 'texts', value: { ...((d2 && d2.value) || {}), ...v }, updated_at: new Date().toISOString() });
+      const old = (d2 && d2.value) || {}, layout = getLayout(old), vc = { ...((layout.cards || {}).videok || {}) };
+      $$('[data-vv]', box).forEach(s => { const k = s.dataset.vv; if (s.value && !(k === 'mode' && s.value === CARD_SECTIONS.videok.mode)) vc[k] = s.value; else delete vc[k]; });
+      const value = { ...old, ...v, layout: { ...layout, cards: { ...(layout.cards || {}), videok: vc } } };
+      const { error: e2 } = e1 ? { error: e1 } : await sb.from('settings').upsert({ key: 'texts', value, updated_at: new Date().toISOString() });
       btn.disabled = false;
       if (e2) return msg('A mentés nem sikerült: ' + e2.message, true);
       msg('Elmentve. A főoldalon frissítés után látszik.'); toast('Videóbeállítás elmentve.');
@@ -1386,6 +1393,7 @@
         ${lyField('Látható sorok (rácsnál)', lySel(p('rows'), CARD_ROWS, v('rows')), 'Ha több kártya van, a többi egy „Tovább” gomb mögött jelenik meg. Lapozható sávnál nem számít.')}
         ${lyField('Kártyák közti távolság', lySel(p('gap'), CARD_GAPS, v('gap')))}
         ${lyField('Sarkok', lySel(p('radius'), CARD_RADII, v('radius')))}
+        ${key === 'videok' ? lyField('Lejátszás', lySel(p('play'), VIDEO_PLAY, v('play')), 'Lista nézetben mindig felugró ablakban játszik.') : ''}
         ${c.ratios ? lyField('Képarány', lySel(p('ratio'), c.ratios, v('ratio'))) : ''}
         ${c.text ? `<label class="lyf chk"><input type="checkbox" data-p="${p('text')}" data-neg${v('text') === 'off' ? '' : ' checked'}><span>Szöveg (dátum, cím) a képek alatt</span></label>` : ''}
       </div></details>`;

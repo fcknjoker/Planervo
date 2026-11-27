@@ -61,7 +61,7 @@ const TEXT_FIELDS = [
   { g: 'Gyakori kérdések', k: 'faq_title', l: 'Cím', d: 'Gyakori kérdések' },
   { g: 'Gyakori kérdések', k: 'faq_text', l: 'Bevezető', d: 'Amit a legtöbben megkérdeznek, mielőtt elkezdem a munkát.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_title', l: 'Cím', d: 'Árajánlatkérés' },
-  { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Add meg a helyiségeket és a munkákat, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.', t: 'textarea' },
+  { g: 'Árajánlatkérés', k: 'quote_text', l: 'Bevezető', d: 'Válaszd ki, milyen munkát szeretnél, add meg a méreteket, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'show_estimate', l: 'Becsült ár mutatása az ügyfélnek', d: true, t: 'bool' },
   { g: 'Árajánlatkérés', k: 'quote_disclaimer', l: 'Megjegyzés a becslés alatt', d: 'A becslés csak a munkadíjat mutatja, az anyag ára nincs benne. Az anyagot kérésre beszerzem, de csak előre fizetéssel. A végleges árat a helyszíni felmérés után mondom meg.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'slots_on', l: 'Kívánt felmérési időpont kérése az űrlapon', t: 'bool', d: true },
@@ -69,6 +69,18 @@ const TEXT_FIELDS = [
   { g: 'Árajánlatkérés', k: 'promo_label', l: 'Az akció neve', d: 'Téli akció', ph: 'pl. Téli akció' },
   { g: 'Árajánlatkérés', k: 'promo_pct', l: 'Kedvezmény (százalék)', t: 'number', d: 10, hint: 'A becsült munkadíjból automatikusan levonódik, és az árajánlat-kérésben is látszik.' },
   { g: 'Árajánlatkérés', k: 'promo_until', l: 'Az akció vége (ÉÉÉÉ-HH-NN)', d: '', ph: '2026-12-31', hint: 'Üresen hagyva nincs határidő. A megadott nap végéig érvényes.' },
+  { g: 'Árajánlat – csomagárak', k: 'pk_cover', l: 'Takarás (padló, maszkolás), Ft / m² alapterület', t: 'number', d: 550, hint: 'A „Tisztasági festés” és a „Felújítás” menüpont ezekkel az árakkal számol. Az „Egyedi összeállítás” továbbra is az „Árak és munkafolyamatok” listáját használja.' },
+  { g: 'Árajánlat – csomagárak', k: 'pk_cover_furn', l: 'Takarás, ha bútor marad a helyiségben, Ft / m² alapterület', t: 'number', d: 850 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_fix', l: 'Hibák javítása tisztasági festésnél (kisebb lyukak, repedések), Ft / m² fal + mennyezet', t: 'number', d: 250 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_paint1', l: 'Festés 1 rétegben (azonos szín vagy fehér), Ft / m²', t: 'number', d: 1150 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_primer', l: 'Mélyalapozás, Ft / m²', t: 'number', d: 500 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_paint2w', l: 'Festés 2 rétegben, fehér, Ft / m²', t: 'number', d: 1650 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_paint2c', l: 'Festés 2 rétegben, színes, Ft / m²', t: 'number', d: 1850 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_edge', l: 'Színhatár képzése, Ft / folyóméter', t: 'number', d: 450 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_scrape', l: 'Falkaparás, Ft / m²', t: 'number', d: 1900 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_glett2', l: 'Glettelés 2 rétegben (vakolt vagy lekapart fal), Ft / m²', t: 'number', d: 2550 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_glett1', l: 'Glettelés meglévő festett felületre, Ft / m²', t: 'number', d: 1350 },
+  { g: 'Árajánlat – csomagárak', k: 'pk_sand', l: 'Glettelt felület csiszolása, Ft / m²', t: 'number', d: 400 },
   { g: 'Árajánlatkérés', k: 'privacy_text', l: 'Adatkezelési hozzájárulás szövege', d: 'Hozzájárulok, hogy a megadott adataimat az árajánlat elkészítéséhez kezelje.', t: 'textarea' },
   { g: 'Árajánlatkérés', k: 'quote_success', l: 'Köszönő üzenet beküldés után', d: 'Megkaptam az árajánlat-kérésedet. 24 órán belül jelentkezem telefonon vagy e-mailben.', t: 'textarea' },
   { g: 'Kapcsolat', k: 'contact_title', l: 'Cím', d: 'Kapcsolat' },
@@ -228,10 +240,12 @@ const CARD_SECTIONS = {
   velemenyek: { label: 'Vélemények', section: 'velemenyek', track: 'tstTrack', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 3, phone: 1 },
   kozossegi: { label: 'Közösségi média', section: 'kozossegi', track: 'spTrack', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 4, phone: 2, text: true,
     ratios: [['', '4:5 álló (alap)'], ['1/1', 'Négyzet'], ['16/9', '16:9 fekvő']] },
-  videok: { label: 'Videók', section: 'videok', track: 'vidList', mode: 'carousel', modes: [MODE_CAR, MODE_GRID], cols: 3, phone: 1, text: true },
+  videok: { label: 'Videók', section: 'videok', track: 'vidList', mode: 'carousel', cols: 4, phone: 1, text: true,
+    modes: [MODE_CAR, MODE_GRID, ['featured', 'Kiemelt videó nagyban, alatta kis kártyák'], ['list', 'Lista: kis előkép, mellette a cím']] },
   blog: { label: 'Blog (főoldali előnézet)', section: 'blog', track: 'postList', mode: 'grid', modes: [MODE_GRID, MODE_CAR], cols: 3, phone: 1,
     ratios: [['', '3:2 (alap)'], ['1/1', 'Négyzet'], ['16/9', '16:9 széles'], ['4/5', 'Álló 4:5']] }
 };
+const VIDEO_PLAY = [['', 'A kártyán belül'], ['popup', 'Felugró nagy ablakban, lapozóval']];
 const LAYOUT_WIDTHS = [['', 'Normál'], ['narrow', 'Keskeny'], ['wide', 'Széles']];
 const LAYOUT_SPACINGS = [['', 'Normál'], ['compact', 'Kompakt'], ['airy', 'Levegős']];
 const LAYOUT_BANNER_TONES = [['gold', 'Arany'], ['dark', 'Sötét'], ['peach', 'Barack']];
