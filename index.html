@@ -223,19 +223,39 @@
 
   <section class="band" id="arajanlat" aria-labelledby="quote-h">
     <div class="wrap">
-      <div class="head"><span class="eyebrow">Árajánlat</span><h2 id="quote-h" data-t="quote_title">Árajánlatkérés</h2><p class="lead" data-t="quote_text">Add meg a helyiségeket és a munkákat, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.</p></div>
+      <div class="head"><span class="eyebrow">Árajánlat</span><h2 id="quote-h" data-t="quote_title">Árajánlatkérés</h2><p class="lead" data-t="quote_text">Válaszd ki, milyen munkát szeretnél, add meg a méreteket, és ha tudsz, csatolj pár fotót. 24 órán belül jelentkezem.</p></div>
       <p class="promo-note" id="promoNote" hidden></p>
       <form id="quoteForm" novalidate>
         <ol class="q-steps" id="qSteps" aria-label="Az árajánlatkérés lépései">
-          <li><a href="#qs1" aria-current="step"><i>1</i>Helyiségek</a></li>
+          <li><a href="#qs1" aria-current="step"><i>1</i>Munka</a></li>
           <li id="qsTime"><a href="#qs2"><i>2</i>Időpont</a></li>
           <li><a href="#qs3"><i>3</i>Elérhetőség</a></li>
         </ol>
         <div class="q-grid">
           <div class="q-main">
-            <h3 class="q-h" id="qs1">Helyiségek</h3>
-            <div id="rooms"></div>
-            <button type="button" class="btn o add" id="addRoom">+ Helyiség hozzáadása</button>
+            <h3 class="q-h" id="qs1">Milyen munkát szeretnél?</h3>
+            <div class="q-modes" role="radiogroup" aria-label="Az árajánlat típusa">
+              <label class="q-mode"><input type="radio" name="qMode" value="clean" checked><span><b>Tisztasági festés</b><small>Jó állapotú falak újrafestése, kisebb hibák javításával.</small></span></label>
+              <label class="q-mode"><input type="radio" name="qMode" value="renov"><span><b>Felújítás</b><small>Glettelés, csiszolás, alapozás és festés. Vakolt, kaparandó vagy glettelendő falakra.</small></span></label>
+              <label class="q-mode"><input type="radio" name="qMode" value="custom"><span><b>Egyedi összeállítás</b><small>Helyiségenként te választod ki az összes munkát az árlistából.</small></span></label>
+            </div>
+
+            <div id="pkPanel">
+              <div id="pkForm"></div>
+              <div class="pk-box" id="pkPhotos">
+                <h4>Fotók</h4>
+                <div class="r-files">
+                  <label class="file-btn"><input type="file" accept="image/*,.heic,.heif" multiple><span>Fotók csatolása</span></label>
+                  <span class="file-hint">Nem kötelező. Legfeljebb 8 kép, egyenként max. 15 MB</span>
+                  <div class="thumbs"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="customPanel" hidden>
+              <div id="rooms"></div>
+              <button type="button" class="btn o add" id="addRoom">+ Helyiség hozzáadása</button>
+            </div>
 
             <div id="slotsBox">
               <h3 class="q-h sp" id="qs2">Mikor jöhetek felmérni?</h3>
@@ -334,6 +354,7 @@
     <figure>
       <div class="cmp" id="plbCmp"><img class="a" alt="Utána"><img class="b" alt="Előtte"><input type="range" min="0" max="100" value="50" aria-label="Előtte–utána csúszka"><div class="line"></div><span class="tag tag-b">Előtte</span><span class="tag tag-a">Utána</span></div>
       <img id="plbOne" alt="" hidden>
+      <div class="plb-jump" id="plbJump"><button type="button" data-x="0">Előtte</button><button type="button" data-x="50">Együtt</button><button type="button" data-x="100">Utána</button></div>
       <p id="plbCap"></p>
     </figure>
     <button class="lb-x" type="button" aria-label="Bezárás">×</button>
